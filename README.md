@@ -1,5 +1,6 @@
+<!-- markdownlint-disable first-line-h1 -->
 
-![IreBot Social Preview](<assets/images/profile/GitHub - Social Preview.png>)
+![IrenesBot Social Preview](<assets/images/profile/SocialPreview.png>)
 
 <h1 align="center">
 🐬IreBot (<a href="https://www.twitch.tv/irenesbot">@IrenesBot</a> on twitch.tv)

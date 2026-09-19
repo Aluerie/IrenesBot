@@ -40,7 +40,7 @@ jobs:
         run: uv run pytest
         env:
           # it doesn't need any real .env values for most of it, just so pydantic doesn't crash out
-          PROJECT_NAME: irebot
+          PROJECT_NAME: irenesbot
           TWITCH_CLIENT_ID: str
           TWITCH_CLIENT_SECRET: str
           POSTGRES_VPS: str

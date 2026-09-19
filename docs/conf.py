@@ -30,15 +30,43 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path("..", "src").resolve()))
 
-project = "IreBot"
-copyright = "2020, Aluerie"
+project = "IrenesBot"
+copyright = "Copyright &copy; 2020-present; Aluerie"  # noqa: A001
 author = "Aluerie"
 
-release = "0.1"
-version = "0.1.0"
+release = "0.7"
+version = "0.7.7"
 
+language = "en"
 
-# -- General configuration
+html_title = "@IrenesBot"
+html_static_path = ["_static"]
+html_css_files = [
+    "custom.css",
+]
+html_theme = "shibuya"
+
+html_theme_options = {
+    "accent_color": "purple",
+}
+html_theme_options = {
+    "nav_links": [
+        {
+            "title": "🎥 Twitch",
+            "url": "https://twitch.tv/IrenesBot",
+        },
+        {
+            "title": "🐈‍⬛ GitHub",
+            "url": "https://github/Aluerie/IrenesBot",
+        },
+        {
+            "title": "💋 Irene_Adler__",
+            "url": "https://twitch.tv/Irene_Adler__",
+        },
+    ],
+    "page_layout": "default",
+}
+
 
 extensions = [
     "sphinx.ext.duration",
@@ -54,12 +82,8 @@ intersphinx_mapping = {
 }
 intersphinx_disabled_domains = ["std"]
 
+
 templates_path = ["_templates"]
 
-# -- Options for HTML output
 
-html_theme = "shibuya"
-# html_theme = "sphinx_rtd_theme"
-
-# -- Options for EPUB output
 epub_show_urls = "footnote"

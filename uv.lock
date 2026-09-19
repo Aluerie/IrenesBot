@@ -743,8 +743,7 @@ wheels = [
 ]
 
 [[package]]
-name = "irebot"
-version = "0.7.7"
+name = "irenesbot"
 source = { virtual = "." }
 dependencies = [
     { name = "asyncpg" },
