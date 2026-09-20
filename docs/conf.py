@@ -1,9 +1,14 @@
-# Configuration file for the Sphinx documentation builder.
+"""Configuration file for the Sphinx documentation builder."""
 
 # -- Project information
+from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from sphinx import application
 
 # I don't understand how to solve Pydantic + Sphinx mess properly
 # ---------------------------------------------------------------
@@ -32,7 +37,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path("..", "src").resolve()))
 
 project = "IrenesBot - Documentation"
-copyright = "Copyright &copy; 2020-present; Aluerie"  # noqa: A001
+copyright = "Copyright &copy; 2020-present; Aluerie (Irene Adler)"  # noqa: A001
 author = "Aluerie"
 
 release = "0.7"
@@ -66,7 +71,7 @@ html_theme_options = {
         },
         {
             "title": "🐈‍⬛ GitHub",
-            "url": "https://github/Aluerie/IrenesBot",
+            "url": "https://github.com/Aluerie/IrenesBot",
         },
         {
             "title": "💋 Irene_Adler__",
@@ -109,3 +114,21 @@ templates_path = ["_templates"]
 
 
 epub_show_urls = "no"
+
+
+def remove_module_docstring(app: application.Sphinx, what: str, name: str, obj: Any, options: Any, lines: list[Any]) -> None:  # noqa: ARG001
+    """Delete all module docstrings.
+
+    Generally, We include license/copyright notions there so we don't want the documentation to be spammed with it.
+
+    Source
+    ------
+    * https://stackoverflow.com/a/18031024/19217368
+    """
+    if what == "module":
+        del lines[:]
+
+
+def setup(app: application.Sphinx) -> None:
+    """Sphinx framework. Adding some handlers."""
+    app.connect("autodoc-process-docstring", remove_module_docstring)

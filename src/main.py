@@ -1,14 +1,17 @@
 """
 Python file to launch the bot with, so called "main".
 
-Generally, it's preferred to use `make run` to run this bot, however you can use
-`uv run src/main.py`, `python src/main.py`, etc. directly, if you like.
+You can launch this bot with:
+* `make run` (preferred for local testing)
+* `uv run src/main.py`
+* `python src/main.py`
+
 CLI supported flags can be viewed with `--help` flag.
 
 License
 -------
-* This Source Code Form is subject to the terms of the [Mozilla Public License v2.0](<http://mozilla.org/MPL/2.0/>).
-* Copyright (C) 2020-present [@Aluerie](<https://github.com/Aluerie>).
+* License: MPL-2.0, see LICENSE for more details.
+* Copyright: (C) 2020-present @Aluerie.
 """
 
 # uvloop existing only for Linux makes that reportMissingImports to be invalid for Linux, but valid for Windows
@@ -133,7 +136,7 @@ async def start_the_bot(
         "Useful for debugging as it makes launch times much faster."
     ),
 )
-def main(
+def launch(
     click_ctx: click.Context,
     *,
     scopes_only: bool,
@@ -141,7 +144,7 @@ def main(
     local_adapter: bool,
     subset_mode: bool,
 ) -> None:
-    """Launches the bot."""
+    """Launch the bot."""
     if click_ctx.invoked_subcommand is None:
         with logs.setup_logging(
             starting_up_art=ASCII_STARTING_UP_ART,
@@ -163,4 +166,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    launch()

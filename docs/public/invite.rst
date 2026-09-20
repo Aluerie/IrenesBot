@@ -1,7 +1,10 @@
 .. _how_to_invite:
 
-How to invite the bot
-=====================
+:iconify:`logos:twitch` How to invite the bot
+=============================================
+
+💌 Invite Link
+##############
 
 Use this link:
 
@@ -18,13 +21,16 @@ The link will redirect to a normal `twitch.tv <https://www.twitch.tv>`_ authoriz
     :align: center
     :width: 400
 
-Troubleshooting
-###############
+💔 Troubleshooting
+##################
 
-If the page is showing some error (e.g. recently I stumbled upon ``ERR_NGROK_8012``) then, please, contact me (@Irene_Adler__).
+In most cases - just contact me (:iconify:`logos:twitch` @Irene_Adler__) and we will solve the problem.
 
-Postscript
-##########
+* If the page doesn't load at all - I probably turned off the web-app for some reason. Contact me.
+* If the page loads but it is showing some error (e.g. recently I stumbled upon ``ERR_NGROK_8012``) then also contact me.
+
+🚩 Postscript
+#############
 
 PS. If I add more public features or if you ask me to add some feature - I might add more permissions to the link. In that case you will have to reauthorize the bot order to have access to the new features.
 

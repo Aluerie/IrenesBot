@@ -1,5 +1,5 @@
-Setup Guide
-============
+⚙️ Setup Guide
+==============
 
 .. warning::
     I would probably prefer if you don't run an instance of my bot. And I'm honestly not a very good programmer. Nevertheless:

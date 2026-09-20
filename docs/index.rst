@@ -2,8 +2,8 @@
     :description lang=en:
         IrenesBot is @Irene_Adler__'s personal twitch.tv bot.
 
-Welcome to @IrenesBot's documentation!
-======================================
+👋 Welcome to @IrenesBot's documentation!
+=========================================
 
 `@IrenesBot <https://www.twitch.tv/irenesbot>`_ is `@Irene Adler <https://www.twitch.tv/irene_adler__>`_'s personal multipurpose `twitch.tv <https://www.twitch.tv>`_ bot.
 
@@ -32,7 +32,7 @@ Welcome to @IrenesBot's documentation!
 
 .. toctree::
    :maxdepth: 1
-   :caption: API Reference (for devs)
+   :caption: API Reference
    :hidden:
 
    references/index

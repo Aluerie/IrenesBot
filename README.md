@@ -8,9 +8,9 @@
 
 Just a personal twitch.tv bot of mine.
 
-![IreBot Display Name](<assets/images/display_name.png>)
+![ReadMe Hello](<assets/images/readme_hello.png>)
 
 ## [🏠 Read The Docs](<https://irenesbot.readthedocs.io>)
 
 > [!IMPORTANT]
-> I really like `Sphinx` / `ReadTheDocs` / `.rst` format so I put pretty much everything in there: some information there ([🏠 Read The Docs](https://github.com/Aluerie/IreBot/wiki)) instead of writing it in the `README.md`. So check it out.
+> I really like `Sphinx` / `ReadTheDocs` / `.rst` format so I put pretty much everything in there ([🏠 Read The Docs](https://github.com/Aluerie/IreBot/wiki)) instead of writing it in the `README.md`. So check it out.
