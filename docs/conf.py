@@ -30,12 +30,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path("..", "src").resolve()))
 
-project = "IrenesBot"
+project = "IrenesBot - Documentation"
 copyright = "Copyright &copy; 2020-present; Aluerie"  # noqa: A001
 author = "Aluerie"
 
 release = "0.7"
 version = "0.7.7"
+
+html_favicon = '_static/favicon.ico'
 
 language = "en"
 
@@ -46,9 +48,16 @@ html_css_files = [
 ]
 html_theme = "shibuya"
 
+
 html_theme_options = {
     "accent_color": "purple",
 }
+# html_context = {
+#     "source_type": "github",
+#     "source_user": "Aluerie",
+#     "source_repo": "IrenesBot",
+# }
+
 html_theme_options = {
     "nav_links": [
         {
@@ -65,6 +74,16 @@ html_theme_options = {
         },
     ],
     "page_layout": "default",
+    "show_ai_links": False,
+    "nav_socials": [],
+    "foot_socials": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/Aluerie",
+            "icon": "simple-icons:github",
+        }
+    ],
+    "globaltoc_expand_depth": 1,
 }
 
 
@@ -86,4 +105,4 @@ intersphinx_disabled_domains = ["std"]
 templates_path = ["_templates"]
 
 
-epub_show_urls = "footnote"
+epub_show_urls = "no"

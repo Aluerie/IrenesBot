@@ -95,7 +95,7 @@ line-length = 125
 target-version = "py314"
 preview = false
 exclude = [".venv"]
-src = ["src", "docs"]
+src = ["src"]
 
 [tool.ruff.lint]
 select = ["ALL"]

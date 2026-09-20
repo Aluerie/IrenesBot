@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from src.core import IrePersonalComponent
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
-
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from src.core import IreBot, IreContext
 
 
 class NewCog(IrePersonalComponent):

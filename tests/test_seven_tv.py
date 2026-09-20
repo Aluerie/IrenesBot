@@ -1,8 +1,7 @@
 import pytest
-
-from config import env
-from shared import seven_tv
-from utils import const
+from src.config import env
+from src.shared import seven_tv
+from src.utils import const
 
 pytest_plugins = ("pytest_asyncio",)
 

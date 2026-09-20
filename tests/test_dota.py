@@ -1,7 +1,6 @@
 import pytest
+from src.shared.dota2.tools import extract_hero_index
 from steam.ext import dota2
-
-from shared.dota2.tools import extract_hero_index
 
 # pyright bug: if I do `from steam.ext.dota2 import Hero` it will fail to find stubs:
 # Stub file not found for "steam.ext.dota2" (reportMissingTypeStubs)
