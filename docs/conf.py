@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 # I don't understand how to solve Pydantic + Sphinx mess properly
+# ---------------------------------------------------------------
 # os.environ["PROJECT_NAME"] = ""
 # os.environ["TWITCH_CLIENT_ID"] = ""
 # os.environ["TWITCH_CLIENT_SECRET"] = ""
@@ -37,7 +38,7 @@ author = "Aluerie"
 release = "0.7"
 version = "0.7.7"
 
-html_favicon = '_static/favicon.ico'
+html_favicon = "_static/favicon.ico"
 
 language = "en"
 
@@ -47,7 +48,6 @@ html_css_files = [
     "custom.css",
 ]
 html_theme = "shibuya"
-
 
 html_theme_options = {
     "accent_color": "purple",
@@ -83,7 +83,7 @@ html_theme_options = {
             "icon": "simple-icons:github",
         }
     ],
-    "globaltoc_expand_depth": 1,
+    # "globaltoc_expand_depth": 1,
 }
 
 
