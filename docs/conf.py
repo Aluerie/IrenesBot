@@ -93,6 +93,9 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
+    # Extra
+    "sphinx_design",
+    "sphinx_iconify",
 ]
 
 intersphinx_mapping = {

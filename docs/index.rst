@@ -1,3 +1,7 @@
+.. meta::
+    :description lang=en:
+        IrenesBot is @Irene_Adler__'s personal twitch.tv bot.
+
 Welcome to @IrenesBot's documentation!
 ======================================
 
@@ -12,17 +16,23 @@ Welcome to @IrenesBot's documentation!
 
 
 .. toctree::
-   :caption: Public
    :maxdepth: 1
+   :caption: Public Features
    :hidden:
 
    public/invite
    public/dota2
 
+.. toctree::
+   :maxdepth: 1
+   :caption: For Developers
+   :hidden:
+
+   developers/setup
 
 .. toctree::
-   :caption: API Reference (for devs)
    :maxdepth: 1
+   :caption: API Reference (for devs)
    :hidden:
 
    references/index

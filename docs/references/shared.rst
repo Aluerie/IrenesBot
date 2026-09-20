@@ -1,7 +1,5 @@
-.. currentmodule:: shared
-
-Shared
-======
+Seven TV
+========
 
 .. automodule:: shared
     

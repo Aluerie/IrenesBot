@@ -55,6 +55,11 @@ class MetaCommands(IrePublicComponent):
         """Get a list of bot commands."""
         await ctx.send("aluerie.github.io/IreBot")
 
+    @commands.command(aliases=["hi", "yo", "hallo"])
+    async def hello(self, ctx: IreContext) -> None:
+        """Hello."""
+        await ctx.send(f"{const.STV.hello} Hello!")
+
     @commands.command()
     async def irene(self, ctx: IreContext) -> None:
         """Just a random command that is unlikely to be in other bots."""

@@ -1,0 +1,12 @@
+# VPS location:
+# home/ubuntu/.config/ngrok/ngrok.yml
+
+version: "3"
+agent:
+    authtoken: secret-look-in-env
+
+endpoints:
+  - name: http
+    url: parrot-thankful-trivially.ngrok-free.app
+    upstream:
+      url: 4343

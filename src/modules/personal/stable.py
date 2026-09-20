@@ -146,11 +146,6 @@ class StableCommands(IrePersonalComponent):
         # just a small joke to teach people
         await ctx.send("Just click your name 4Head")
 
-    @commands.command(aliases=["hi", "yo", "hallo"])
-    async def hello(self, ctx: IreContext) -> None:
-        """Hello."""
-        await ctx.send(const.STV.hello)
-
     @commands.command(aliases=["lorem", "ipsum"])
     async def loremipsum(self, ctx: IreContext) -> None:
         """Lorem ipsum."""

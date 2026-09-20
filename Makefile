@@ -138,7 +138,10 @@ echo:  # Testing stuff with make, why don't we test it with echo
 .PHONY: sphinx
 .SILENT: sphinx
 sphinx:  # sphinx
+	-cd docs && rm -Recurse _build
 	cd docs && uv run sphinx-build . _build
+# It's recommended to clear `_build` folder before running the docs
+# to avoid random unobvious issues, like left sidebar not properly updating for "old" pages.
 
 
 .PHONY: scp
