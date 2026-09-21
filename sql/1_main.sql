@@ -63,3 +63,46 @@ CREATE TABLE
         reward_id TEXT NOT NULL,
         original_title TEXT
     );
+
+CREATE TABLE
+    /* Streamer Settings
+     */
+    IF NOT EXISTS ttv_streamer_settings (
+        broadcaster_id TEXT PRIMARY KEY,
+        allow_emote_stats BOOLEAN DEFAULT (FALSE)
+    );
+
+CREATE TABLE
+    /* EMOTE STATS TOTAL
+     */
+    IF NOT EXISTS ttv_emote_stats_total (
+        id BIGSERIAL PRIMARY KEY,
+        broadcaster_id TEXT,
+        emote_id TEXT,
+        total INTEGER DEFAULT (0)
+    );
+
+CREATE INDEX IF NOT EXISTS ttv_emote_stats_total_broadcaster_id_idx ON ttv_emote_stats_total (broadcaster_id);
+
+CREATE INDEX IF NOT EXISTS ttv_emote_stats_total_emote_id_idx ON ttv_emote_stats_total (emote_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ttv_emote_stats_total_uniq_idx ON ttv_emote_stats_total (broadcaster_id, emote_id);
+
+CREATE TABLE
+    /* EMOTE STATS LAST YEAR
+     */
+    IF NOT EXISTS ttv_emote_stats_last_year (
+        id BIGSERIAL PRIMARY KEY,
+        emote_id TEXT,
+        broadcaster_id TEXT,
+        author_id TEXT,
+        used TIMESTAMP
+    );
+
+CREATE INDEX IF NOT EXISTS ttv_emote_stats_last_year_emote_id_idx ON ttv_emote_stats_last_year (emote_id);
+
+CREATE INDEX IF NOT EXISTS ttv_emote_stats_last_year_broadcaster_id_idx ON ttv_emote_stats_last_year (broadcaster_id);
+
+CREATE INDEX IF NOT EXISTS ttv_emote_stats_last_year_author_id_idx ON ttv_emote_stats_last_year (author_id);
+
+CREATE INDEX IF NOT EXISTS ttv_emote_stats_last_year_used_idx ON ttv_emote_stats_last_year (used);

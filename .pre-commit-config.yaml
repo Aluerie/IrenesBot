@@ -10,7 +10,7 @@ files: .*\.py$
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.6
+    rev: v0.16.8
     hooks:
       # Run the linter (solely for --fix part).
       # When we need linting - it's handled by `.github/workflows/type_lint_test.yml`

@@ -1,6 +1,6 @@
 [project]
 name = "IrenesBot"
-dynamic = ["version"]
+version = "7.7.7"
 description = "Personal Twitch.tv Bot"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -21,6 +21,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "click>=8.3.3",
     "discord-py[speed]>=2.7.1",
+    "orjson>=3.12.0",
     "pydantic-settings>=2.14.1",
     "steamio>=1.1.3",
     "twitchio[starlette]>=3.3.0b2031",
@@ -56,6 +57,9 @@ docs = [
 name = "umbra"
 url = "https://about.abstractumbra.dev/pip/"
 explicit = true
+
+[tool.uv]
+package = false
 
 # ##############################
 # SHARED PYPROJECT TOML CONFIG #
@@ -194,3 +198,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 testpaths = ["tests/"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+
+[tool.esbonio.sphinx]
+pythonCommand = ["uv", "run", "python"]
+cwd = "/docs"

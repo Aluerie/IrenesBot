@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+sys.path.insert(0, str(Path("..", "src").resolve()))
+
 if TYPE_CHECKING:
     from sphinx import application
 
@@ -34,7 +36,6 @@ if TYPE_CHECKING:
 # os.environ["WEBHOOK_HEARTBEAT"] = ""
 # os.environ["WEBHOOK_HEARTBEAT"] = ""
 
-sys.path.insert(0, str(Path("..", "src").resolve()))
 
 project = "IrenesBot - Documentation"
 copyright = "Copyright &copy; 2020-present; Aluerie (Irene Adler)"  # noqa: A001

@@ -17,9 +17,9 @@
 1. Clone the repository and change directory to the new folder:
 
    .. code-block:: bash
-
-        git clone https://github.com/Aluerie/IrenesBot
-        cd ./IreBot
+      
+      git clone https://github.com/Aluerie/IrenesBot
+      cd ./IreBot
 
 2. Set up your virtual environment (venv) with your preferred Python package manager. I prefer :iconify:`material-icon-theme:uv` `uv <https://docs.astral.sh/uv/>`_. 
    This repository is fully setup with its help which means if you use it - it will automatically solve some chores for you even when running ``uv run src/main.py``. 

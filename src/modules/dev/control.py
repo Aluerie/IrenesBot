@@ -16,12 +16,15 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def to_module(_: IreContext, module: str) -> str:
-    """Just a shortcut to add `modules.` prefix to user input.
+class ModuleConverter(commands.Converter[str]):
+    """Simple converter to add `modules.` prefix to user input.
 
-    So I can use command like this `!reload personal.emotes_check`.
+    So I can use !reload and similar commands like this `!reload personal.emotes_check`.
     """
-    return f"modules.{module}"
+
+    @override
+    async def convert(self, ctx: IreContext, arg: str) -> str:  # pyright: ignore[reportIncompatibleMethodOverride]
+        return f"modules.{arg}"
 
 
 class Control(IreDevComponent):
@@ -79,21 +82,24 @@ class Control(IreDevComponent):
             await ctx.send("Something went wrong.")
 
     @commands.command()
-    async def unload(self, ctx: IreContext, *, modules: Annotated[str, to_module]) -> None:
+    async def unload(self, ctx: IreContext, *, modules: Annotated[str, ModuleConverter]) -> None:
         """Unload the modules."""
         await self.bot.unload_module(modules)
+        log.info("!unload - unloaded %s", modules)
         await ctx.send(f"{const.STV.DankApprove} unloaded {modules}")
 
     @commands.command()
-    async def reload(self, ctx: IreContext, *, modules: Annotated[str, to_module]) -> None:
+    async def reload(self, ctx: IreContext, *, modules: Annotated[str, ModuleConverter]) -> None:
         """Reload the modules."""
         await self.bot.reload_module(modules)
+        log.info("!reload - reloaded %s", modules)
         await ctx.send(f"{const.STV.DankApprove} reloaded {modules}")
 
     @commands.command()
-    async def load(self, ctx: IreContext, *, modules: Annotated[str, to_module]) -> None:
+    async def load(self, ctx: IreContext, *, modules: Annotated[str, ModuleConverter]) -> None:
         """Load the modules."""
         await self.bot.load_module(modules)
+        log.info("!load - loaded %s", modules)
         await ctx.send(f"{const.STV.DankApprove} loaded {modules}")
 
     @commands.command(name="modules", aliases=["extensions", "components"])  # module != component but whatever

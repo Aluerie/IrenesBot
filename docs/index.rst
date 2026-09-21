@@ -21,18 +21,21 @@
    :hidden:
 
    public/invite
+   public/meta
+   public/seven_tv
    public/dota2
 
 .. toctree::
    :maxdepth: 1
    :caption: For Developers
    :hidden:
-
+   
    developers/setup
+   developers/tips
 
 .. toctree::
    :maxdepth: 1
-   :caption: API Reference
+   :caption: API Reference (for devs)
    :hidden:
 
    references/index

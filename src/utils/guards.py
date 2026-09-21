@@ -83,3 +83,18 @@ def is_broadcaster_or_dev() -> Any:
         raise errors.RespondWithError(msg)
 
     return commands.guard(predicate)
+
+
+def is_dev() -> Any:
+    """Allow the command to be completed only by Irene.
+
+    Similar to `@commands.is_owner`.
+    """
+
+    def predicate(ctx: IreContext) -> bool:
+        if ctx.chatter.id == ctx.bot.owner_id:
+            return True
+        msg = f"Sorry, this command can only be used by the developers {const.FFZ.peepoPolice}"
+        raise errors.RespondWithError(msg)
+
+    return commands.guard(predicate)

@@ -53,7 +53,7 @@ class MetaCommands(IrePublicComponent):
     @commands.command(name="commands", aliases=["help", "irenesbot"])
     async def command_list(self, ctx: IreContext) -> None:
         """Get a list of bot commands."""
-        await ctx.send("aluerie.github.io/IreBot")
+        await ctx.send("irenesbot.readthedocs.io")
 
     @commands.command(aliases=["hi", "yo", "hallo"])
     async def hello(self, ctx: IreContext) -> None:
