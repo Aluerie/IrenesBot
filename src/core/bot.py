@@ -227,16 +227,22 @@ class IreBot(commands.AutoBot):
         await self.pool.execute(query, resp.user_id, token, refresh)
 
         if resp.user_id:
-            partial_user = self.create_partialuser(resp.user_id)
             query = """
                 INSERT INTO ttv_streamers
-                (user_id, display_name)
-                VALUES ($1, $2)
+                (user_id)
+                VALUES ($1)
                 ON CONFLICT (user_id)
-                    DO NOTHING;
+                    DO NOTHING
+                RETURNING user_id;
             """
-            await self.pool.execute(query, resp.user_id, partial_user.display_name)
-            log.info("Added a new streamer %s (@%s) to the database", resp.user_id, partial_user.display_name)
+            user_id = await self.pool.fetchval(query, resp.user_id)
+            if user_id:
+                # New User
+                partial_user = self.create_partialuser(resp.user_id)
+                user = await partial_user.user()
+                query = "UPDATE ttv_streamers SET display_name = $1 WHERE user_id = $2;"
+                await self.pool.execute(query, user.display_name, user.id)
+                log.info("Added a new streamer %s (@%s) to the database", user.id, user.display_name)
 
         log.info("Added token to the database for user: %s", resp.user_id)
         return resp

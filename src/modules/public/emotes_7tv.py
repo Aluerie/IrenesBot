@@ -65,7 +65,7 @@ def to_emote_id(user_input: str) -> str:
     return search["emote_id"]
 
 
-class SevenTVEmoteConverter(commands.Converter[str]):
+class UserSearchEmoteIDConverter(commands.Converter[str]):
     """Seven TV Emote Converter.
 
     Converts user_input from `str` type into 7TV emote_id.
@@ -82,7 +82,7 @@ class SevenTVEmoteConverter(commands.Converter[str]):
 
         # Step 2. Try to find the said emote with 7TV Graph QL
         try:
-            return await ctx.bot.stv.user_search_emote(broadcaster_id=ctx.broadcaster.id, emote_name=user_input)
+            return (await (ctx.bot.stv.create_partial_user(ctx.broadcaster.id)).search_emote(user_input)).id
         except errors.UnsatisfyingResultError:
             msg = f"It seems there is no emote like that {const.STV.POLICE}"
             raise errors.RespondWithError(msg) from None
@@ -185,7 +185,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
 
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="remove", aliases=["delete"])
-    async def stv_cycle_remove(self, ctx: IreContext, emote_id: Annotated[str, SevenTVEmoteConverter]) -> None:
+    async def stv_cycle_remove(self, ctx: IreContext, emote_id: Annotated[str, UserSearchEmoteIDConverter]) -> None:
         """Remove an emote from the cycling list.
 
         Useful when a streamer wants an emote to stop from being cycled out.
@@ -311,13 +311,13 @@ class SevenTVCyclingEmotes(IrePublicComponent):
         except IndexError:
             # unfortunately, due to Seven TV weird implementation of Emote Set update call
             # we won't actually get the name from it, so we need to fetch it beforehand.
-            emote_alias = await self.bot.stv.emote_get_name(emote_id)
+            emote_alias = (await self.bot.stv.fetch_emote(emote_id)).default_name
 
         log.debug("🖍️ - emote_id = %s emote_alias = %s", emote_id, emote_alias)
 
         # Step 2. Get Emote Set
-        emote_set_id = await self.bot.stv.user_get_active_emote(broadcaster_id=redemption.broadcaster.id)
-        log.debug("🖍️ - Operating on emote_set #%s", emote_set_id)
+        partial_emote_set = await self.bot.stv.create_partial_user(redemption.broadcaster.id).fetch_active_emote_set()
+        log.debug("🖍️ - Operating on emote_set #%s", partial_emote_set.id)
 
         # Step 3. Remove emote(-s) if above the limit
         query = """
@@ -333,7 +333,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             )
         """
         emote_ids_to_remove: list[str] = [
-            r for (r,) in await self.bot.pool.fetch(query, redemption.broadcaster.id, emote_set_id)
+            r for (r,) in await self.bot.pool.fetch(query, redemption.broadcaster.id, partial_emote_set.id)
         ]
         log.debug("🖍️ - Removing emotes #%s", emote_ids_to_remove)
 
@@ -342,14 +342,8 @@ class SevenTVCyclingEmotes(IrePublicComponent):
 
         for emote_id_to_remove in emote_ids_to_remove:
             try:
-                emote_name_to_remove: str = await self.bot.stv.emote_emote_set_alias(
-                    emote_set_id=emote_set_id,
-                    emote_id=emote_id_to_remove,
-                )
-                await self.bot.stv.emote_set_remove_emote(
-                    emote_set_id=emote_set_id,
-                    emote_id=emote_id_to_remove,
-                )
+                emote_name_to_remove: str = await partial_emote_set.fetch_emote_alias(emote_id=emote_id_to_remove)
+                await partial_emote_set.remove_emote(emote_id=emote_id_to_remove)
             except seven_tv.EmoteNotFoundInSetError:
                 log.debug("🖍️ Emote Not Found - removing #%s", emote_id_to_remove)
             else:
@@ -364,14 +358,10 @@ class SevenTVCyclingEmotes(IrePublicComponent):
 
         # Step 4. Add the requested emote
         try:
-            await self.bot.stv.emote_set_add_emote(
-                emote_set_id=emote_set_id,
-                emote_id=emote_id,
-                emote_alias=emote_alias,
-            )
+            await partial_emote_set.add_emote(emote_id=emote_id, emote_alias=emote_alias)
         except seven_tv.ConflictingEmoteNameError:
             try:
-                await self.bot.stv.emote_emote_set_alias(emote_set_id=emote_set_id, emote_id=emote_id)
+                await partial_emote_set.fetch_emote_alias(emote_id)
             except seven_tv.EmoteNotFoundInSetError:
                 # This means the new emote has a conflicting name
                 await refund_and_respond(
@@ -390,7 +380,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             (emote_id, streamer_id, emote_set_id, requested_by)
             VALUES ($1, $2, $3, $4)
         """
-        await self.bot.pool.execute(query, emote_id, redemption.broadcaster.id, emote_set_id, redemption.user.id)
+        await self.bot.pool.execute(query, emote_id, redemption.broadcaster.id, partial_emote_set.id, redemption.user.id)
 
         result = f"Added '{emote_alias}' ({get_seven_tv_link(emote_id)}) {const.STV.DonkCrayon}"
         log.info(result)
@@ -398,7 +388,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
         await redemption.fulfill(token_for=redemption.broadcaster.id)
 
     @guards.is_dev()
-    @commands.command()
+    @commands.command(aliases=["dev_reset_cycle"])
     async def dev_cycle_reset(self, ctx: IreContext) -> None:
         """Developer command for temporary reset / testing.
 
@@ -429,10 +419,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
         ]
         for emote_id in color_ball_ids:
             with contextlib.suppress(seven_tv.EmoteNotFoundInSetError):
-                await ctx.bot.stv.emote_set_remove_emote(
-                    emote_set_id=const.STV_IRENE_DEFAULT_EMOTE_SET_ID,
-                    emote_id=emote_id,
-                )
+                await ctx.bot.stv.create_partial_emote_set(const.STV_IRENE_DEFAULT_EMOTE_SET_ID).remove_emote(emote_id)
         await ctx.send(f"Done {const.STV.DonkCrayon}")
 
     #########################################################################################################################
@@ -554,12 +541,12 @@ class SevenTVManagement(IrePublicComponent):
 
     @commands.is_moderator()
     @commands.command()
-    async def add(self, ctx: IreContext, emote_id: Annotated[str, SevenTVEmoteConverter]) -> None:
+    async def add(self, ctx: IreContext, emote_id: Annotated[str, UserSearchEmoteIDConverter]) -> None:
         """Add 7TV emote."""
 
     @commands.is_moderator()
     @commands.command()
-    async def remove(self, ctx: IreContext, emote_id: Annotated[str, SevenTVEmoteConverter]) -> None:
+    async def remove(self, ctx: IreContext, emote_id: Annotated[str, UserSearchEmoteIDConverter]) -> None:
         """Remove 7TV emote."""
 
 
