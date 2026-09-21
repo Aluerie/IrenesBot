@@ -1,11 +1,4 @@
 CREATE TABLE
-    IF NOT EXISTS ttv_streamers (
-        user_id TEXT PRIMARY KEY,
-        display_name TEXT,
-        active BOOLEAN DEFAULT (TRUE)
-    );
-
-CREATE TABLE
     IF NOT EXISTS ttv_dota_accounts (
         friend_id BIGINT PRIMARY KEY, -- steam32id (friend id) format;
         twitch_id TEXT NOT NULL,

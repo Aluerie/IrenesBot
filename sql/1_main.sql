@@ -15,6 +15,13 @@ CREATE TABLE
     );
 
 CREATE TABLE
+    IF NOT EXISTS ttv_streamers (
+        user_id TEXT PRIMARY KEY,
+        display_name TEXT,
+        active BOOLEAN DEFAULT (TRUE)
+    );
+
+CREATE TABLE
     /* Tags */
     IF NOT EXISTS ttv_tags (
         tag_name TEXT PRIMARY KEY,
@@ -62,14 +69,6 @@ CREATE TABLE
         streamer_id TEXT PRIMARY KEY,
         reward_id TEXT NOT NULL,
         original_title TEXT
-    );
-
-CREATE TABLE
-    /* Streamer Settings
-     */
-    IF NOT EXISTS ttv_streamer_settings (
-        broadcaster_id TEXT PRIMARY KEY,
-        allow_emote_stats BOOLEAN DEFAULT (FALSE)
     );
 
 CREATE TABLE
