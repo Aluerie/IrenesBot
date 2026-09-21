@@ -1,6 +1,11 @@
 7️⃣ 7TV features
 ================
 
+.. important::
+
+    For most administrative 7tv bot's features to work - you need to add the bot as your 7TV editor `here <https://7tv.app/settings/editors>`_.
+    Currently, ``Emotes > Manage`` permission is enough, but maybe future features will require more.
+
 🤣 Emote Stats
 ##############
 
