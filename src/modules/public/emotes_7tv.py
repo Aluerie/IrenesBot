@@ -157,9 +157,8 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             cost=10,
             prompt=(
                 # This prompt can be 200 characters max
-                "Give me a 7TV emote link or emote ID. If you want an emote alias - type it after a space: "
-                '"<emote_link or id> <optional_emote_alias>". '
-                'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF smh"'
+                "Give me a 7TV emote link or emote ID. Optionally, type an emote alias. "
+                'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH"'
             ),
         )
 
@@ -352,10 +351,10 @@ class SevenTVCyclingEmotes(IrePublicComponent):
                     emote_id=emote_id_to_remove,
                 )
             except seven_tv.EmoteNotFoundInSetError:
-                pass
+                log.debug("🖍️ Emote Not Found - removing #%s", emote_id_to_remove)
             else:
-                await redemption.respond(f"Removed {emote_name_to_remove} ({get_seven_tv_link(emote_id_to_remove)})")
-            log.debug("🖍️ - Removed emote #%s", emote_id_to_remove)
+                # await redemption.respond(f"Removed {emote_name_to_remove} ({get_seven_tv_link(emote_id_to_remove)})")
+                log.debug("🖍️ - Removed emote %s (#%s)", emote_name_to_remove, emote_id_to_remove)
         if emote_ids_to_remove:
             query = """
                 DELETE FROM ttv_cycling_emotes
@@ -393,7 +392,9 @@ class SevenTVCyclingEmotes(IrePublicComponent):
         """
         await self.bot.pool.execute(query, emote_id, redemption.broadcaster.id, emote_set_id, redemption.user.id)
 
-        await redemption.respond(f"Added '{emote_alias}' ({get_seven_tv_link(emote_id)}) {const.STV.DonkCrayon}")
+        result = f"Added '{emote_alias}' ({get_seven_tv_link(emote_id)}) {const.STV.DonkCrayon}"
+        log.info(result)
+        # await redemption.respond(result)
         await redemption.fulfill(token_for=redemption.broadcaster.id)
 
     @guards.is_dev()

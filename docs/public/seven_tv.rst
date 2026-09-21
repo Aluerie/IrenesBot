@@ -21,7 +21,7 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 
 1. I add "Blue" emote with an ``<emote_id>``, the bot adds it;
 2. I add "Teal" emote with its ``<7tv_link>``, the bot adds it;
-3. I add "Purple" emote with and ``emote_id`` and alias - the bot adds it, but it also removes "Blue".
+3. I add "Purple" emote with and ``emote_id`` and alias - the bot adds it, but this time the limit came to play - it also had to remove "Blue" emote.
 
 .. image:: /_static/images/cycling-emotes.png
 
