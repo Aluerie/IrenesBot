@@ -158,7 +158,8 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             prompt=(
                 # This prompt can be 200 characters max
                 "Give me a 7TV emote link or emote ID. If you want an emote alias - type it after a space: "
-                '"*emote_link/id* *optional_emote_alias*". Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF smh"'
+                '"<emote_link or id> <optional_emote_alias>". '
+                'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF smh"'
             ),
         )
 
@@ -166,10 +167,22 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             INSERT INTO ttv_cycling_emote_rewards
             (streamer_id, reward_id, emote_limit)
             VALUES ($1, $2, $3)
+            ON CONFLICT (streamer_id)
+                DO NOTHING
+            returning streamer_id
         """
-        await self.bot.pool.execute(query, ctx.broadcaster.id, custom_reward.id, emote_limit)
-        self.reward_ids_cache.add(custom_reward.id)
-        await ctx.send(f"Created a cycling 7tv emote channel points reward {const.STV.DankApprove}")
+        streamer_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, custom_reward.id, emote_limit)
+        if streamer_id is None:
+            msg = "This channel already has 7TV Cycling Emotes Channel Reward"
+            raise errors.RespondWithError(msg)
+
+        await self.fill_known_rewards()
+        await ctx.send(
+            f"Created a cycling 7tv emote channel points reward {const.STV.DankApprove} "
+            "PS. if you want to edit it (e.g. text or color) - visit your creator dashboard "
+            f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards). "
+            "Just don't remove `Require Viewer to Enter Text`, please."
+        )
 
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="remove", aliases=["delete"])

@@ -14,7 +14,7 @@ These commands are about managing 7tv cycling emotes.
 Cycling emotes are supposed to work as follows. 
 A streamer has a channel points redeem (that was setup with the bot's help).
 When a user redeems it and specifies an emote to add - the bot adds this emote to the channel but considers it as a "cycling emote".
-Eventually, when the total amount of cycling becomes more than a currently set up ``emote_limit`` - the bot removes the oldest emote from the channel.
+Eventually, when the total amount of cycling emotes becomes more than a currently set up ``emote_limit`` - the bot removes the oldest emote from the channel.
 In other words, the bot cycles out the oldest emote - hence the name for the feature.
 
 Here is a screenshot of how it works with ``emote_limit = 2``. 
