@@ -38,7 +38,7 @@ class DiscordNotifications(IrePersonalComponent):
     @commands.Component.listener(name="stream_online")
     async def stream_start(self, online: twitchio.StreamOnline) -> None:
         """Stream started (went live)."""
-        if not self.is_irene(online.broadcaster.id):
+        if not self.is_dev(online.broadcaster.id):
             return
 
         irene = await online.broadcaster.user()
@@ -77,7 +77,7 @@ class DiscordNotifications(IrePersonalComponent):
     @commands.Component.listener("stream_offline")
     async def twitch_tv_offline_edit_notification(self, offline: twitchio.StreamOffline) -> None:
         """Starts the task to edit the notification message."""
-        if not self.is_irene(offline.broadcaster.id):
+        if not self.is_dev(offline.broadcaster.id):
             return
 
         await asyncio.sleep(11 * 60)

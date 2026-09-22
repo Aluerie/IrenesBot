@@ -63,7 +63,7 @@ class Timers(IrePersonalComponent):
     @commands.Component.listener(name="stream_online")
     async def stream_online_start_the_task(self, online: twitchio.StreamOffline) -> None:
         """Start counting messages when stream goes online."""
-        if not self.is_irene(online.broadcaster.id):
+        if not self.is_dev(online.broadcaster.id):
             return
 
         random.shuffle(self.messages)
@@ -75,7 +75,7 @@ class Timers(IrePersonalComponent):
     @commands.Component.listener(name="stream_offline")
     async def stream_offline_cancel_the_task(self, offline: twitchio.StreamOffline) -> None:
         """Cancel the counting messages listener when stream goes offline."""
-        if not self.is_irene(offline.broadcaster.id):
+        if not self.is_dev(offline.broadcaster.id):
             return
 
         self.bot.remove_listener(self.count_messages)
@@ -91,7 +91,7 @@ class Timers(IrePersonalComponent):
 
         If these two are fulfilled then the bot sends a semi-periodic message in the chat.
         """
-        if not self.is_irene(message.broadcaster.id):
+        if not self.is_dev(message.broadcaster.id):
             return
 
         if message.chatter.name in const.BotsLowerName:

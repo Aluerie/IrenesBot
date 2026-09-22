@@ -38,7 +38,7 @@ class Counters(IrePersonalComponent):
     @commands.Component.listener(name="message")
     async def erm_counter(self, message: twitchio.ChatMessage) -> None:
         """Erm Counter."""
-        if not self.is_irene(message.broadcaster.id):
+        if not self.is_dev(message.broadcaster.id):
             return
         if message.chatter.name in const.BotsLowerName or not message.text:
             return

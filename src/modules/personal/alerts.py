@@ -35,7 +35,7 @@ class Alerts(IrePersonalComponent):
     @commands.Component.listener(name="custom_redemption_add")
     async def channel_points_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
         """Somebody redeemed a custom channel points reward."""
-        if not self.is_irene(redemption.broadcaster.id):
+        if not self.is_dev(redemption.broadcaster.id):
             return
 
         # just testing
@@ -48,7 +48,7 @@ class Alerts(IrePersonalComponent):
     # @commands.Component.listener(name="follow")
     async def follows(self, follow: twitchio.ChannelFollow) -> None:
         """Somebody followed the channel."""
-        if not self.is_irene(follow.broadcaster.id):
+        if not self.is_dev(follow.broadcaster.id):
             return
 
         random_phrase = random.choice(
@@ -62,7 +62,7 @@ class Alerts(IrePersonalComponent):
     @commands.Component.listener(name="raid")
     async def raids(self, raid: twitchio.ChannelRaid) -> None:
         """Somebody raided the channel."""
-        if not self.is_irene(raid.to_broadcaster.id):
+        if not self.is_dev(raid.to_broadcaster.id):
             return
 
         streamer = await raid.to_broadcaster.user()
@@ -81,7 +81,7 @@ class Alerts(IrePersonalComponent):
     @commands.Component.listener(name="stream_online")
     async def stream_start(self, online: twitchio.StreamOnline) -> None:
         """Stream started (went live)."""
-        if not self.is_irene(online.broadcaster.id):
+        if not self.is_dev(online.broadcaster.id):
             return
 
         channel_info = await online.broadcaster.fetch_channel_info()
@@ -143,7 +143,7 @@ class Alerts(IrePersonalComponent):
     @commands.Component.listener(name="stream_offline")
     async def stream_end(self, offline: twitchio.StreamOffline) -> None:
         """Stream ended (went offline)."""
-        if not self.is_irene(offline.broadcaster.id):
+        if not self.is_dev(offline.broadcaster.id):
             return
 
         await offline.respond(f"Stream is now offline {const.BTTV.Offline}")
@@ -153,7 +153,7 @@ class Alerts(IrePersonalComponent):
     @commands.Component.listener(name="ad_break")
     async def ad_break(self, ad_break: twitchio.ChannelAdBreakBegin) -> None:
         """Ad break."""
-        if not self.is_irene(ad_break.broadcaster.id):
+        if not self.is_dev(ad_break.broadcaster.id):
             return
 
         word = "automatic" if ad_break.automatic else "manual"
@@ -167,7 +167,7 @@ class Alerts(IrePersonalComponent):
     @commands.Component.listener(name="ban")
     async def bans_timeouts(self, ban: twitchio.Ban) -> None:
         """Bans."""
-        if not self.is_irene(ban.broadcaster.id):
+        if not self.is_dev(ban.broadcaster.id):
             return
 
         self.ban_list.add(ban.user.id)
@@ -178,7 +178,7 @@ class Alerts(IrePersonalComponent):
 
         This functions filters out spam-bots that should be perma-banned right away by other features or other bots.
         """
-        if not self.is_irene(message.broadcaster.id):
+        if not self.is_dev(message.broadcaster.id):
             return
 
         if not message.text:
@@ -215,7 +215,7 @@ class Alerts(IrePersonalComponent):
     @commands.Component.listener(name="subscription")
     async def subscription(self, subscription: twitchio.ChannelSubscribe) -> None:
         """Subscriptions."""
-        if not self.is_irene(subscription.broadcaster.id):
+        if not self.is_dev(subscription.broadcaster.id):
             return
 
         await subscription.respond(f"{subscription.user.mention} just subscribed {const.STV.Donki} thanks")
@@ -223,7 +223,7 @@ class Alerts(IrePersonalComponent):
     @commands.Component.listener(name="subscription_message")
     async def subscription_message(self, subscription_message: twitchio.ChannelSubscriptionMessage) -> None:
         """Subscriptions."""
-        if not self.is_irene(subscription_message.broadcaster.id):
+        if not self.is_dev(subscription_message.broadcaster.id):
             return
 
         await subscription_message.respond(

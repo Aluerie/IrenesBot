@@ -20,6 +20,10 @@ class IreComponent(commands.Component):
     def __init__(self, bot: IreBot) -> None:
         self.bot: IreBot = bot
 
+    def is_dev(self, user_id: str) -> bool:
+        """A check whether the user is a bot owner."""
+        return user_id == self.bot.owner_id
+
 
 class IrePublicComponent(IreComponent):
     """Base component to use for public modules."""
@@ -31,13 +35,9 @@ class IrePersonalComponent(IreComponent):
     Features in personal components are only available in Irene's main and secondary twitch channels.
     """
 
-    def is_irene(self, user_id: str) -> bool:
-        """A check whether the user is a bot owner."""
-        return user_id == self.bot.owner_id
-
     @override
     async def component_before_invoke(self, ctx: IreContext) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
-        if not self.is_irene(ctx.broadcaster.id):
+        if not self.is_dev(ctx.broadcaster.id):
             msg = "Command is not allowed anywhere except Irene's channel"
             raise errors.SilentError(msg)
 

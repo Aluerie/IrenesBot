@@ -329,6 +329,10 @@ class SevenTVCyclingEmotes(IrePublicComponent):
         if redemption.reward.id not in self.reward_ids_cache:
             return
 
+        if self.is_dev(redemption.user.id):
+            # Refund the points for Irene because you know, testing costs :D
+            await redemption.refund(token_for=redemption.broadcaster.id)
+
         log.debug(
             "🖍️ - User @%s (%s) requested cycle-emote at broadcaster @%s (%s)",
             redemption.user.display_name,

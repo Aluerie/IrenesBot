@@ -147,7 +147,7 @@ class StreamInformation(IrePersonalComponent):
     @commands.Component.listener(name="channel_update")
     async def channel_update(self, update: twitchio.ChannelUpdate) -> None:
         """Channel Info (game, title, etc) got updated."""
-        if not self.is_irene(update.broadcaster.id):
+        if not self.is_dev(update.broadcaster.id):
             return
 
         now = datetime.datetime.now(datetime.UTC)
