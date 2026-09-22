@@ -3,8 +3,8 @@ _Insert Module Docstring Here_.
 
 License
 -------
-* This Source Code Form is subject to the terms of the [Mozilla Public License v2.0](<http://mozilla.org/MPL/2.0/>).
-* Copyright (C) 2020-present [@Aluerie](<https://github.com/Aluerie>).
+* License: MPL-2.0, see LICENSE for more details.
+* Copyright: (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import asyncpg
 from twitchio.ext import commands
 
 from core import IrePublicComponent, ireloop
-from shared import errors, fuzzy, seven_tv
+from shared import errors, fuzzy, seven_tv_api
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -344,7 +344,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             try:
                 emote_name_to_remove: str = await partial_emote_set.fetch_emote_alias(emote_id=emote_id_to_remove)
                 await partial_emote_set.remove_emote(emote_id=emote_id_to_remove)
-            except seven_tv.EmoteNotFoundInSetError:
+            except seven_tv_api.EmoteNotFoundInSetError:
                 log.debug("🖍️ Emote Not Found - removing #%s", emote_id_to_remove)
             else:
                 # await redemption.respond(f"Removed {emote_name_to_remove} ({get_seven_tv_link(emote_id_to_remove)})")
@@ -359,10 +359,10 @@ class SevenTVCyclingEmotes(IrePublicComponent):
         # Step 4. Add the requested emote
         try:
             await partial_emote_set.add_emote(emote_id=emote_id, emote_alias=emote_alias)
-        except seven_tv.ConflictingEmoteNameError:
+        except seven_tv_api.ConflictingEmoteNameError:
             try:
                 await partial_emote_set.fetch_emote_alias(emote_id)
-            except seven_tv.EmoteNotFoundInSetError:
+            except seven_tv_api.EmoteNotFoundInSetError:
                 # This means the new emote has a conflicting name
                 await refund_and_respond(
                     f"This emote has a conflicting name, consider adding it with an alias {const.FFZ.peepoPolice}"
@@ -418,7 +418,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             # cSpell: enable
         ]
         for emote_id in color_ball_ids:
-            with contextlib.suppress(seven_tv.EmoteNotFoundInSetError):
+            with contextlib.suppress(seven_tv_api.EmoteNotFoundInSetError):
                 await ctx.bot.stv.create_partial_emote_set(const.STV_IRENE_DEFAULT_EMOTE_SET_ID).remove_emote(emote_id)
         await ctx.send(f"Done {const.STV.DonkCrayon}")
 

@@ -15,6 +15,14 @@ CREATE TABLE
     );
 
 CREATE TABLE
+    /* Twitch Oauth Tokens */
+    IF NOT EXISTS ttv_test_tokens (
+        user_id TEXT PRIMARY KEY,
+        token TEXT NOT NULL,
+        refresh TEXT NOT NULL
+    );
+
+CREATE TABLE
     IF NOT EXISTS ttv_streamers (
         user_id TEXT PRIMARY KEY,
         display_name TEXT,

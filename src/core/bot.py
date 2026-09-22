@@ -11,14 +11,14 @@ from typing import TYPE_CHECKING, Any, TypedDict, override
 import discord
 import steam
 import twitchio
-from discord.utils import MISSING
 from twitchio import eventsub
 from twitchio.ext import commands
 from twitchio.web import StarletteAdapter
 
 from config import env
 from modules import PUBLIC_D9MMRBOT, get_modules
-from shared import errors, fmt, seven_tv
+from shared import errors, fmt, seven_tv_api
+from shared.helpers import MISSING
 from utils import const
 from utils.dota2 import IreDota2Client
 
@@ -95,9 +95,9 @@ class IreBot(commands.AutoBot):
         force_subscribe: bool,
         local: bool,
         subset_mode: bool,
+        test_account: bool,
     ) -> None:
         """Initiate IreBot."""
-        self.prefixes: tuple[str, ...] = ("!", "?", "$", "%")
         if local:
             self.domain = "http://localhost:4343"
             adapter: StarletteAdapter[Any] | None = None
@@ -108,10 +108,29 @@ class IreBot(commands.AutoBot):
                 domain=self.domain,
                 eventsub_secret=env.EVENTSUB,
             )
+
+        if test_account:
+            # test account
+            client_id = env.TEST_TWITCH_CLIENT_ID
+            client_secret = env.TEST_TWITCH_CLIENT_SECRET
+            bot_id = const.UserID.Test
+            token_table = "ttv_test_tokens"  # noqa: S105, it's not a password, lol
+            prefixes = ("%",)
+        else:
+            # production account
+            client_id = env.TWITCH_CLIENT_ID
+            client_secret = env.TWITCH_CLIENT_SECRET
+            bot_id = const.UserID.Bot
+            token_table = "ttv_tokens"  # noqa: S105, it's not a password, lol
+            prefixes = ("!", "?", "$")
+
+        self.prefixes: tuple[str, ...] = prefixes
+        self.tokens_table = token_table
+
         super().__init__(
-            client_id=env.TWITCH_CLIENT_ID,
-            client_secret=env.TWITCH_CLIENT_SECRET,
-            bot_id=const.UserID.Bot,
+            client_id=client_id,
+            client_secret=client_secret,
+            bot_id=bot_id,
             owner_id=const.UserID.Irene,
             prefix=self.prefixes,
             adapter=adapter,  # pyright: ignore[reportArgumentType], it's hinted as `NotRequired` while I need to use `None`.
@@ -135,7 +154,7 @@ class IreBot(commands.AutoBot):
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
         self.friends_index_ready: asyncio.Event = asyncio.Event()
 
-        self.stv: seven_tv.SevenTVClient = seven_tv.SevenTVClient(env.SEVEN_TV_BEARER, session=session)
+        self.stv: seven_tv_api.SevenTVClient = seven_tv_api.SevenTVClient(env.SEVEN_TV_BEARER, session=session)
 
         # initialized later
         self.dota2: IreDota2Client = MISSING
@@ -215,8 +234,8 @@ class IreBot(commands.AutoBot):
         resp: twitchio.authentication.ValidateTokenPayload = await super().add_token(token, refresh)
 
         # Store our tokens in a simple SQLite Database when they are authorized...
-        query = """
-            INSERT INTO ttv_tokens
+        query = f"""
+            INSERT INTO {self.tokens_table}
             (user_id, token, refresh)
             VALUES ($1, $2, $3)
             ON CONFLICT(user_id)
@@ -250,9 +269,9 @@ class IreBot(commands.AutoBot):
     @override
     async def load_tokens(self, _: str | None = None) -> None:  # _ is `path`
         # We don't need to call this manually, it is called in .login() from .start() internally...
-        query = """
+        query = f"""
             SELECT *
-            FROM ttv_tokens
+            FROM {self.tokens_table}
         """
         rows: list[LoadTokensQueryRow] = await self.pool.fetch(query)
         for row in rows:
@@ -306,7 +325,7 @@ class IreBot(commands.AutoBot):
     # @override  # interesting that it's not an override
     async def event_ready(self) -> None:
         """Event that is dispatched when the `Client` is ready and has completed login."""
-        log.info("%s is ready as bot_id = %s", self.__class__.__name__, self.bot_id)
+        log.info("%s is ready as @%s (id=%s)", self.__class__.__name__, self.bot_id, self.user.display_name)
 
         if not hasattr(self, "launch_time"):
             # who knows maybe it triggers many times like `discord.py`

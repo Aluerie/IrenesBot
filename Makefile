@@ -68,7 +68,10 @@ update:  # Update dependencies
 .PHONY: run
 .SILENT: run
 run:  # Run the bot in the subset-mode
-	uv run src/main.py --subset-mode --local-adapter
+	uv run src/main.py --subset-mode --local-adapter --test-account
+
+# Other CLI flags
+# --scopes-only
 
 .PHONY: lint
 .SILENT: lint

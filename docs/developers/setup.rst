@@ -14,107 +14,107 @@
 🔨 Installation
 ###############
 
-1. Clone the repository and change directory to the new folder:
+1. Clone the :iconify:`fa-brands:github` `repository <https://github.com/Aluerie/IrenesBot>`_ and change directory to the newly created folder:
 
    .. code-block:: bash
       
       git clone https://github.com/Aluerie/IrenesBot
-      cd ./IreBot
+      cd ./IrenesBot
 
-2. Set up your virtual environment (venv) with your preferred Python package manager. I prefer :iconify:`material-icon-theme:uv` `uv <https://docs.astral.sh/uv/>`_. 
+2. Set up a virtual environment (venv) with your preferred :iconify:`devicon:python` Python package manager. I prefer :iconify:`material-icon-theme:uv` `uv <https://docs.astral.sh/uv/>`_. 
    This repository is fully setup with its help which means if you use it - it will automatically solve some chores for you even when running ``uv run src/main.py``. 
-   But feel free to use any other Python package manager (``py``, ``pdm``, ...)
+   But feel free to use any other :iconify:`devicon:python` Python package manager (``py``, ``pdm``, ...)
    I also made a :iconify:`material-icon-theme:makefile` Makefile (it uses :iconify:`devicon:powershell` powershell profile by default) with some handy instructions for some common operations.
    I recommend using them.
 
    .. tab-set::
-        :class: outline
+      :class: outline
 
-        .. tab-item:: :iconify:`material-icon-theme:makefile` Makefile
+      .. tab-item:: :iconify:`material-icon-theme:makefile` Makefile
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                make setup
+            make setup
 
-        .. tab-item:: :iconify:`:material-icon-theme:uv` uv
+      .. tab-item:: :iconify:`:material-icon-theme:uv` uv
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                uv sync
+            uv sync
 
-        .. tab-item:: :iconify:`devicon:pypi` pip
+      .. tab-item:: :iconify:`devicon:pypi` pip
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                    python3.14 -m venv venv # or
-                    py -m venv venv # or your favorite package manager way
+            python3.14 -m venv venv # or
+            py -m venv venv # or your favorite package manager way
 
-3. This repository uses a git submodule ``shared``. We need to update it after initial cloning. 
+3. This repository uses a git submodule :iconify:`fa-brands:github` `shared <https://github.com/Aluerie/Shared-Bot-Utilities>`_. We need to update it after initial cloning. 
    ``make setup`` automatically does it (so you can skip to the next step if you used it), but if not then please do:
 
    .. code-block:: bash
-    
-        git submodule update --init --recursive
+
+      git submodule update --init --recursive
 
 4. Activate the venv with
 
    .. code-block:: bash
 
-        ./venv/Scripts/Activate.ps1 # Powershell Windows
-        source ./venv/bin/activate # Ubuntu
-        # Etc
+      ./venv/Scripts/Activate.ps1 # Powershell Windows
+      source ./venv/bin/activate # Ubuntu
+      # Etc
 
 5. Install dependencies with
 
    .. tab-set::
-        :class: outline
+      :class: outline
 
-        .. tab-item:: :iconify:`material-icon-theme:makefile` Makefile
+      .. tab-item:: :iconify:`material-icon-theme:makefile` Makefile
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                make sync
+            make sync
 
-        .. tab-item:: :iconify:`:material-icon-theme:uv` uv
+      .. tab-item:: :iconify:`:material-icon-theme:uv` uv
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                uv sync  # Yes, I'm repeating myself, oups.
+            uv sync  # Yes, I'm repeating myself, oups.
 
-        .. tab-item:: :iconify:`devicon:pypi` pip
+      .. tab-item:: :iconify:`devicon:pypi` pip
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                    python3.14 -m pip install . # or
-                    py -m pip install . # or your favorite package manager way
+            python3.14 -m pip install . # or
+            py -m pip install . # or your favorite package manager way
 
 6. Rename-copy ``.env.example`` to ``.env`` and fill out all the needed config parameters, api-keys, credentials and passwords in it.
 7. Replace twitch ID and some other constant variables in files under ``/utils/const`` folder with your own.
-8. Create SQL tables using definitions from ``.sql``-files in ``sql`` folder.
+8. Create :iconify:`griddy-icons:sql` SQL tables using definitions from ``.sql``-files in ``sql`` folder.
 9. Run the bot with one of the following commands.
    Note that I chose to have working directory as project root folder and run the bot with ``uv run src/main.py`` over switching directory to ``src`` first.
    I also have a bunch of CLI arguments for ``src/main.py`` script that you can check with ``uv run src/main.py --help`` or inspecting the file itself.
 
    .. tab-set::
-        :class: outline
+      :class: outline
 
-        .. tab-item:: :iconify:`material-icon-theme:makefile` Makefile
+      .. tab-item:: :iconify:`material-icon-theme:makefile` Makefile
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                make run
+            make run
 
-        .. tab-item:: :iconify:`:material-icon-theme:uv` uv
+      .. tab-item:: :iconify:`:material-icon-theme:uv` uv
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                uv run src/main.py  # can add some CLI arguments
+            uv run src/main.py  # can add some CLI arguments
 
-        .. tab-item:: :iconify:`devicon:python` python
+      .. tab-item:: :iconify:`devicon:python` python
 
-            .. code-block:: bash
+         .. code-block:: bash
 
-                    python src/main.py  # can add some CLI arguments
+            python src/main.py  # can add some CLI arguments
 
 🌊 Process Managers
 ###################
@@ -124,14 +124,20 @@ You can use anything you like though: :iconify:`devicon:docker` dockers, simple 
 An example of my ``.service`` file is in the repository root folder.
 
 .. tip::
-    A good template for ``.service`` files can be found in `gist by @mikeshardmind <https://gist.github.com/mikeshardmind/4c88f17cc607e30be57a27a840fde617>`_. 
-    The options are explained pretty well at `freedesktop.org <https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html>`_.
+   A good template for ``.service`` files can be found in `gist by @mikeshardmind <https://gist.github.com/mikeshardmind/4c88f17cc607e30be57a27a840fde617>`_. 
+   The options are explained pretty well at `freedesktop.org <https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html>`_.
 
 🔌 Adapter Setup
 #################
 
-1. Decide whether we use local adapter (localhost) or remote (currently "free pleb" option - ngrok);
-   Remote allows other people to authorize the bot permissions, but requires a web app running.
+1. Decide whether you want to use local adapter (**localhost**) or remote (personally, I'm currently using **ngrok-free.app**);
+   Remote allows other people to authorize the bot permissions, but requires a web app with a public-facing URL running.
+   While localhost is perfect for one-channel bots, nothing wrong with a bot serving only one channel.
+
+   .. caution::
+
+      In the further points I will use ``https://parrot-thankful-trivially.ngrok-free.app`` as an example for *my own convenience* - 
+      replace it with your own public-facing URL if you are actually making a twitch bot of your own. 
 
 2. `Twitch Developer Console <https://dev.twitch.tv/console>`_ with the bot application (e.g. for me at ``@Irene_Adler__`` account).
    We need to edit **OAuths Redirect URLs**:
@@ -148,7 +154,7 @@ An example of my ``.service`` file is in the repository root folder.
 
    .. image:: /_static/images/twitch-dev-console.png
 
-1. At this point, with ``local`` setup - no extra actions needed, skip to the next step.
+3. At this point, with ``local`` setup - no extra actions needed, skip to the next step.
    Ngrok, however, needs a setup:
    In your terminal run (``parrot-thankful-trivially.ngrok-free.app`` is host-name I was given so replace that with your own):
 
@@ -170,7 +176,7 @@ An example of my ``.service`` file is in the repository root folder.
          ngrok service install --config .config/ngrok/ngrok.yml
          ngrok service start / stop / restart / run / install / uninstall
 
-3. Simply run the bot with ``--local-adapter`` if you want a local adapter, or without the said flag for remote adapter.
+4. Simply run the bot with ``--local-adapter`` if you want a local adapter, or without the said flag for remote adapter.
    
    .. code-block:: bash
 
@@ -195,8 +201,6 @@ An example of my ``.service`` file is in the repository root folder.
 ✅ Troubleshooting
 ##################
 
-* If something goes wrong with conduits or permissions - it's likely that running the bot with ``uv run src/main.py --force-subscribe`` will solve the issue.
-  The conduits stay alive only for 72 hours. 
-  They also don't automatically refresh when adding new permissions (unless I fixed that in the ``core.bot`` module?).
-
-
+*  If something goes wrong with conduits or permissions - it's likely that running the bot with ``uv run src/main.py --force-subscribe`` will solve the issue.
+   The conduits stay alive only for 72 hours. 
+   They also don't automatically refresh when adding new permissions (unless I fixed that in the ``core.bot`` module?).

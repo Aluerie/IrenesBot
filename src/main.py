@@ -68,6 +68,7 @@ async def start_the_bot(
     force_subscribe: bool,
     local_adapter: bool,
     subset_mode: bool,
+    test_account: bool,
 ) -> None:
     """Start the bot."""
     log = logging.getLogger()
@@ -80,7 +81,7 @@ async def start_the_bot(
         log.exception(msg)
         return
 
-    subscriptions = await get_eventsub_subscriptions(pool)
+    subscriptions = await get_eventsub_subscriptions(pool, test_account=test_account)
 
     async with (
         aiohttp.ClientSession() as session,
@@ -93,6 +94,7 @@ async def start_the_bot(
             force_subscribe=force_subscribe,
             local=local_adapter,
             subset_mode=subset_mode,
+            test_account=test_account,
         ) as irebot,
     ):
         await irebot.start()
@@ -136,6 +138,16 @@ async def start_the_bot(
         "Useful for debugging as it makes launch times much faster."
     ),
 )
+@click.option(
+    "--test-account",
+    "-t",
+    is_flag=True,
+    default=False,  # usual default: False ✅
+    help=(
+        "Whether to launch the bot using test dummy account (@IrenesTest). "
+        "It's useful when we want to test some features without interrupting the main account."
+    ),
+)
 def launch(
     click_ctx: click.Context,
     *,
@@ -143,6 +155,7 @@ def launch(
     force_subscribe: bool,
     local_adapter: bool,
     subset_mode: bool,
+    test_account: bool,
 ) -> None:
     """Launch the bot."""
     if click_ctx.invoked_subcommand is None:
@@ -157,6 +170,7 @@ def launch(
                         force_subscribe=force_subscribe,
                         local_adapter=local_adapter,
                         subset_mode=subset_mode,
+                        test_account=test_account,
                     )
                 )
             except KeyboardInterrupt:

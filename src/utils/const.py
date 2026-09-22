@@ -21,6 +21,7 @@ class UserID(StrEnum):
 
     Irene = "180499648"  # @Irene_Adler__
     Bot = "1277023540"  # @IrenesBot
+    Test = "1543411482"  # @IrenesTest
 
     # Not me
     Xas = "101998257"  # @Xasthurize

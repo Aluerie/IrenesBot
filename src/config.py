@@ -28,6 +28,8 @@ class Env(EnvConfig):
     PROJECT_NAME: str
     TWITCH_CLIENT_ID: str
     TWITCH_CLIENT_SECRET: str
+    TEST_TWITCH_CLIENT_ID: str
+    TEST_TWITCH_CLIENT_SECRET: str
     POSTGRES_VPS: str
     POSTGRES_HOME: str
     STEAM_FRIEND_IRENE_ID64: int
@@ -59,4 +61,4 @@ def replace_secrets(text: str) -> str:
     A precaution measure.
     For example, it's possible for error handler to spoil my secrets when reporting some `HTTPException`.
     """
-    return DO_NOT_SPOIL_PATTERN.sub("SECRET", text)
+    return DO_NOT_SPOIL_PATTERN.sub("<SECRET>", text)

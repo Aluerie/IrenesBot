@@ -43,6 +43,7 @@ _build/
 # Testing Related
 src/modules/beta.py
 modules_subset.py
+src/alpha.py
 
 # FILES TO COMMIT ELSEWHERE
 # -------------------------
