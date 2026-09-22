@@ -17,7 +17,7 @@ from twitchio.web import StarletteAdapter
 
 from config import env
 from modules import PUBLIC_D9MMRBOT, get_modules
-from shared import errors, fmt, seven_tv_api
+from shared import errors, fmt, seven_tv
 from shared.helpers import MISSING
 from utils import const
 from utils.dota2 import IreDota2Client
@@ -154,7 +154,7 @@ class IreBot(commands.AutoBot):
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
         self.friends_index_ready: asyncio.Event = asyncio.Event()
 
-        self.stv: seven_tv_api.SevenTVClient = seven_tv_api.SevenTVClient(env.SEVEN_TV_BEARER, session=session)
+        self.stv: seven_tv.SevenTVClient = seven_tv.SevenTVClient(env.SEVEN_TV_BEARER, session=session)
 
         # initialized later
         self.dota2: IreDota2Client = MISSING

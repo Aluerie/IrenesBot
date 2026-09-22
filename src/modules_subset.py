@@ -22,8 +22,8 @@ MODULES_SUBSET: dict[str, list[str]] = {
     ],
     "public": [
         # "d9kmmrbot",
-        # "emotes_7tv",
+        "emotes_7tv",
         # "first",
-        "meta"
+        # "meta"
     ],
 }

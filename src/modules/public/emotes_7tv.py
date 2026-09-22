@@ -13,15 +13,24 @@ import asyncio
 import contextlib
 import datetime
 import logging
+import pprint
 import re
 from collections import Counter, defaultdict
 from typing import TYPE_CHECKING, Annotated, Any, TypedDict, override
 
 import asyncpg
+from eventapi.EventApi import EventApi
+from eventapi.WebSocket import (
+    Dispatch,
+    EventType,
+    ResponseTypes,
+    SubscriptionCondition,
+    SubscriptionData,
+)
 from twitchio.ext import commands
 
 from core import IrePublicComponent, ireloop
-from shared import errors, fuzzy, seven_tv_api
+from shared import errors, fuzzy, seven_tv
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -35,6 +44,7 @@ if TYPE_CHECKING:
         reward_id: str
         emote_limit: int
         emote_count: int
+        emote_set_id: str
 
     class BatchLastYearEntry(TypedDict):
         """BatchLastYearEntry."""
@@ -101,8 +111,46 @@ class SevenTVCyclingEmotes(IrePublicComponent):
 
         self.bulk_insert.add_exception_type(asyncpg.PostgresConnectionError)
 
+        async def ws_callback(data: ResponseTypes) -> None:
+            """7TV WebSocket Callback.
+
+            When emotes get deleted - they should be deleted from the bot's database too.
+            """
+            if not isinstance(data, Dispatch):
+                return
+            if data.type != EventType.EMOTE_SET_UPDATE:
+                return
+
+            if data.body.pulled:
+                # Emote Deleted
+                for pulled in data.body.pulled:
+                    query = """
+                        DELETE FROM ttv_cycling_emotes
+                        WHERE emote_id = $1 AND emote_set_id = $2;
+                    """
+                    emote_id: str = pulled.old_value["id"]  # pyright: ignore[reportOptionalSubscript, reportUnknownVariableType]
+                    emote_set_id = data.body.id
+
+                    await self.bot.pool.execute(query, emote_id, emote_set_id)  # pyright: ignore[reportUnknownArgumentType]
+
+        self.stv_ws = EventApi(callback=ws_callback)
+
+    async def stv_ws_subscribe(self, emote_set_id: str) -> None:
+        """Make 7TV WebSocket Subscription."""
+        condition = SubscriptionCondition(object_id=emote_set_id)  # your emote-set id
+        subscription = SubscriptionData(subscription_type=EventType.EMOTE_SET_ALL, condition=condition)
+        await self.stv_ws.subscribe(subscription_data=subscription)
+
+    async def stv_ws_multi_subscribe(self) -> None:
+        """Make 7TV WebSocket Subscriptions."""
+        query = "SELECT DISTINCT emote_set_id FROM ttv_cycling_emote_rewards;"
+        for (emote_set_id,) in await self.bot.pool.fetch(query):
+            await self.stv_ws_subscribe(emote_set_id)
+
     @override
     async def component_load(self) -> None:
+        await self.stv_ws.connect()
+        await self.stv_ws_multi_subscribe()
         self.fill_known_rewards.start()
         # self.bulk_insert.start()
         # self.clean_up_old_records.start()
@@ -153,7 +201,8 @@ class SevenTVCyclingEmotes(IrePublicComponent):
     async def stv_cycle_create(self, ctx: IreContext, emote_limit: int = 10) -> None:
         """Create 7TV Cycling emote channel points reward."""
         custom_reward = await ctx.broadcaster.create_custom_reward(
-            title=f"Add a 7TV emote ({emote_limit} slots, oldest cycles out)",
+            # This prompt can be 45 characters max
+            title=f"Add 7TV emote ({emote_limit} slots, oldest cycle out)",
             cost=10,
             prompt=(
                 # This prompt can be 200 characters max
@@ -161,16 +210,23 @@ class SevenTVCyclingEmotes(IrePublicComponent):
                 'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH"'
             ),
         )
+        partial_emote_set = await self.bot.stv.create_partial_user(ctx.broadcaster.id).fetch_active_emote_set()
 
         query = """
             INSERT INTO ttv_cycling_emote_rewards
-            (streamer_id, reward_id, emote_limit)
-            VALUES ($1, $2, $3)
+            (streamer_id, reward_id, emote_limit, emote_set_id)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (streamer_id)
                 DO NOTHING
             returning streamer_id
         """
-        streamer_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, custom_reward.id, emote_limit)
+        streamer_id: str | None = await self.bot.pool.fetchval(
+            query,
+            ctx.broadcaster.id,
+            custom_reward.id,
+            emote_limit,
+            partial_emote_set.id,
+        )
         if streamer_id is None:
             msg = "This channel already has 7TV Cycling Emotes Channel Reward"
             raise errors.RespondWithError(msg)
@@ -182,6 +238,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards). "
             "Just don't remove `Require Viewer to Enter Text`, please."
         )
+        await self.stv_ws_subscribe(partial_emote_set.id)
 
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="remove", aliases=["delete"])
@@ -208,7 +265,8 @@ class SevenTVCyclingEmotes(IrePublicComponent):
                     SELECT COUNT(*)
                     FROM ttv_cycling_emotes
                     WHERE ttv_cycling_emotes.streamer_id = ttv_cycling_emote_rewards.streamer_id
-                ) AS emote_count
+                ) AS emote_count,
+                emote_set_id
             FROM ttv_cycling_emote_rewards
             WHERE streamer_id = $1;
         """
@@ -228,7 +286,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
 
         content = (
             f"✅ title={reward.title} cost={reward.cost} reward_id={row['reward_id']} emote_limit={row['emote_limit']} "
-            f"emote_count={row['emote_count']}"
+            f"emote_count={row['emote_count']} emote_set_id={row['emote_set_id']}"
         )
         await ctx.send(content)
 
@@ -337,32 +395,29 @@ class SevenTVCyclingEmotes(IrePublicComponent):
         ]
         log.debug("🖍️ - Removing emotes #%s", emote_ids_to_remove)
 
-        def get_seven_tv_link(emote_id: str) -> str:
-            return f"7tv.app/emotes/{emote_id}"
-
         for emote_id_to_remove in emote_ids_to_remove:
             try:
                 emote_name_to_remove: str = await partial_emote_set.fetch_emote_alias(emote_id=emote_id_to_remove)
                 await partial_emote_set.remove_emote(emote_id=emote_id_to_remove)
-            except seven_tv_api.EmoteNotFoundInSetError:
+            except seven_tv.EmoteNotFoundInSetError:
                 log.debug("🖍️ Emote Not Found - removing #%s", emote_id_to_remove)
             else:
                 # await redemption.respond(f"Removed {emote_name_to_remove} ({get_seven_tv_link(emote_id_to_remove)})")
                 log.debug("🖍️ - Removed emote %s (#%s)", emote_name_to_remove, emote_id_to_remove)
-        if emote_ids_to_remove:
-            query = """
-                DELETE FROM ttv_cycling_emotes
-                WHERE streamer_id = $1 AND emote_id = ANY($2);
-            """
-            await self.bot.pool.execute(query, redemption.broadcaster.id, emote_ids_to_remove)
+        # if emote_ids_to_remove:
+        #     query = """
+        #         DELETE FROM ttv_cycling_emotes
+        #         WHERE streamer_id = $1 AND emote_id = ANY($2);
+        #     """
+        #     await self.bot.pool.execute(query, redemption.broadcaster.id, emote_ids_to_remove)
 
         # Step 4. Add the requested emote
         try:
-            await partial_emote_set.add_emote(emote_id=emote_id, emote_alias=emote_alias)
-        except seven_tv_api.ConflictingEmoteNameError:
+            partial_emote = await partial_emote_set.add_emote(emote_id=emote_id, emote_alias=emote_alias)
+        except seven_tv.ConflictingEmoteNameError:
             try:
                 await partial_emote_set.fetch_emote_alias(emote_id)
-            except seven_tv_api.EmoteNotFoundInSetError:
+            except seven_tv.EmoteNotFoundInSetError:
                 # This means the new emote has a conflicting name
                 await refund_and_respond(
                     f"This emote has a conflicting name, consider adding it with an alias {const.FFZ.peepoPolice}"
@@ -373,7 +428,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
                 await refund_and_respond(f"This his emote was already added to this emote set {const.FFZ.peepoPolice}")
                 return
 
-        log.debug("🖍️ - Added emote #%s", emote_id)
+        log.debug("🖍️ Added emote #%s", emote_id)
 
         query = """
             INSERT INTO ttv_cycling_emotes
@@ -382,7 +437,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
         """
         await self.bot.pool.execute(query, emote_id, redemption.broadcaster.id, partial_emote_set.id, redemption.user.id)
 
-        result = f"Added '{emote_alias}' ({get_seven_tv_link(emote_id)}) {const.STV.DonkCrayon}"
+        result = f"🖍️ Added '{emote_alias}' ({partial_emote.url()}) {const.STV.DonkCrayon}"
         log.info(result)
         # await redemption.respond(result)
         await redemption.fulfill(token_for=redemption.broadcaster.id)
@@ -418,7 +473,7 @@ class SevenTVCyclingEmotes(IrePublicComponent):
             # cSpell: enable
         ]
         for emote_id in color_ball_ids:
-            with contextlib.suppress(seven_tv_api.EmoteNotFoundInSetError):
+            with contextlib.suppress(seven_tv.EmoteNotFoundInSetError):
                 await ctx.bot.stv.create_partial_emote_set(const.STV_IRENE_DEFAULT_EMOTE_SET_ID).remove_emote(emote_id)
         await ctx.send(f"Done {const.STV.DonkCrayon}")
 

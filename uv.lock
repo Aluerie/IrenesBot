@@ -556,6 +556,18 @@ wheels = [
 ]
 
 [[package]]
+name = "eventapi"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "websockets" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/00/de/8479e2f0d544130286eef00cb6cd5a1ec5d0354d13213c72ca21a4cfea21/eventapi-1.0.4.tar.gz", hash = "sha256:aff0aa6da0b80a79569416bc131ab2c3d808c06a625ddd52e1a5656b95b8da5a", size = 7315, upload-time = "2023-12-13T00:37:04.88Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/92/02/478a6b4dd244724861c90ffdb5f087c5195964c21d4a17c7311a2916f611/eventapi-1.0.4-py3-none-any.whl", hash = "sha256:ac414937d06a3702355ead88bdaa7af52010f974b6475273775ba1860cdfbb8e", size = 7893, upload-time = "2023-12-13T00:37:02.901Z" },
+]
+
+[[package]]
 name = "executing"
 version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -750,6 +762,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "click" },
     { name = "discord-py", extra = ["speed"] },
+    { name = "eventapi" },
     { name = "orjson" },
     { name = "pydantic-settings" },
     { name = "steamio" },
@@ -786,6 +799,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "discord-py", extras = ["speed"], specifier = ">=2.7.1" },
+    { name = "eventapi", specifier = ">=1.0.4" },
     { name = "orjson", specifier = ">=3.12.0" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "steamio", git = "https://github.com/Aluerie/steam.py?rev=introduce-ext.dota2" },
@@ -1878,6 +1892,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/3d/7a/f98d4ada7c499565ab0c0fcef28a4e54fafa72b8228a6309803c80493c92/wcwidth-0.8.4.tar.gz", hash = "sha256:2dae09efa25253ae2874188e86d6861af3b1652aef4118cdf3f0bda288a957fb", size = 414609, upload-time = "2026-09-17T23:31:45.287Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/39/cc/9c0adc5861020de426ec71716b6c1bef8d90694b7d6d0a16202cdb1647f5/wcwidth-0.8.4-py3-none-any.whl", hash = "sha256:2097bb1d28a0ba8fe177c2eb607317f9b1627b03f33ebebfd3da670b337a65ba", size = 299474, upload-time = "2026-09-17T23:31:43.816Z" },
+]
+
+[[package]]
+name = "websockets"
+version = "12.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2e/62/7a7874b7285413c954a4cca3c11fd851f11b2fe5b4ae2d9bee4f6d9bdb10/websockets-12.0.tar.gz", hash = "sha256:81df9cbcbb6c260de1e007e58c011bfebe2dafc8435107b0537f393dd38c8b1b", size = 104994, upload-time = "2023-10-21T14:21:11.88Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/79/4d/9cc401e7b07e80532ebc8c8e993f42541534da9e9249c59ee0139dcb0352/websockets-12.0-py3-none-any.whl", hash = "sha256:dc284bbc8d7c78a6c69e0c7325ab46ee5e40bb4d50e494d8131a07ef47500e9e", size = 118370, upload-time = "2023-10-21T14:21:10.075Z" },
 ]
 
 [[package]]

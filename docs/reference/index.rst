@@ -47,5 +47,5 @@ Fuzzy
 Seven TV
 ########
 
-.. automodule:: shared.seven_tv_api
+.. automodule:: shared.seven_tv
     :members:
