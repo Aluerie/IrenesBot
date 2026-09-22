@@ -325,7 +325,7 @@ class IreBot(commands.AutoBot):
     # @override  # interesting that it's not an override
     async def event_ready(self) -> None:
         """Event that is dispatched when the `Client` is ready and has completed login."""
-        log.info("%s is ready as @%s (id=%s)", self.__class__.__name__, self.bot_id, self.user.display_name)
+        log.info("%s is ready as @%s (id=%s)", self.__class__.__name__, self.user.display_name, self.bot_id)
 
         if not hasattr(self, "launch_time"):
             # who knows maybe it triggers many times like `discord.py`

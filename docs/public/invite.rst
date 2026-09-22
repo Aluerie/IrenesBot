@@ -14,8 +14,10 @@ Use this link:
 
 
 Yes, I'm sorry. I know the link looks ugly and the host "parrot-thankful-trivially.ngrok-free.app" looks suspicious as hell, but I don't really care to pay money to get a proper domain name. 
-Idk, I'm a bit stingy like that, but it's safe to click.
-The link will redirect to a normal `twitch.tv <https://www.twitch.tv>`_ authorization page like a screenshot below: here you read what permissions my bot is asking and press "Authorize" it if you are okay with giving my bot those permissions.
+Idk, I'm a bit stingy like that, but it's safe to click (me and a few people have already authorized the bot this way).
+
+The link will redirect to a normal `twitch.tv <https://www.twitch.tv>`_ authorization page like a screenshot below: 
+here you read what permissions my bot is asking and press "Authorize" it if you are okay with giving my bot those permissions.
 
 .. image:: /_static/images/authorize.png
     :align: center
@@ -24,7 +26,7 @@ The link will redirect to a normal `twitch.tv <https://www.twitch.tv>`_ authoriz
 💔 Troubleshooting
 ##################
 
-In most cases - just contact me (:iconify:`logos:twitch` @Irene_Adler__) and we will solve the problem.
+In most cases - just contact me (:iconify:`logos:twitch` `@Irene_Adler__ <https://www.twitch.tv/Irene_Adler__>`_) and we will solve the problem.
 
 * If the page doesn't load at all - I probably turned off the web-app for some reason. Contact me.
 * If the page loads but it is showing some error (e.g. recently I stumbled upon ``ERR_NGROK_8012``) then also contact me.

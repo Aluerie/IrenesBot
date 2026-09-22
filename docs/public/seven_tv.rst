@@ -24,16 +24,18 @@ In other words, the bot cycles out the oldest emote - hence the name for the fea
 
 Here is a screenshot of how it works with ``emote_limit = 2``. 
 
-1. I add "Blue" emote with an ``<emote_id>``, the bot adds it;
-2. I add "Teal" emote with its ``<7tv_link>``, the bot adds it;
-3. I add "Purple" emote with and ``emote_id`` and alias - the bot adds it, but this time the limit came to play - it also had to remove "Blue" emote.
+1. I add "🔵Blue" emote with an ``<emote_id>`` - the bot adds it;
+2. I add "🟡Yellow" emote with its ``<7tv_link>`` - the bot adds it;
+3. I add "🟣Purple" emote with its ``<emote_id>`` and "MaybeOrange" as its ``<emote_alias>`` 
+   (so the emote will be called "MaybeOrange" and not "Purple") - 
+   the bot adds it, but this time the limit came to play - it also had to remove "🔵Blue" emote.
 
 .. image:: /_static/images/cycling-emotes.png
 
 .. attention::
 
-    Sometimes it takes a bot a few seconds to add / remove the requested emotes. 
-    7TV sometimes slowly responds to our requests.
+   Sometimes it takes a bot a few seconds to add / remove the requested emotes. 
+   7TV sometimes slowly responds to our requests.
 
 The list of commands:
 
@@ -41,24 +43,24 @@ The list of commands:
 ---------------------
 
 * Arguments: 
-    * **emote_limit** (integer, 10 by default) - an upper limit for total amount of cycling emotes.
+   * **emote_limit** (integer, 10 by default) - an upper limit for total amount of cycling emotes.
 
 * Usage Example(-s): ``!7tv cycle create 10``
 
-    Create a channel points reward, redeems for which the bot will listen to and process them to add/remove 7tv emotes to the channel.
+   Create a channel points reward, redeems for which the bot will listen to and process them to add/remove 7tv emotes to the channel.
 
-    PS. Streamers are able to edit the resulting channel points reward in their streamer dashboard (https://dashboard.twitch.tv/u/your-twitch-tv-name/viewer-rewards/channel-points/rewards).
-    Please, don't disable ``Require Viewer to Enter Text`` as the bot won't be able to get anything, obviously.
+   PS. Streamers are able to edit the resulting channel points reward in their streamer dashboard (https://dashboard.twitch.tv/u/your-twitch-tv-name/viewer-rewards/channel-points/rewards).
+   Please, don't disable ``Require Viewer to Enter Text`` as the bot won't be able to get anything, obviously.
 
 ``!7tv cycle status``
 ---------------------
 * Arguments: 
-    * **None**.
+   * **None**.
 
 * Usage Example(-s): ``!7tv cycle status``
 
-    Get some information about your cycling-emotes channel points reward.
-    Mostly some information useful for the developer.
+   Get some information about your cycling-emotes channel points reward.
+   Mostly some information useful for the developer.
 
 ``!7tv cycle remove``
 ---------------------
@@ -67,26 +69,26 @@ The list of commands:
 
 * Usage Example(-s): ``!7tv cycle remove Blue``, ``!7tv cycle remove 01J8FC6EN0000DNWJ3ST67HH38``
 
-    Remove an emote from the cycling list.
-    Useful, when streamer wants to elevate an emote from cycling list into a "permanent" one.
-    In other words, to prevent the emote from being eventually cycled out.
+   Remove an emote from the cycling list.
+   Useful, when streamer wants to elevate an emote from cycling list into a "permanent" one.
+   In other words, to prevent the emote from being eventually cycled out.
 
 ``!7tv cycle limit``
 ---------------------
 * Arguments: 
-    * **new_limit** (text, emote_alias or emote_id formats are supported) - 7TV emote id.
+   * **new_limit** (text, emote_alias or emote_id formats are supported) - 7TV emote id.
 
 * Usage Example(-s): ``!7tv cycle limit 20``
 
-    Set a new limit for cycling emote list.
+   Set a new limit for cycling emote list.
 
 
 ``!7tv cycle attach``
 ---------------------
 * Arguments: 
-    * **reward_name** (text) - a name of existing channel points reward for the bot to start listening to.
+   * **reward_name** (text) - a name of existing channel points reward for the bot to start listening to.
 
 * Usage Example(-s): ``!7tv cycle attach add 7tv emote lol``
 
-    Instead of creating a new channel points reward with ``!7tv cycle create`` you can attach an existing reward for the bot to listen to.
+   Instead of creating a new channel points reward with ``!7tv cycle create`` you can attach an existing reward for the bot to listen to.
 

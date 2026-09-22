@@ -101,13 +101,13 @@ The commands below work exactly in the same fashion as :iconify:`logos:twitch` `
 
 To make bot responses look like in the "Showcase" column you can add those emotes quickly to your channel by merging your main 7tv emote set with 
 the `Dota 2 hero icons emote set <https://7tv.app/emote-sets/01JS1XW1PAAKP34984FDYZVDR7>`_ using a tool/bot like `potat.app/help/mergeset <https://potat.app/help/mergeset>`_. 
-Some short instructions for @PotatBotat specifically:
+Some short instructions for :iconify:`logos:twitch` `@PotatBotat <https://www.twitch.tv/PotatBotat>`_ specifically:
 
-* Add @PotatBotat to your channel;
-* Give it 7tv editor role, allow it to ```Create Emote Sets`` in addition to default permissions;
+* Add :iconify:`logos:twitch` `@PotatBotat <https://www.twitch.tv/PotatBotat>`_ to your channel;
+* Give it 7tv editor role, allow it to ``Create Emote Sets`` in addition to default permissions;
 * Use ``#mergeset <Primary set ID> 01JS1XW1PAAKP34984FDYZVDR7`` where the second argument is the ID for the Dota 2 emote set from the showcase column;
 * You can find your ``<Primary set ID>`` (the first argument) by copying the last part of the URL to your own main emote set;
-* @PotatBotat will create a new emote set trying to merge the provided ones; if there is more then 1000 emotes in total - some emotes from the 2nd set won't make it;
+* :iconify:`logos:twitch` `@PotatBotat <https://www.twitch.tv/PotatBotat>`_ will create a new emote set trying to merge the provided ones; if there is more then 1000 emotes in total - some emotes from the 2nd set won't make it;
 * Now you can switch between your main set and a merged version;
 
 ⚠️ Functionality restrictions
