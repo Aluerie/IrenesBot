@@ -22,7 +22,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           set -e
-          cd ./IreBot
+          cd ./IrenesBot
           git pull
           git submodule update --recursive
           ~/.local/bin/uv sync --no-dev

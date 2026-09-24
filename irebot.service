@@ -12,9 +12,9 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/ubuntu/IreBot/
+WorkingDirectory=/home/ubuntu/IrenesBot/
 ExecStart=/home/ubuntu/.local/bin/uv run src/main.py
-; ExecStart=/home/ubuntu/IreBot/.venv/bin/python3.14 src/main.py
+; ExecStart=/home/ubuntu/IrenesBot/.venv/bin/python3.14 src/main.py
 User=ubuntu
 Restart=always
 RestartSec=10

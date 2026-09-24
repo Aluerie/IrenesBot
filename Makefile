@@ -150,4 +150,4 @@ sphinx:  # sphinx
 .PHONY: scp
 .SILENT: scp
 scp:  # Commands to copy required files into the VPS
-	scp -i "${SSH_PRIVATE_KEY}" .env ${SSH_USERNAME}@${SSH_HOST}:~/IreBot/.env
+	scp -i "${SSH_PRIVATE_KEY}" .env ${SSH_USERNAME}@${SSH_HOST}:~/IrenesBot/.env
