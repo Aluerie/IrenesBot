@@ -24,7 +24,7 @@ from twitchio.ext import commands
 from core import IrePublicComponent, ireloop
 from shared import errors, fuzzy
 from shared.concepts.logs import PrefixLoggerAdapter
-from shared.globals import DIGITS, Global7TV
+from shared.globs import DIGITS, Global7TV
 from shared.seven_tv_gql.exceptions import EmoteNotFoundInSetError
 from shared.seven_tv_gql.models import PartialEmote, PartialEmoteSet
 from shared.seven_tv_ws import SevenTVWebSocket
@@ -325,7 +325,7 @@ class SevenTVFeatures(IrePublicComponent):
             raise errors.SomethingWentWrongError(msg)
 
         content = (
-            f"✅ title={reward.title} cost={reward.cost} reward_id={row['reward_id']} emote_limit={row['emote_limit']} "
+            f"title={reward.title} cost={reward.cost} reward_id={row['reward_id']} emote_limit={row['emote_limit']} "
             f"emote_count={row['emote_count']} emote_set_id={row['emote_set_id']}"
         )
         await ctx.send(content)

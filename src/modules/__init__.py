@@ -16,7 +16,7 @@ import logging
 from pathlib import Path
 from pkgutil import iter_modules
 
-from shared.globals import Global7TV
+from shared.globs import Global7TV
 
 try:
     from modules_subset import MODULES_SUBSET  # pyright: ignore[reportMissingImports]

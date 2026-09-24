@@ -96,7 +96,7 @@ class EmoteChecker(IrePersonalComponent):
         Using this command will trigger @PotatBotat automatically as it listens to other bots messages too.
         """
         await ctx.send(
-            f'#mergeset {const.STV_IRENE_DEFAULT_EMOTE_SET_ID} 01JS1XW1PAAKP34984FDYZVDR7 as:"Default but Dota 2"'
+            f'#mergeset {const.SevenTV.IRENE_EMOTE_SET_ID} 01JS1XW1PAAKP34984FDYZVDR7 as:"Default but Dota 2"'
         )
 
 

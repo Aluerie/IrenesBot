@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, TypedDict
 from twitchio.ext import commands
 
 from core import IreDevComponent
-from shared import globals, fmt
+from shared import globs, fmt
 
 if TYPE_CHECKING:
     from core import IreBot, IreContext
@@ -86,7 +86,7 @@ class OtherDevCommands(IreDevComponent):
         in twitch chat powered with FFZ/7TV addons.
         So use it to check if it's fixed. if yes - then we can rewrite some functions to use these emotes.
         """
-        content = " ".join(globals.DIGITS)
+        content = " ".join(globs.DIGITS)
         await ctx.send(content)
 
 
