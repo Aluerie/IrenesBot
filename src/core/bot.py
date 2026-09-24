@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime
 import logging
 import pprint
@@ -16,9 +17,10 @@ from twitchio.ext import commands
 from twitchio.web import StarletteAdapter
 
 from config import env
-from modules import PUBLIC_D9MMRBOT, get_modules
-from shared import errors, fmt, seven_tv
+from modules import MODULES_EMOTE_MAPPING, PUBLIC_D9MMRBOT, get_modules
+from shared import errors, fmt
 from shared.helpers import MISSING
+from shared.seven_tv_gql import GraphQL7TVClient
 from utils import const
 from utils.dota2 import IreDota2Client
 
@@ -114,18 +116,15 @@ class IreBot(commands.AutoBot):
             client_id = env.TEST_TWITCH_CLIENT_ID
             client_secret = env.TEST_TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Test
-            token_table = "ttv_test_tokens"  # noqa: S105, it's not a password, lol
-            prefixes = ("%",)
+            self.prefixes = ("%",)
+            self.error_ping = "<@&1337106675433340990>"
         else:
             # production account
             client_id = env.TWITCH_CLIENT_ID
             client_secret = env.TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Bot
-            token_table = "ttv_tokens"  # noqa: S105, it's not a password, lol
-            prefixes = ("!", "?", "$")
-
-        self.prefixes: tuple[str, ...] = prefixes
-        self.tokens_table = token_table
+            self.prefixes = ("!", "?", "$")
+            self.error_ping = "<@&1116171071528374394>"
 
         super().__init__(
             client_id=client_id,
@@ -154,7 +153,11 @@ class IreBot(commands.AutoBot):
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
         self.friends_index_ready: asyncio.Event = asyncio.Event()
 
-        self.stv: seven_tv.SevenTVClient = seven_tv.SevenTVClient(env.SEVEN_TV_BEARER, session=session)
+        self.stv: GraphQL7TVClient = GraphQL7TVClient(
+            bearer_token=env.SEVEN_TV_BEARER,
+            bot_7tv_user_id=const.SevenTV.IRENESBOT_USER_ID,
+            pool=pool,
+        )
 
         # initialized later
         self.dota2: IreDota2Client = MISSING
@@ -234,34 +237,25 @@ class IreBot(commands.AutoBot):
         resp: twitchio.authentication.ValidateTokenPayload = await super().add_token(token, refresh)
 
         # Store our tokens in a simple SQLite Database when they are authorized...
-        query = f"""
-            INSERT INTO {self.tokens_table}
+        query = """
+            INSERT INTO ttv_tokens
             (user_id, token, refresh)
             VALUES ($1, $2, $3)
             ON CONFLICT(user_id)
             DO UPDATE SET
                 token = excluded.token,
-                refresh = excluded.refresh;
+                refresh = excluded.refresh
+            RETURNING display_name;
         """
-        await self.pool.execute(query, resp.user_id, token, refresh)
-
-        if resp.user_id:
-            query = """
-                INSERT INTO ttv_streamers
-                (user_id)
-                VALUES ($1)
-                ON CONFLICT (user_id)
-                    DO NOTHING
-                RETURNING user_id;
-            """
-            user_id = await self.pool.fetchval(query, resp.user_id)
-            if user_id:
-                # New User
-                partial_user = self.create_partialuser(resp.user_id)
-                user = await partial_user.user()
-                query = "UPDATE ttv_streamers SET display_name = $1 WHERE user_id = $2;"
-                await self.pool.execute(query, user.display_name, user.id)
-                log.info("Added a new streamer %s (@%s) to the database", user.id, user.display_name)
+        display_name = await self.pool.fetchval(query, resp.user_id, token, refresh)
+        if resp.user_id is not None and display_name is None:
+            # Probably new user joined - let's give them a name
+            partial_user = self.create_partialuser(resp.user_id)
+            user = await partial_user.user()
+            query = "UPDATE ttv_tokens SET display_name = $1 WHERE user_id = $2;"
+            await self.pool.execute(query, user.display_name, user.id)
+            log.info("Added a new streamer %s (@%s) to the database", user.id, user.display_name)
+            # TODO: maybe make a notification into irene's discord
 
         log.info("Added token to the database for user: %s", resp.user_id)
         return resp
@@ -269,10 +263,7 @@ class IreBot(commands.AutoBot):
     @override
     async def load_tokens(self, _: str | None = None) -> None:  # _ is `path`
         # We don't need to call this manually, it is called in .login() from .start() internally...
-        query = f"""
-            SELECT *
-            FROM {self.tokens_table}
-        """
+        query = "SELECT * FROM ttv_tokens"
         rows: list[LoadTokensQueryRow] = await self.pool.fetch(query)
         for row in rows:
             await self.add_token(row["token"], row["refresh"])
@@ -334,7 +325,7 @@ class IreBot(commands.AutoBot):
             await self.dota2.wait_until_ready()
 
     @staticmethod
-    def add_args_field(embed: discord.Embed, field_name: str, data: dict[str, Any]) -> discord.Embed:
+    def add_codeblock_field(embed: discord.Embed, field_name: str, data: dict[str, Any]) -> discord.Embed:
         """A helper method to add arguments as a field for the unknown error report embed."""
         embed.add_field(
             name=field_name,
@@ -346,6 +337,11 @@ class IreBot(commands.AutoBot):
             inline=False,
         )
         return embed
+
+    SOMETHING_WENT_WRONG_MESSAGE = (
+        f"Something went wrong {const.Global.FeelsDankMan} "
+        f"but I've notified Irene about the error {const.Global.FeelsDankMan}"
+    )
 
     @override
     async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
@@ -361,24 +357,6 @@ class IreBot(commands.AutoBot):
         error = error.original if isinstance(error, commands.CommandInvokeError) and error.original else error
 
         # Unknown Error tools
-        something_went_wrong_message = (
-            f"Sorry {const.Global.FeelsDankMan} Something went wrong {const.Global.FeelsDankMan} "
-            "but I've notified Irene about the error."
-        )
-
-        async def get_error_report_embed(ctx: IreContext) -> discord.Embed:
-            command_name = getattr(ctx.command, "name", "unknown")
-            embed = (
-                discord.Embed(
-                    colour=ctx.chatter.colour.code if ctx.chatter.colour else 0x890620,
-                    title=f"Command Error: `!{command_name}`",
-                )
-                .set_author(name=f"Chatter {ctx.chatter.display_name}", icon_url=(await ctx.chatter.user()).profile_image)
-                .set_footer(
-                    text=f"Channel: {ctx.broadcaster.display_name}", icon_url=(await ctx.broadcaster.user()).profile_image
-                )
-            )
-            return self.add_args_field(embed, "Command Args", ctx.kwargs)
 
         async def handle_cause(error: BaseException) -> bool:
             """
@@ -404,12 +382,9 @@ class IreBot(commands.AutoBot):
                 return
             case errors.RespondWithError():
                 await ctx.send(str(error))
-            case errors.PlaceholderError():
-                await ctx.send(something_went_wrong_message)
-                embed = await get_error_report_embed(ctx)
-                if error.data:
-                    embed = self.add_args_field(embed, f"Extra {error.__class__.__name__} Debug Data", error.data)
-                await self.error_manager.register(error, embed=embed)
+            case errors.RespondAndNotifyDevsError():
+                await ctx.send(str(error))
+                await self.error_webhook.send(f"{self.error_ping}\n{error.for_devs}")
 
             # TWITCHIO ERRORS
             case commands.CommandNotFound():
@@ -468,30 +443,64 @@ class IreBot(commands.AutoBot):
             #     await ctx.send(str(error))
 
             case _:
-                await ctx.send(something_went_wrong_message)
+                # All other errors;
+                # SomethingWentWrongError also goes here (unlike long ago).
+
+                await ctx.send(self.SOMETHING_WENT_WRONG_MESSAGE)
                 # await ctx.send(f"{error.__class__.__name__}: {replace_secrets(str(error))}")
-                embed = await get_error_report_embed(ctx)
+
+                command_name = getattr(ctx.command, "name", "unknown")
+                embed = (
+                    discord.Embed(
+                        colour=ctx.chatter.colour.code if ctx.chatter.colour else 0x890620,
+                        title=f"Command Error: `!{command_name}`",
+                    )
+                    .set_author(
+                        name=f"Chatter {ctx.chatter.display_name}", icon_url=(await ctx.chatter.user()).profile_image
+                    )
+                    .set_footer(
+                        text=f"Channel: {ctx.broadcaster.display_name}",
+                        icon_url=(await ctx.broadcaster.user()).profile_image,
+                    )
+                )
+                embed = self.add_codeblock_field(embed, "Command Args", ctx.kwargs)
+                if isinstance(error, errors.SomethingWentWrongError) and error.data:
+                    embed = self.add_codeblock_field(embed, "Extra Data", error.data)
                 await self.error_manager.register(error, embed=embed)
 
     @override
     async def event_error(self, payload: twitchio.EventErrorPayload) -> None:
+        """Event Error."""
+        suffix_emote = MODULES_EMOTE_MAPPING.get(payload.listener.__module__, "")
 
-        def get_report_embed() -> discord.Embed:
-            return discord.Embed(title=f"Event Error: `{payload.listener.__qualname__}`").add_field(
-                name="Exception", value=f"`{payload.error.__class__.__name__}`"
-            )
+        error = payload.error
+        original = payload.original
 
-        match payload.error:
-            case errors.PlaceholderError():
-                if payload.error.data:
-                    embed = self.add_args_field(
-                        get_report_embed(),
-                        f"Extra {payload.error.__class__.__name__} Debug Data",
-                        payload.error.data,
-                    )
-                    await self.error_manager.register(payload.error, embed=embed)
-            case _:
-                await self.error_manager.register(payload.error, embed=get_report_embed())
+        if isinstance(original, twitchio.ChannelPointsRedemptionAdd):
+            # let's be nice and refund channel points for failed redeems
+            with contextlib.suppress(twitchio.HTTPException):
+                await original.refund(token_for=original.broadcaster.id)
+
+        if hasattr(original, "respond"):
+            if isinstance(error, errors.RespondWithError):
+                await original.respond(f"{error} {suffix_emote}")
+                return
+            if isinstance(error, errors.RespondAndNotifyDevsError):
+                await original.respond(f"{error} {suffix_emote}")
+                await self.error_webhook.send(f"{self.error_ping}\n{error.for_devs}")
+                return
+            await original.respond(self.SOMETHING_WENT_WRONG_MESSAGE)
+
+        # All other errors;
+        # SomethingWentWrongError also goes here (unlike long ago).
+
+        embed = discord.Embed(
+            title=f"Event Error: `{payload.listener.__qualname__}`",
+        ).add_field(name="Exception", value=f"`{payload.error.__class__.__name__}`")
+        if isinstance(error, errors.SomethingWentWrongError) and error.data:
+            embed = self.add_codeblock_field(embed, "Extra Data", error.data)
+
+        await self.error_manager.register(error, embed=embed)
 
     # SHORTCUTS AND UTILITIES
 
@@ -514,11 +523,6 @@ class IreBot(commands.AutoBot):
         """A webhook in hideout server to send small heartbeat reports."""
         return self.webhook_from_url(env.WEBHOOK_HEARTBEAT)
 
-    @discord.utils.cached_property
-    def error_ping(self) -> str:
-        """Error Role ping used to notify the developer(-s) about some errors."""
-        return "<@&1337106675433340990>" if self.subset_mode else "<@&1116171071528374394>"
-
     def is_online(self, user_id: str) -> bool:
         """Whether the user is online.
 
@@ -533,4 +537,4 @@ class IreBot(commands.AutoBot):
             return self.streamers[user_id]
         except KeyError:
             msg = f"Somehow {user_id} is not in the bots' streamer index."
-            raise errors.PlaceholderError(msg) from None
+            raise errors.SomethingWentWrongError(msg) from None

@@ -120,27 +120,15 @@ async def get_eventsub_subscriptions(
     pool: PoolTypedWithAny, *, test_account: bool
 ) -> list[twitchio.eventsub.SubscriptionPayload]:
     """Get all EventSub subscriptions that are required for the bot's EventSub related features to work."""
-    if test_account:
-        bot = const.UserID.Test
-        tokens_table = "ttv_test_tokens"
-    else:
-        bot = const.UserID.Bot
-        tokens_table = "ttv_tokens"
-
+    bot = const.UserID.Test if test_account else const.UserID.Bot
     subscriptions: list[eventsub.SubscriptionPayload] = []
 
     # 1. My personal account
     subscriptions.extend(get_user_subscriptions(const.UserID.Irene, bot))
 
     # 2. Public member accounts
-    query = f"""
-        SELECT t.user_id
-        FROM {tokens_table} t
-        JOIN ttv_streamers s ON t.user_id = s.user_id
-        WHERE active = TRUE AND t.user_id != ANY($1)
-    """
-    exclude_ids = {const.UserID.Irene, bot}
-    public_rows: list[GetMemberAccountsQueryRow] = await pool.fetch(query, exclude_ids)
+    query = "SELECT user_id FROM ttv_tokens WHERE user_type = 'public';"
+    public_rows: list[GetMemberAccountsQueryRow] = await pool.fetch(query)
     for user in public_rows:
         subscriptions.extend(get_user_subscriptions(user["user_id"], bot))
     return subscriptions

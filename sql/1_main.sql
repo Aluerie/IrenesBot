@@ -11,22 +11,9 @@ CREATE TABLE
     IF NOT EXISTS ttv_tokens (
         user_id TEXT PRIMARY KEY,
         token TEXT NOT NULL,
-        refresh TEXT NOT NULL
-    );
-
-CREATE TABLE
-    /* Twitch Oauth Tokens */
-    IF NOT EXISTS ttv_test_tokens (
-        user_id TEXT PRIMARY KEY,
-        token TEXT NOT NULL,
-        refresh TEXT NOT NULL
-    );
-
-CREATE TABLE
-    IF NOT EXISTS ttv_streamers (
-        user_id TEXT PRIMARY KEY,
+        refresh TEXT NOT NULL,
         display_name TEXT,
-        active BOOLEAN DEFAULT (TRUE)
+        user_type TEXt DEFAULT ('public')
     );
 
 CREATE TABLE
@@ -34,25 +21,6 @@ CREATE TABLE
     IF NOT EXISTS ttv_tags (
         tag_name TEXT PRIMARY KEY,
         tag_content TEXT NOT NULL
-    );
-
-CREATE TABLE
-    /* Cycling Emote Rewards */
-    IF NOT EXISTS ttv_cycling_emote_rewards (
-        streamer_id TEXT PRIMARY KEY,
-        reward_id TEXT NOT NULL,
-        emote_limit INT NOT NULL
-    );
-
-CREATE TABLE
-    /* Cycling Emotes */
-    IF NOT EXISTS ttv_cycling_emotes (
-        id SERIAL PRIMARY KEY,
-        emote_id TEXT NOT NULL,
-        streamer_id TEXT NOT NULL,
-        emote_set_id TEXT NOT NULL,
-        added_at TIMESTAMPTZ DEFAULT (NOW () AT TIME zone 'utc'),
-        requested_by TEXT NOT NULL -- twitch_id string;
     );
 
 CREATE TABLE
@@ -78,38 +46,3 @@ CREATE TABLE
         reward_id TEXT NOT NULL,
         original_title TEXT
     );
-
-CREATE TABLE
-    /* EMOTE STATS TOTAL
-     */
-    IF NOT EXISTS ttv_emote_stats_total (
-        id BIGSERIAL PRIMARY KEY,
-        broadcaster_id TEXT,
-        emote_id TEXT,
-        total INTEGER DEFAULT (0)
-    );
-
-CREATE INDEX IF NOT EXISTS ttv_emote_stats_total_broadcaster_id_idx ON ttv_emote_stats_total (broadcaster_id);
-
-CREATE INDEX IF NOT EXISTS ttv_emote_stats_total_emote_id_idx ON ttv_emote_stats_total (emote_id);
-
-CREATE UNIQUE INDEX IF NOT EXISTS ttv_emote_stats_total_uniq_idx ON ttv_emote_stats_total (broadcaster_id, emote_id);
-
-CREATE TABLE
-    /* EMOTE STATS LAST YEAR
-     */
-    IF NOT EXISTS ttv_emote_stats_last_year (
-        id BIGSERIAL PRIMARY KEY,
-        emote_id TEXT,
-        broadcaster_id TEXT,
-        author_id TEXT,
-        used TIMESTAMP
-    );
-
-CREATE INDEX IF NOT EXISTS ttv_emote_stats_last_year_emote_id_idx ON ttv_emote_stats_last_year (emote_id);
-
-CREATE INDEX IF NOT EXISTS ttv_emote_stats_last_year_broadcaster_id_idx ON ttv_emote_stats_last_year (broadcaster_id);
-
-CREATE INDEX IF NOT EXISTS ttv_emote_stats_last_year_author_id_idx ON ttv_emote_stats_last_year (author_id);
-
-CREATE INDEX IF NOT EXISTS ttv_emote_stats_last_year_used_idx ON ttv_emote_stats_last_year (used);

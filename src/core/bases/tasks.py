@@ -53,7 +53,7 @@ class IreLoop(tasks.CustomLoop[LF]):
         """Same `_error` as in parent class but with `exc_manager` integrated."""
         embed = discord.Embed(title=f"Task Error `{self.coro.__qualname__}`", colour=0x1A7A8A)
         if exception_data := getattr(exception, "data", None):
-            embed = cog.bot.add_args_field(embed, f"Extra {exception.__class__.__name__} Debug Data", exception_data)
+            embed = cog.bot.add_codeblock_field(embed, f"Extra {exception.__class__.__name__} Debug Data", exception_data)
         await cog.bot.error_manager.register(exception, embed)
 
 

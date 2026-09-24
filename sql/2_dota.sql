@@ -1,10 +1,9 @@
 CREATE TABLE
     IF NOT EXISTS ttv_dota_accounts (
         friend_id BIGINT PRIMARY KEY, -- steam32id (friend id) format;
-        twitch_id TEXT NOT NULL,
+        twitch_id TEXT NOT NULL REFERENCES ttv_tokens (user_id) ON DELETE CASCADE,
         estimated_mmr INT DEFAULT (0),
         last_seen TIMESTAMPTZ DEFAULT (NOW () AT TIME zone 'utc'),
-        CONSTRAINT fk_twitch_id FOREIGN KEY (twitch_id) REFERENCES ttv_streamers (user_id) ON DELETE CASCADE
     );
 
 CREATE TABLE

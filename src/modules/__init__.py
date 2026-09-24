@@ -16,27 +16,48 @@ import logging
 from pathlib import Path
 from pkgutil import iter_modules
 
-__all__ = ("get_modules",)
+from shared.globals import Global7TV
 
 try:
     from modules_subset import MODULES_SUBSET  # pyright: ignore[reportMissingImports]
 except ModuleNotFoundError:
     MODULES_SUBSET: dict[str, list[str]] = {}  # pyright: ignore[reportConstantRedefinition]
 
+__all__ = (
+    "MODULES_EMOTE_MAPPING",
+    "get_modules",
+)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-DISABLED_MODULES: tuple[str, ...] = (
-    # modules that should not be loaded
-    "modules.beta",
-    # currently disabled
-    # "modules.public.dota",
-)
-
 # named modules const
 PUBLIC_D9MMRBOT = "modules.public.d9kmmrbot"
 DEV_REQUIRED = "modules.dev.required"
+
+
+MODULES_EMOTE_MAPPING: dict[str, str] = {
+    "modules.dev.required": "",
+    "modules.dev.control": "",
+    "modules.dev.other": "",
+    "modules.dev.webhook_logs": "",
+    "modules.personal.alerts": "",
+    "modules.personal.counters": "",
+    "modules.personal.discord_notifications": "",
+    "modules.personal.emotes_common": "",
+    "modules.personal.information": "",
+    "modules.personal.keywords": "",
+    "modules.personal.stable": "",
+    "modules.personal.tags": "",
+    "modules.personal.temporary": "",
+    "modules.personal.timers": "",
+    "modules.public": "",
+    "modules.public.d9kmmrbot": "",
+    "modules.public.d7tv": Global7TV.FeelsDankMan,
+    "modules.public.first": "",
+    "modules.public.meta": "",
+    "modules.beta": "",
+}
 
 
 def get_subset_modules(categories: dict[str, list[str]]) -> tuple[str, ...]:
@@ -64,6 +85,14 @@ def get_subset_modules(categories: dict[str, list[str]]) -> tuple[str, ...]:
     return modules_to_load
 
 
+DISABLED_MODULES: tuple[str, ...] = (
+    # modules that should not be loaded
+    "modules.beta",
+    # currently disabled
+    # "modules.public.dota",
+)
+
+
 def get_modules(*, is_subset_mode: bool) -> tuple[str, ...]:
     """Get list of bot modules to load.
 
@@ -89,6 +118,9 @@ def get_modules(*, is_subset_mode: bool) -> tuple[str, ...]:
             for module in iter_modules([module_category.absolute()], prefix=f"{__package__}.{module_category.name}.")
             if module.name not in DISABLED_MODULES
         )
+
+    # Could just do, lol
+    # modules = tuple(module for module in MODULES if module not in DISABLED_MODULES)
 
     log.debug("The list of modules (%s total) to load: %s", len(modules), modules)
     return modules

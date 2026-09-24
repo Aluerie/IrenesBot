@@ -342,7 +342,7 @@ class LiveMatch:
             break
         else:
             msg = f"Somehow couldn't find the player {player_slot=} with {hero=} in the game."
-            raise errors.PlaceholderError(msg)
+            raise errors.SomethingWentWrongError(msg)
 
         prefix = f"[2m delay] {api_player['name']} {dota2.Hero.try_value(api_player['heroid'])} lvl {api_player['level']}"
         net_worth = f"NW: {api_player['net_worth']}"
@@ -433,7 +433,7 @@ class PlayingMatch(LiveMatch):
         match = next(iter(await self.bot.dota2.live_matches(lobby_ids=[self.lobby_id])), None)
         if not match:
             msg = f'FindTopSourceTVGames did not find watchable_game_id "{self.watchable_game_id}".'
-            raise errors.PlaceholderError(msg)
+            raise errors.SomethingWentWrongError(msg)
 
         if not self.players_data_ready.is_set():
             # match data
@@ -488,7 +488,7 @@ class PlayingMatch(LiveMatch):
                     player_slot = next(iter(s for (s, p) in enumerate(match.players) if p.id == friend.steam_user.id), None)
                     if player_slot is None:
                         msg = "Somehow 'player_slot' is 'None' in 'conclude_friend_match'"
-                        raise errors.PlaceholderError(msg)
+                        raise errors.SomethingWentWrongError(msg)
 
                     hero = match.heroes[player_slot]
                     query = """
@@ -532,7 +532,7 @@ class SpectatingMatch(LiveMatch):
         steam_id = steam.ID.from_id3(watching_server)
         if steam_id is None:
             msg = "Failed to get steam ID from id3."
-            raise errors.PlaceholderError(msg)
+            raise errors.SomethingWentWrongError(msg)
         self.server_steam_id: int = steam_id.id64
         self.unavailable: bool = False
 
@@ -623,10 +623,10 @@ class Dota2RichPresenceFlow(IrePublicComponent):
     async def component_load(self) -> None:
         if "modules.dev.required" not in self.bot.modules_to_load:
             msg = f"Module '{PUBLIC_D9MMRBOT}' requires '{DEV_REQUIRED}' to be loaded."
-            raise errors.PlaceholderError(msg)
+            raise errors.SomethingWentWrongError(msg)
         if not hasattr(self.bot, "dota2"):
             msg = f"Module '{PUBLIC_D9MMRBOT}' requires Dota2Client to be attached to bot's instance as 'self.bot.dota2'."
-            raise errors.PlaceholderError(msg)
+            raise errors.SomethingWentWrongError(msg)
 
         self.starting_fill_friends.start()
         self.add_steam_user_update_listener.start()
@@ -1008,7 +1008,7 @@ class Dota2RichPresenceFlow(IrePublicComponent):
         slot, player = next(iter((s, p) for s, p in enumerate(match.players) if p.hero.id == hero_id), (None, None))
         if not slot or not player:
             msg = "Somehow can't find streamer's account in their previous match uuh weird"
-            raise errors.PlaceholderError(msg)
+            raise errors.SomethingWentWrongError(msg)
 
         is_radiant = slot < 5
         score_category = dota2utils.ScoreCategory.create(match.lobby_type, match.game_mode)
@@ -1084,7 +1084,7 @@ class Dota2RichPresenceFlow(IrePublicComponent):
         player_slot = next((slot for slot, player in enumerate(minimal.players) if player.hero == match.hero), None)
         if player_slot is None:
             msg = "Somehow `player_slot` is `None` in match history match"
-            raise errors.PlaceholderError(msg)
+            raise errors.SomethingWentWrongError(msg)
 
         if match_id is not None:
             # if it's None - then it already was in the database

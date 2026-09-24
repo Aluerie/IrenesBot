@@ -5,6 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            // Make Run
+            "name": "IreBot Make Run",
+            "command": "make run",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
+            // DEFAULT
             "name": "IreBot",
             "type": "debugpy",
             "request": "launch",

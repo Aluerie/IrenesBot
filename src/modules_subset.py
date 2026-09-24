@@ -2,10 +2,9 @@
 
 MODULES_SUBSET: dict[str, list[str]] = {
     "dev": [
-        "required",
-        # ---
         "control",
         # "other",
+        "required",
         # "webhook_logs",
     ],
     "personal": [
@@ -22,7 +21,7 @@ MODULES_SUBSET: dict[str, list[str]] = {
     ],
     "public": [
         # "d9kmmrbot",
-        "emotes_7tv",
+        "d7tv",
         # "first",
         # "meta"
     ],

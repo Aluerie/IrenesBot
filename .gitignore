@@ -44,6 +44,7 @@ _build/
 src/modules/beta.py
 modules_subset.py
 src/alpha.py
+src/zeta.py
 
 # FILES TO COMMIT ELSEWHERE
 # -------------------------

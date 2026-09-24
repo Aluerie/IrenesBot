@@ -22,7 +22,7 @@ from discord import Embed
 from twitchio.ext import commands
 
 from core import IrePublicComponent, ireloop
-from shared import common_const, errors, fmt
+from shared import globals, errors, fmt
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -343,8 +343,8 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
             "\N{FIRST PLACE MEDAL}",
             "\N{SECOND PLACE MEDAL}",
             "\N{THIRD PLACE MEDAL}",
-            common_const.DIGITS[4],
-            common_const.DIGITS[5],
+            globals.DIGITS[4],
+            globals.DIGITS[5],
         ]
         content += " ".join(
             [

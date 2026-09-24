@@ -7,11 +7,11 @@ __all__ = (
     "BTTV",
     "FFZ",
     "STV",
-    "STV_IRENE_DEFAULT_EMOTE_SET_ID",
     "BotsLowerName",
     "Global",
     "Logo",
     "LowerName",
+    "SevenTV",
     "UserID",
 )
 
@@ -76,7 +76,11 @@ class FFZ(StrEnum):
     WTFF = "WTFF"
 
 
-STV_IRENE_DEFAULT_EMOTE_SET_ID = "01FAQVCS500002EV4FV330P46A"
+class SevenTV(StrEnum):
+    """Some often used 7TV snowflakes."""
+
+    IRENE_EMOTE_SET_ID = "01FAQVCS500002EV4FV330P46A"  # also irene seven tv id
+    IRENESBOT_USER_ID = "01KFF67D46PJPD1S6DPFFT06E3"
 
 
 class STV(StrEnum):
