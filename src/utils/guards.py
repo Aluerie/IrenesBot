@@ -49,7 +49,7 @@ def is_online() -> Any:
     def predicate(ctx: IreContext) -> bool:
         if ctx.bot.is_online(ctx.broadcaster.id):
             return True
-        msg = f"This commands is only allowed when stream is online {const.FFZ.peepoPolice}"
+        msg = f"This commands is allowed only during online streams {const.FFZ.peepoPolice}"
         raise errors.RespondWithError(msg)
 
     return commands.guard(predicate)
@@ -64,7 +64,7 @@ def is_owner_channel() -> Any:
         # decorators order in twitchio performs
         # `.component_before_invoke` after local decorators
         # so this workaround fixes that order
-        msg = f"Command is only allowed in Irene's channel {const.FFZ.peepoPolice}"
+        msg = f"This command is allowed only in Irene's channel {const.FFZ.peepoPolice}"
         raise errors.SilentError(msg)
 
     return commands.guard(predicate)
@@ -94,7 +94,7 @@ def is_dev() -> Any:
     def predicate(ctx: IreContext) -> bool:
         if ctx.chatter.id == ctx.bot.owner_id:
             return True
-        msg = f"Sorry, this command can only be used by the developers {const.FFZ.peepoPolice}"
+        msg = f"Sorry, this command can only be used by Irene {const.FFZ.peepoPolice}"
         raise errors.RespondWithError(msg)
 
     return commands.guard(predicate)
