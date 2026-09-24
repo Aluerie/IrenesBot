@@ -18,20 +18,26 @@ personal multipurpose :iconify:`logos:twitch` `twitch.tv <https://www.twitch.tv>
 
 .. image:: /_static/images/SocialPreview.png
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Getting started
+   :hidden:
+
+   starting/invite
+   starting/preparation
 
 .. toctree::
    :maxdepth: 1
-   :caption: Public Features
+   :caption: Public features
    :hidden:
 
-   public/invite
    public/meta
    public/seven_tv
    public/dota2
 
 .. toctree::
    :maxdepth: 1
-   :caption: For Developers
+   :caption: For developers
    :hidden:
    
    developers/setup
