@@ -24,7 +24,7 @@ from twitchio.ext import commands
 from core import IrePublicComponent, ireloop
 from shared import errors, fuzzy
 from shared.concepts.logs import PrefixLoggerAdapter
-from shared.globs import DIGITS, Global7TV
+from shared.globs import DIGITS
 from shared.seven_tv_gql.exceptions import EmoteNotFoundInSetError
 from shared.seven_tv_gql.models import PartialEmote, PartialEmoteSet
 from shared.seven_tv_ws import SevenTVWebSocket
@@ -91,11 +91,11 @@ async def parse_or_search_emote(
     split = user_input.split()
     if len(split) > 2:
         # More than 2 words = bad
-        msg = f"Bad Input; I require '<emote_link_or_id> <optional_emote_alias>' - no extra words {Global7TV.FeelsDankMan}"
+        msg = "Bad Input; I require '<emote_link_or_id> <optional_emote_alias>' - no extra words"
         raise errors.RespondWithError(msg)
     if len(split) <= 0:
         # 0 words = why
-        msg = f"Bad Input; why would you type an empty text? {Global7TV.FeelsDankMan}"
+        msg = "Bad Input; why would you type an empty text?"
         raise errors.RespondWithError(msg)
 
     # Either
@@ -630,17 +630,14 @@ class SevenTVFeatures(IrePublicComponent):
         editor_for = await partial_user.check_bot_editor()
 
         if not editor_for.is_enough_permissions:
-            content = (
-                "7tv editor invite doesn't have required permissions "
-                f"(it needs 'Emote Sets > Manage') {Global7TV.FeelsDankMan}"
-            )
+            content = "7tv editor invite doesn't have required permissions (it needs 'Emote Sets > Manage')"
         elif editor_for.state != "ACCEPTED":
             content = (
                 f"7tv editor invite permissions are okay, invite state={editor_for.state}, "
-                f"please use '{ctx.prefix}7tv editor accept' command to make the bot accept it {Global7TV.FeelsDankMan}"
+                f"please use '{ctx.prefix}7tv editor accept' command to make the bot accept it"
             )
         else:
-            content = f"7tv editor invite is accepted and permissions are good {Global7TV.FeelsDankMan}"
+            content = "7tv editor invite is accepted and permissions are good"
         await ctx.send(content)
 
     @stv_editor.command(name="guide")
@@ -650,7 +647,6 @@ class SevenTVFeatures(IrePublicComponent):
             f"{DIGITS[1]} Go to 7tv.app/settings/editors "
             f"{DIGITS[2]} Add Editor > @IrenesBot, make sure 'Emote Sets > Manage' permission is given "
             f"{DIGITS[3]} Use '{ctx.prefix}7tv editor accept' command to make the bot accept the editor role "
-            f"{Global7TV.FeelsDankMan}"
         )
         await ctx.send(content)
 
@@ -660,7 +656,7 @@ class SevenTVFeatures(IrePublicComponent):
         partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
         res = await partial_user.accept_editor()
         insert_response = await self.insert_into_to_stv_users(ctx.broadcaster.id)
-        content = f"Just {res.lower()} your 7TV editor request; also {insert_response} {Global7TV.FeelsDankMan}"
+        content = f"Just {res.lower()} your 7TV editor request; also {insert_response}"
         await ctx.send(content)
 
     async def insert_into_to_stv_users(self, broadcaster_id: str, emote_set_id: str | None = None) -> str:
