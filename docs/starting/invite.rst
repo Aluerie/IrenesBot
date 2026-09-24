@@ -3,6 +3,11 @@
 :iconify:`logos:twitch` How to invite the bot
 =============================================
 
+.. .. attention::
+
+..     I've currently disabled the web-app with the bot's invite link.
+..     If you want to add the bot - write to me, I guess.
+
 💌 Invite Link
 ##############
 
@@ -37,7 +42,7 @@ In most cases - just contact me (:iconify:`logos:twitch` `@Irene_Adler__ <https:
 
 Thanks for adding the bot.
 
-.. caution::
+.. warning::
 
     If I add more public features or if you ask me to add some feature - I might add more permissions to the link. 
     In that case you will have to reauthorize the bot order to have access to the new features.

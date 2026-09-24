@@ -391,7 +391,9 @@ class SevenTVFeatures(IrePublicComponent):
 
         # Step 2. Get Emote Set
 
-        partial_emote_set = PartialEmoteSet(self.bot.stv, await self.select_emote_set_id(redemption.broadcaster.id))
+        partial_emote_set = PartialEmoteSet(
+            self.bot.stv, emote_set_id=await self.select_emote_set_id(redemption.broadcaster.id)
+        )
         log.debug("Operating on emote_set #%s", partial_emote_set.id)
 
         # Step 3. Remove emote(-s) if above the limit
@@ -438,6 +440,10 @@ class SevenTVFeatures(IrePublicComponent):
         # await redemption.respond(result)
         with contextlib.suppress(twitchio.HTTPException):
             await redemption.fulfill(token_for=redemption.broadcaster.id)
+
+    #########################################################################################################################
+    # DEVELOPER TESTING COMMANDS                                                                                            #
+    #########################################################################################################################
 
     @guards.is_dev()
     @commands.command()
@@ -682,6 +688,10 @@ class SevenTVFeatures(IrePublicComponent):
         await self.bot.pool.execute(query, broadcaster_id, user_info.id, emote_set_id)
         return f"linked bot's 7tv features to your '{emote_set_name}' emote set ({emote_set_id})"
 
+    #########################################################################################################################
+    # 7TV EMOTESET                                                                                                          #
+    #########################################################################################################################
+
     @guards.is_broadcaster_or_dev()
     @stv.group(name="emoteset")
     async def stv_emoteset(self, ctx: IreContext) -> None:
@@ -707,7 +717,7 @@ class SevenTVFeatures(IrePublicComponent):
     async def stv_emoteset_status(self, ctx: IreContext) -> None:
         """Status."""
         emote_set_id = await self.select_emote_set_id(ctx.broadcaster.id)
-        await ctx.send(f"{emote_set_id=}")
+        await ctx.send(f"emote_set_id={emote_set_id}")
 
 
 async def setup(bot: IreBot) -> None:

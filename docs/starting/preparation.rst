@@ -20,7 +20,7 @@ but I think it's unfair and invasive. So for a time being I just ask the streame
 
     You can mod the bot by typing ``/mod @IrenesBot`` in your twitch channel's chat.
 
-🤯 Initial Settings
+🤯 Initial settings
 ###################
 
 * The bot's command prefixes are ``!``, ``?``, ``$``. 

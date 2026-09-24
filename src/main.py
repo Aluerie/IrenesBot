@@ -30,7 +30,7 @@ import asyncpg
 import click
 
 from config import env
-from core import IreBot, get_eventsub_subscriptions
+from core import AdapterEnum, IreBot, get_eventsub_subscriptions
 from shared.concepts import logs
 
 if TYPE_CHECKING:
@@ -66,7 +66,7 @@ async def start_the_bot(
     *,
     scopes_only: bool,
     force_subscribe: bool,
-    local_adapter: bool,
+    adapter_enum: AdapterEnum,
     subset_mode: bool,
     test_account: bool,
 ) -> None:
@@ -92,7 +92,7 @@ async def start_the_bot(
             subscriptions=subscriptions,
             scopes_only=scopes_only,
             force_subscribe=force_subscribe,
-            local=local_adapter,
+            adapter_enum=adapter_enum,
             subset_mode=subset_mode,
             test_account=test_account,
         ) as irebot,
@@ -121,10 +121,10 @@ async def start_the_bot(
     help=("Whether to force subscribing to Conduits.You have to do this every time you add new subscriptions"),
 )
 @click.option(
-    "--local-adapter",
-    "-l",
-    is_flag=True,
-    default=False,  # usual default: True ✅
+    "--adapter",
+    "-a",
+    type=click.Choice(AdapterEnum, case_sensitive=False),
+    default=AdapterEnum.remote,  # usual default: AdapterType.local ✅
     help="Whether to use adapter with localhost (default) or remote host (currently ngrok-free for testing purposes).",
 )
 @click.option(
@@ -153,7 +153,7 @@ def launch(
     *,
     scopes_only: bool,
     force_subscribe: bool,
-    local_adapter: bool,
+    adapter: AdapterEnum,
     subset_mode: bool,
     test_account: bool,
 ) -> None:
@@ -168,7 +168,7 @@ def launch(
                     start_the_bot(
                         scopes_only=scopes_only,
                         force_subscribe=force_subscribe,
-                        local_adapter=local_adapter,
+                        adapter_enum=adapter,
                         subset_mode=subset_mode,
                         test_account=test_account,
                     )

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import datetime
+import enum
 import logging
 import pprint
 import sys
@@ -40,7 +41,11 @@ if TYPE_CHECKING:
         refresh: str
 
 
-__all__ = ("IreBot", "Streamer")
+__all__ = (
+    "AdapterEnum",
+    "IreBot",
+    "Streamer",
+)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -56,6 +61,13 @@ class Streamer:
     id: str
     online: bool = False
     started_dt: datetime.datetime | None = None
+
+
+class AdapterEnum(enum.Enum):
+    """Adapter Enum."""
+
+    local = enum.auto()
+    remote = enum.auto()
 
 
 class IreBot(commands.AutoBot):
@@ -96,15 +108,16 @@ class IreBot(commands.AutoBot):
         subscriptions: list[eventsub.SubscriptionPayload],
         scopes_only: bool,
         force_subscribe: bool,
-        local: bool,
+        adapter_enum: AdapterEnum,
         subset_mode: bool,
         test_account: bool,
     ) -> None:
         """Initiate IreBot."""
-        if local:
+        if adapter_enum is AdapterEnum.local:
             self.domain = "http://localhost:4343"
             adapter: StarletteAdapter[Any] | None = None
         else:
+            # AdapterEnum.remote
             self.domain = "https://parrot-thankful-trivially.ngrok-free.app"
             adapter = StarletteAdapter(
                 host="0.0.0.0",  # noqa: S104
