@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, TypedDict
 from twitchio.ext import commands
 
 from core import IreDevComponent
-from shared import globs, fmt
+from shared import fmt, globs
 
 if TYPE_CHECKING:
     from core import IreBot, IreContext

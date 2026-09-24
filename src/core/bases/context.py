@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import inspect
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING
 
 from twitchio.ext import commands
 
-from modules import MODULES_EMOTE_MAPPING
 from shared import errors
 
 if TYPE_CHECKING:
@@ -44,14 +42,3 @@ class IreContext(commands.Context["IreBot"]):
                 f'e.g. "{invoked_strip} {next(iter(self.command.commands))}".'
             )
         )
-
-    @override
-    async def send(self, content: str, *, me: bool = False, use_suffix: bool = True) -> twitchio.SentMessage:
-        if use_suffix:
-            # https://stackoverflow.com/a/1095621/19217368
-            parent_frame_info = inspect.stack()[1]
-            mod = inspect.getmodule(parent_frame_info.frame)
-            if mod:
-                suffix = MODULES_EMOTE_MAPPING.get(mod.__name__)
-                content = f"{content} {suffix}"
-        return await super().send(content, me=me)

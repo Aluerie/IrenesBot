@@ -22,7 +22,7 @@ from discord import Embed
 from twitchio.ext import commands
 
 from core import IrePublicComponent, ireloop
-from shared import globs, errors, fmt
+from shared import errors, fmt, globs
 from utils import const, guards
 
 if TYPE_CHECKING:

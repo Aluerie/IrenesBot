@@ -42,7 +42,7 @@ _build/
 
 # Testing Related
 src/modules/beta.py
-modules_subset.py
+src/modules_subset.py
 src/alpha.py
 src/zeta.py
 

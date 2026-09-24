@@ -16,17 +16,12 @@ import logging
 from pathlib import Path
 from pkgutil import iter_modules
 
-from shared.globs import Global7TV
-
 try:
     from modules_subset import MODULES_SUBSET  # pyright: ignore[reportMissingImports]
 except ModuleNotFoundError:
     MODULES_SUBSET: dict[str, list[str]] = {}  # pyright: ignore[reportConstantRedefinition]
 
-__all__ = (
-    "MODULES_EMOTE_MAPPING",
-    "get_modules",
-)
+__all__ = ("get_modules",)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -34,30 +29,6 @@ log.setLevel(logging.INFO)
 # named modules const
 PUBLIC_D9MMRBOT = "modules.public.d9kmmrbot"
 DEV_REQUIRED = "modules.dev.required"
-
-
-MODULES_EMOTE_MAPPING: dict[str, str] = {
-    "modules.dev.required": "",
-    "modules.dev.control": "",
-    "modules.dev.other": "",
-    "modules.dev.webhook_logs": "",
-    "modules.personal.alerts": "",
-    "modules.personal.counters": "",
-    "modules.personal.discord_notifications": "",
-    "modules.personal.emotes_common": "",
-    "modules.personal.information": "",
-    "modules.personal.keywords": "",
-    "modules.personal.stable": "",
-    "modules.personal.tags": "",
-    "modules.personal.temporary": "",
-    "modules.personal.timers": "",
-    "modules.public": "",
-    "modules.public.d9kmmrbot": "",
-    "modules.public.d7tv": Global7TV.FeelsDankMan,
-    "modules.public.first": "",
-    "modules.public.meta": "",
-    "modules.beta": "",
-}
 
 
 def get_subset_modules(categories: dict[str, list[str]]) -> tuple[str, ...]:
@@ -89,7 +60,7 @@ DISABLED_MODULES: tuple[str, ...] = (
     # modules that should not be loaded
     "modules.beta",
     # currently disabled
-    # "modules.public.dota",
+    PUBLIC_D9MMRBOT,
 )
 
 

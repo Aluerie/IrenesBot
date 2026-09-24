@@ -17,7 +17,7 @@ from twitchio.ext import commands
 from twitchio.web import StarletteAdapter
 
 from config import env
-from modules import MODULES_EMOTE_MAPPING, PUBLIC_D9MMRBOT, get_modules
+from modules import PUBLIC_D9MMRBOT, get_modules
 from shared import errors, fmt
 from shared.helpers import MISSING
 from shared.seven_tv_gql import GraphQL7TVClient
@@ -30,6 +30,7 @@ from .subscriptions import get_all_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
+    from twitchio.user import PartialUser
 
     from shared.types_.database import PoolTypedWithAny
 
@@ -250,8 +251,7 @@ class IreBot(commands.AutoBot):
         display_name = await self.pool.fetchval(query, resp.user_id, token, refresh)
         if resp.user_id is not None and display_name is None:
             # Probably new user joined - let's give them a name
-            partial_user = self.create_partialuser(resp.user_id)
-            user = await partial_user.user()
+            user = await self.create_partialuser(resp.user_id).user()
             query = "UPDATE ttv_tokens SET display_name = $1 WHERE user_id = $2;"
             await self.pool.execute(query, user.display_name, user.id)
             log.info("Added a new streamer %s (@%s) to the database", user.id, user.display_name)
@@ -471,8 +471,6 @@ class IreBot(commands.AutoBot):
     @override
     async def event_error(self, payload: twitchio.EventErrorPayload) -> None:
         """Event Error."""
-        suffix_emote = MODULES_EMOTE_MAPPING.get(payload.listener.__module__, "")
-
         error = payload.error
         original = payload.original
 
@@ -483,10 +481,10 @@ class IreBot(commands.AutoBot):
 
         if hasattr(original, "respond"):
             if isinstance(error, errors.RespondWithError):
-                await original.respond(f"{error} {suffix_emote}")
+                await original.respond(str(error))
                 return
             if isinstance(error, errors.RespondAndNotifyDevsError):
-                await original.respond(f"{error} {suffix_emote}")
+                await original.respond(str(error))
                 await self.error_webhook.send(f"{self.error_ping}\n{error.for_devs}")
                 return
             await original.respond(self.SOMETHING_WENT_WRONG_MESSAGE)
@@ -538,3 +536,7 @@ class IreBot(commands.AutoBot):
         except KeyError:
             msg = f"Somehow {user_id} is not in the bots' streamer index."
             raise errors.SomethingWentWrongError(msg) from None
+
+    def irene(self) -> PartialUser:
+        """Create partial user for @Irene_Adler__ (the bot's owner)."""
+        return self.create_partialuser(self.owner_id)
