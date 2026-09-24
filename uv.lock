@@ -1,6 +1,11 @@
 version = 1
 revision = 3
 requires-python = ">=3.14"
+resolution-markers = [
+    "sys_platform == 'win32'",
+    "sys_platform == 'linux'",
+    "sys_platform != 'linux' and sys_platform != 'win32'",
+]
 
 [[package]]
 name = "aiodns"
@@ -753,6 +758,8 @@ dependencies = [
     { name = "orjson" },
     { name = "pydantic-settings" },
     { name = "steamio" },
+    { name = "stv-event-api", version = "0.1.0", source = { git = "https://github.com/Aluerie/stv_event_api?rev=master#0a77d767436a631e29d675184a51d921cfab32ca" }, marker = "sys_platform == 'linux'" },
+    { name = "stv-event-api", version = "0.1.0", source = { editable = "D:/CODE/_ON_HOLD/stv_event_api" }, marker = "sys_platform == 'win32'" },
     { name = "twitchio", extra = ["starlette"] },
     { name = "uvloop", marker = "sys_platform == 'linux'" },
     { name = "websockets" },
@@ -790,6 +797,8 @@ requires-dist = [
     { name = "orjson", specifier = ">=3.12.0" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "steamio", git = "https://github.com/Aluerie/steam.py?rev=introduce-ext.dota2" },
+    { name = "stv-event-api", marker = "sys_platform == 'linux'", git = "https://github.com/Aluerie/stv_event_api?rev=master" },
+    { name = "stv-event-api", marker = "sys_platform == 'win32'", editable = "D:/CODE/_ON_HOLD/stv_event_api" },
     { name = "twitchio", extras = ["starlette"], git = "https://github.com/PythonistaGuild/TwitchIO.git?rev=main" },
     { name = "uvloop", marker = "sys_platform == 'linux'", specifier = ">=0.22.1" },
     { name = "websockets", specifier = ">=17.1" },
@@ -1738,6 +1747,36 @@ dependencies = [
     { name = "cryptography" },
     { name = "typing-extensions" },
     { name = "vdf" },
+]
+
+[[package]]
+name = "stv-event-api"
+version = "0.1.0"
+source = { git = "https://github.com/Aluerie/stv_event_api?rev=master#0a77d767436a631e29d675184a51d921cfab32ca" }
+resolution-markers = [
+    "sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "aiohttp" },
+    { name = "websockets" },
+]
+
+[[package]]
+name = "stv-event-api"
+version = "0.1.0"
+source = { editable = "D:/CODE/_ON_HOLD/stv_event_api" }
+resolution-markers = [
+    "sys_platform == 'win32'",
+]
+dependencies = [
+    { name = "aiohttp" },
+    { name = "websockets" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.13" },
+    { name = "websockets", specifier = ">=17.1" },
 ]
 
 [[package]]

@@ -19,6 +19,14 @@ from typing import TYPE_CHECKING, Annotated, Any, TypedDict, override
 
 import asyncpg
 import twitchio
+from stv_event_api import SevenTVWebSocket  # pyright: ignore[reportMissingTypeStubs]
+from stv_event_api.models import (  # pyright: ignore[reportMissingTypeStubs]
+    Dispatch,
+    EventType,
+    ResponseTypes,
+    SubscriptionCondition,
+    SubscriptionData,
+)
 from twitchio.ext import commands
 
 from core import IrePublicComponent, ireloop
@@ -27,14 +35,6 @@ from shared.concepts.logs import PrefixLoggerAdapter
 from shared.globs import DIGITS
 from shared.seven_tv_gql.exceptions import EmoteNotFoundInSetError
 from shared.seven_tv_gql.models import PartialEmote, PartialEmoteSet
-from shared.seven_tv_ws import SevenTVWebSocket
-from shared.seven_tv_ws.models import (
-    Dispatch,
-    EventType,
-    ResponseTypes,
-    SubscriptionCondition,
-    SubscriptionData,
-)
 from utils import const, guards
 
 if TYPE_CHECKING:
