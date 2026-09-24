@@ -25,6 +25,6 @@ jobs:
           cd ./IrenesBot
           git pull
           git submodule update --recursive
-          ~/.local/bin/uv sync --no-dev
+          ~/.local/bin/uv sync
           sudo systemctl restart irebot.service
           sudo systemctl start irebot.service
