@@ -1,5 +1,4 @@
 import pytest
-from src.config import env
 from src.shared import seven_tv_gql
 from src.shared.helpers import MISSING
 from src.utils import const
@@ -11,7 +10,6 @@ pytest_plugins = ("pytest_asyncio",)
 async def stv() -> seven_tv_gql.GraphQL7TVClient:
     """7TV client fixture."""
     return seven_tv_gql.GraphQL7TVClient(
-        env.SEVEN_TV_BEARER,
         bot_7tv_user_id=const.SevenTV.IRENESBOT_USER_ID,
         pool=MISSING,
     )
