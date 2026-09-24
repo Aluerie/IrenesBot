@@ -130,7 +130,7 @@ An example of my ``.service`` file is in the repository root folder.
 🔌 Adapter Setup
 #################
 
-1. Decide whether you want to use local adapter (**localhost**) or remote (personally, I'm currently using **ngrok-free.app**);
+1. Decide whether you want to use local adapter (**localhost**) or remote (personally, I'm currently using **ngrok-free.app**).
    Remote allows other people to authorize the bot permissions, but requires a web app with a public-facing URL running.
    While localhost is perfect for one-channel bots, nothing wrong with a bot serving only one channel.
 
@@ -176,11 +176,11 @@ An example of my ``.service`` file is in the repository root folder.
          ngrok service install --config .config/ngrok/ngrok.yml
          ngrok service start / stop / restart / run / install / uninstall
 
-4. Simply run the bot with ``--local-adapter`` if you want a local adapter, or without the said flag for remote adapter.
+4. Simply run the bot with a proper ``--adapter=`` CLI option (``local`` or ``remote``).
    
    .. code-block:: bash
 
-      uv run src/main.py --local-adapter
+      uv run src/main.py --adapter=local
 
    Now users should be able to visit a link like this
 

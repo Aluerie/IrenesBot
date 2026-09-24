@@ -1,5 +1,5 @@
-🤩 Preparations
-===============
+🤩 Further Preparations
+=======================
 
 ❓ Should the streamer mod the bot
 ##################################
@@ -7,7 +7,7 @@
 TL;DR answer: yes, it will help the bot.
 
 Longer answer: the bot doesn't need to be a moderator for its features to work. 
-However, :iconify:`logos:twitch` twitch.tv is stupid - the bots get same rate-limits on messages, redeems and other requests 
+However, :iconify:`logos:twitch` twitch.tv is stupid - bots' accounts get same rate-limits on messages, redeems and other requests 
 as normal people's accounts. 
 
 But example: what if the bot *needs* to send a few messages in a row as a part of their features? 
@@ -15,7 +15,7 @@ or what if the bot chats in gazillion chats?
 It will get quickly rate-limited and blocked by :iconify:`logos:twitch` twitch.tv (especially non-partnered bots), 
 which is really stupid.
 
-This is why all the bots (even the big ones) ask or demand the streamers to mod their mod. 
+This is why all the bots (even the big ones) ask or demand the streamers to mod them. 
 I could change the invite link to include a special permission that would allow the bot to moderate itself in your channel,
 but I think it's unfair and invasive. So for a time being I just ask the streamers to mod the bot on their own volition.
 
