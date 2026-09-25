@@ -753,7 +753,6 @@ dependencies = [
     { name = "orjson" },
     { name = "pydantic-settings" },
     { name = "steamio" },
-    { name = "stv-event-api" },
     { name = "twitchio", extra = ["starlette"] },
     { name = "uvloop", marker = "sys_platform == 'linux'" },
     { name = "websockets" },
@@ -791,7 +790,6 @@ requires-dist = [
     { name = "orjson", specifier = ">=3.12.0" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "steamio", git = "https://github.com/Aluerie/steam.py?rev=introduce-ext.dota2" },
-    { name = "stv-event-api", git = "https://github.com/Aluerie/stv_event_api?rev=master" },
     { name = "twitchio", extras = ["starlette"], git = "https://github.com/Aluerie/TwitchIO.git?rev=fix-custom-reward-redemption" },
     { name = "uvloop", marker = "sys_platform == 'linux'", specifier = ">=0.22.1" },
     { name = "websockets", specifier = ">=17.1" },
@@ -1740,15 +1738,6 @@ dependencies = [
     { name = "cryptography" },
     { name = "typing-extensions" },
     { name = "vdf" },
-]
-
-[[package]]
-name = "stv-event-api"
-version = "0.1.0"
-source = { git = "https://github.com/Aluerie/stv_event_api?rev=master#0a77d767436a631e29d675184a51d921cfab32ca" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "websockets" },
 ]
 
 [[package]]

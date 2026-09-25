@@ -43,7 +43,7 @@ I'm not sure where to put this information but why not here.
 Features related to channel point rewards
 -----------------------------------------
 
-* If, for some reason, the channel points redemption can't be satisfied - the bot will refund the point to the user.
-* if the bot goes does - the bot will process redemptions as soon as it goes online. 
-  Hence if you see the bot being down - you don't need to refund the points to users just yet - 
-  the bot will try to fix everything by itself.
+* If, for some reason, the channel points redemption can't be satisfied - the bot will refund the points to the user.
+* if the bot goes down for some reason - it will still process redemptions as soon as it goes online. 
+  Hence if you see the bot not responding - you don't need to refund the points to users yourself just yet - 
+  the bot will try to fix everything on its own.

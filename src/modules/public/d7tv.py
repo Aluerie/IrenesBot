@@ -19,20 +19,21 @@ from typing import TYPE_CHECKING, Annotated, Any, TypedDict, override
 
 import asyncpg
 import twitchio
-from stv_event_api import SevenTVWebSocket  # pyright: ignore[reportMissingTypeStubs]
-from stv_event_api.models import (  # pyright: ignore[reportMissingTypeStubs]
-    Dispatch,
-    EventType,
-    ResponseTypes,
-    SubscriptionCondition,
-    SubscriptionData,
-)
+
+# from stv_event_api import SevenTVWebSocket
+# from stv_event_api.models import (
+#     Dispatch,
+#     EventType,
+#     ResponseTypes,
+#     SubscriptionCondition,
+#     SubscriptionData,
+# )
 from twitchio.ext import commands
 
 from core import IrePublicComponent, ireloop
 from shared import errors
 from shared.concepts.logs import PrefixLoggerAdapter
-from shared.globs import DIGITS
+from shared.globs import DIGITS, Global7TV
 from shared.seven_tv_gql.exceptions import EmoteNotFoundInSetError
 from shared.seven_tv_gql.models import PartialEmote, PartialEmoteSet
 from utils import const, guards
@@ -163,7 +164,7 @@ class GlobalSearchEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
 class SevenTVFeatures(IrePublicComponent):
     """Cycling Emotes."""
 
-    EMOTE = "xd"
+    EMOTE = Global7TV.FeelsDankMan
 
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
@@ -177,45 +178,45 @@ class SevenTVFeatures(IrePublicComponent):
         self._batch_lock = asyncio.Lock()
         self.bulk_insert.add_exception_type(asyncpg.PostgresConnectionError)
 
-        async def ws_callback(data: ResponseTypes) -> None:
-            """7TV WebSocket Callback.
+    # async def ws_callback(data: ResponseTypes) -> None:
+    #     """7TV WebSocket Callback.
 
-            When emotes get deleted - they should be deleted from the bot's database too.
-            """
-            if not isinstance(data, Dispatch):
-                return
-            if data.type != EventType.EMOTE_SET_UPDATE:
-                return
+    #     When emotes get deleted - they should be deleted from the bot's database too.
+    #     """
+    #     if not isinstance(data, Dispatch):
+    #         return
+    #     if data.type != EventType.EMOTE_SET_UPDATE:
+    #         return
 
-            # log.debug("7TV WebSocket %s", data)
+    #     # log.debug("7TV WebSocket %s", data)
 
-            if data.body.pulled:
-                # Emote Deleted
-                for pulled in data.body.pulled:
-                    query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2;"
-                    emote_id: str = pulled.old_value["id"]  # pyright: ignore[reportOptionalSubscript, reportUnknownVariableType]
-                    emote_set_id = data.body.id
+    #     if data.body.pulled:
+    #         # Emote Deleted
+    #         for pulled in data.body.pulled:
+    #             query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2;"
+    #             emote_id: str = pulled.old_value["id"]
+    #             emote_set_id = data.body.id
 
-                    await self.bot.pool.execute(query, emote_id, emote_set_id)  # pyright: ignore[reportUnknownArgumentType]
+    #             await self.bot.pool.execute(query, emote_id, emote_set_id)
 
-        self.stv_ws = SevenTVWebSocket(callback=ws_callback, websocket_url="wss://events.7tv.io/v3/")
+    # self.stv_ws = SevenTVWebSocket(callback=ws_callback, websocket_url="wss://events.7tv.io/v3/")
 
-    async def stv_ws_subscribe(self, emote_set_id: str) -> None:
-        """Make 7TV WebSocket Subscription."""
-        condition = SubscriptionCondition(object_id=emote_set_id)  # your emote-set id
-        subscription = SubscriptionData(subscription_type=EventType.EMOTE_SET_ALL, condition=condition)
-        await self.stv_ws.subscribe(subscription_data=subscription)
+    # async def stv_ws_subscribe(self, emote_set_id: str) -> None:
+    #     """Make 7TV WebSocket Subscription."""
+    #     condition = SubscriptionCondition(object_id=emote_set_id)  # your emote-set id
+    #     subscription = SubscriptionData(subscription_type=EventType.EMOTE_SET_ALL, condition=condition)
+    #     await self.stv_ws.subscribe(subscription_data=subscription)
 
-    async def stv_ws_multi_subscribe(self) -> None:
-        """Make 7TV WebSocket Subscriptions."""
-        query = "SELECT DISTINCT emote_set_id FROM ttv_stv_users;"
-        for (emote_set_id,) in await self.bot.pool.fetch(query):
-            await self.stv_ws_subscribe(emote_set_id)
+    # async def stv_ws_multi_subscribe(self) -> None:
+    #     """Make 7TV WebSocket Subscriptions."""
+    #     query = "SELECT DISTINCT emote_set_id FROM ttv_stv_users;"
+    #     for (emote_set_id,) in await self.bot.pool.fetch(query):
+    #         await self.stv_ws_subscribe(emote_set_id)
 
     @override
     async def component_load(self) -> None:
-        await self.stv_ws.connect()
-        await self.stv_ws_multi_subscribe()
+        # await self.stv_ws.connect()
+        # await self.stv_ws_multi_subscribe()
         self.fill_known_rewards.start()
         self.check_reward_redemptions.start()
 
@@ -225,7 +226,7 @@ class SevenTVFeatures(IrePublicComponent):
 
     @override
     async def component_teardown(self) -> None:
-        await self.stv_ws.close()
+        # await self.stv_ws.close()
         self.fill_known_rewards.cancel()
         self.check_reward_redemptions.stop()
         # self.bulk_insert.stop()
@@ -313,17 +314,17 @@ class SevenTVFeatures(IrePublicComponent):
             partial_emote_set.id,
         )
         if broadcaster_id is None:
-            msg = "This channel already has 7TV emote cycle channel reward"
+            msg = f"This channel already has 7TV emote cycle channel reward {self.EMOTE}"
             raise errors.RespondWithError(msg)
 
         await self.fill_known_rewards()
         await ctx.send(
-            f"Created a 7tv emote cycle channel points reward {const.STV.DankApprove} "
+            f"Created a 7tv emote cycle channel points reward; "
             "PS. if you want to edit it (e.g. text or color) - visit your creator dashboard "
             f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards). "
-            "Just don't remove `Require Viewer to Enter Text`, please."
+            f"Just don't remove `Require Viewer to Enter Text`, please {self.EMOTE}"
         )
-        await self.stv_ws_subscribe(partial_emote_set.id)
+        # await self.stv_ws_subscribe(partial_emote_set.id)
 
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="remove", aliases=["delete"])
@@ -334,7 +335,7 @@ class SevenTVFeatures(IrePublicComponent):
         """
         query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
         await self.bot.pool.execute(query, emote_id, ctx.broadcaster.id)
-        await ctx.send(f"The {emote_id} was removed from the cycling emote list {const.STV.DonkCrayon}")
+        await ctx.send(f"The {emote_id} was removed from the cycling emote list {self.EMOTE}")
 
     @stv_cycle.command(name="status")
     async def stv_cycle_status(self, ctx: IreContext) -> None:
@@ -353,20 +354,20 @@ class SevenTVFeatures(IrePublicComponent):
         row: CycleStatusQueryRow | None = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
 
         if row is None:
-            msg = "This streamer doesn't have 7tv cycling emote channel points reward set up."
+            msg = f"The streamer doesn't have 7tv cycling emote channel points reward set up {self.EMOTE}"
             raise errors.RespondWithError(msg)
 
         reward = next(iter(await ctx.broadcaster.fetch_custom_rewards(ids=[row["reward_id"]])), None)
         if reward is None:
             msg = (
-                "Somehow the database has wrong information about the 7tv cycle reward - "
-                "please, use !7tv cycle attach *name_of_the_channel_points_reward* to reattach."
+                "Somehow my database has wrong information about the current streamer's 7tv cycle reward - "
+                f"please, use '!7tv cycle create' to recreate the reward {self.EMOTE}"
             )
             raise errors.SomethingWentWrongError(msg)
 
         content = (
             f"title={reward.title} cost={reward.cost} reward_id={row['reward_id']} emote_limit={row['emote_limit']} "
-            f"emote_count={row['emote_count']} emote_set_id={row['emote_set_id']}"
+            f"emote_count={row['emote_count']} emote_set_id={row['emote_set_id']} {self.EMOTE}"
         )
         await ctx.send(content)
 
@@ -382,7 +383,7 @@ class SevenTVFeatures(IrePublicComponent):
         """
         # TODO: after upgrading to PostgresQL 18 https://stackoverflow.com/a/7927957/19217368
         old_emote_limit = await self.bot.pool.fetchval(query, new_limit, ctx.broadcaster.id)
-        await ctx.send(f"Changed emote_limit from {old_emote_limit} to {new_limit}")
+        await ctx.send(f"Changed emote_limit from {old_emote_limit} to {new_limit} {self.EMOTE}")
 
     # "The ID in the Client-Id header must match the client ID used to create the custom reward,
     # or the broadcaster doesn't have partner or affiliate status.
@@ -697,14 +698,14 @@ class SevenTVFeatures(IrePublicComponent):
         editor_for = await partial_user.check_bot_editor()
 
         if not editor_for.is_enough_permissions:
-            content = "7tv editor invite doesn't have required permissions (it needs 'Emote Sets > Manage')"
+            content = f"7tv editor invite doesn't have required permissions (it needs 'Emote Sets > Manage') {self.EMOTE}"
         elif editor_for.state != "ACCEPTED":
             content = (
                 f"7tv editor invite permissions are okay, invite state={editor_for.state}, "
-                f"please use '{ctx.prefix}7tv editor accept' command to make the bot accept it"
+                f"please use '{ctx.prefix}7tv editor accept' command to make the bot accept it {self.EMOTE}"
             )
         else:
-            content = "7tv editor invite is accepted and permissions are good"
+            content = f"7tv editor invite is accepted and permissions are good {self.EMOTE}"
         await ctx.send(content)
 
     @stv_editor.command(name="guide")
@@ -713,7 +714,7 @@ class SevenTVFeatures(IrePublicComponent):
         content = (
             f"{DIGITS[1]} Go to 7tv.app/settings/editors "
             f"{DIGITS[2]} Add Editor > @IrenesBot, make sure 'Emote Sets > Manage' permission is given "
-            f"{DIGITS[3]} Use '{ctx.prefix}7tv editor accept' command to make the bot accept the editor role "
+            f"{DIGITS[3]} Use '{ctx.prefix}7tv editor accept' command to make the bot accept the editor role {self.EMOTE}"
         )
         await ctx.send(content)
 
@@ -723,7 +724,7 @@ class SevenTVFeatures(IrePublicComponent):
         partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
         res = await partial_user.accept_editor()
         insert_response = await self.insert_into_to_stv_users(ctx.broadcaster.id)
-        content = f"Just {res.lower()} your 7TV editor request; also {insert_response}"
+        content = f"Just {res.lower()} your 7TV editor request; also {insert_response} {self.EMOTE}"
         await ctx.send(content)
 
     async def insert_into_to_stv_users(self, broadcaster_id: str, emote_set_id: str | None = None) -> str:
@@ -747,7 +748,7 @@ class SevenTVFeatures(IrePublicComponent):
             emote_set_name = user_info.active_emote_set_name
             emote_set_id = user_info.active_emote_set_id
         await self.bot.pool.execute(query, broadcaster_id, user_info.id, emote_set_id)
-        return f"linked bot's 7tv features to your '{emote_set_name}' emote set ({emote_set_id})"
+        return f"linked bot's 7tv features to your '{emote_set_name}' emote set ({emote_set_id}) {self.EMOTE}"
 
     #########################################################################################################################
     # 7TV EMOTESET                                                                                                          #
@@ -763,14 +764,14 @@ class SevenTVFeatures(IrePublicComponent):
     async def stv_emoteset_attach(self, ctx: IreContext, emote_set_id: str | None = None) -> None:
         """Link."""
         insert_response = await self.insert_into_to_stv_users(ctx.broadcaster.id, emote_set_id=emote_set_id)
-        await ctx.send(f"Successfully {insert_response}")
+        await ctx.send(f"Successfully {insert_response} {self.EMOTE}")
 
     async def select_emote_set_id(self, broadcaster_id: str) -> str:
         """Select emote set id."""
         query = "SELECT emote_set_id FROM ttv_stv_users WHERE broadcaster_id = $1;"
         emote_set_id: str | None = await self.bot.pool.fetchval(query, broadcaster_id)
         if emote_set_id is None:
-            msg = "7tv features are not linked to any emote set"
+            msg = f"7tv features are not attached to any of the emote sets {self.EMOTE}"
             raise errors.RespondWithError(msg)
         return emote_set_id
 
@@ -778,7 +779,7 @@ class SevenTVFeatures(IrePublicComponent):
     async def stv_emoteset_status(self, ctx: IreContext) -> None:
         """Status."""
         emote_set_id = await self.select_emote_set_id(ctx.broadcaster.id)
-        await ctx.send(f"emote_set_id={emote_set_id}")
+        await ctx.send(f"emote_set_id={emote_set_id} {self.EMOTE}")
 
 
 async def setup(bot: IreBot) -> None:
