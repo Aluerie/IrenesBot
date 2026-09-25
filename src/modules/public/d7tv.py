@@ -82,10 +82,15 @@ def regex_to_partial_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> 
     * https://old.7tv.app/emotes/01GEQCQVM0000B6WHR50T3PTZY
     * https://www.7tv.app/emotes/01GEQCQVM0000B6WHR50T3PTZY
     * https://cdn.7tv.app/emote/01HNK8DGF0000FG935RNS75APG/4x.avif
+    * https://7tv.app/emotes/669ea9ca106a10c8be7c621d
     """
     search = re.search(
         # Old regex used (?:https?:\/\/(?:www\.)?7tv\.app\/emotes\/)?
-        r"(?P<emote_id>[0-7][0-9A-HJKMNP-TV-Z]{25})",
+        # But it's better if we allow users to use any kinds of links.
+        # Valid 7tv ids are
+        # * old - MOngoDB ObjectID format: [0-9a-fA-F]{24}
+        # * new - ULID format: [0-7][0-9A-HJKMNP-TV-Z]{25}
+        r"(?P<emote_id>[0-9a-fA-F]{24}|[0-7][0-9A-HJKMNP-TV-Z]{25})",
         emote_id_or_link,
     )
     if search is None:
@@ -496,6 +501,7 @@ class SevenTVFeatures(IrePublicComponent):
     @commands.Component.listener(name="custom_redemption_add")
     async def channel_points_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
         """Somebody redeemed a custom channel points reward."""
+        await self.process_redemption(redemption)
 
     #########################################################################################################################
     # DEVELOPER TESTING COMMANDS                                                                                            #
