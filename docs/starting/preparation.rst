@@ -34,3 +34,16 @@ but I think it's unfair and invasive. So for a time being I just ask the streame
 ################
 
 If a feature requires you to do extra action (e.g. add the bot account to 7tv editors) then the corresponding page will instruct about it.
+
+💡 Random Tips
+##############
+
+I'm not sure where to put this information but why not here.
+
+Features related to channel point rewards
+-----------------------------------------
+
+* If, for some reason, the channel points redemption can't be satisfied - the bot will refund the point to the user.
+* if the bot goes does - the bot will process redemptions as soon as it goes online. 
+  Hence if you see the bot being down - you don't need to refund the points to users just yet - 
+  the bot will try to fix everything by itself.

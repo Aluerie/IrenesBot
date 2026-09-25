@@ -30,7 +30,7 @@ from stv_event_api.models import (  # pyright: ignore[reportMissingTypeStubs]
 from twitchio.ext import commands
 
 from core import IrePublicComponent, ireloop
-from shared import errors, fuzzy
+from shared import errors
 from shared.concepts.logs import PrefixLoggerAdapter
 from shared.globs import DIGITS
 from shared.seven_tv_gql.exceptions import EmoteNotFoundInSetError
@@ -69,9 +69,22 @@ def regex_to_partial_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> 
 
     Does not do anything if the user input is already an emote_id.
     If no emote_id is provided then it errors out.
+
+    Note
+    ----
+    The regex in this function is not restrictive on `emote_id_or_link`.
+    It allows any strings that contain 7TV ids.
+
+    This way all these are valid:
+    * 01GEQCQVM0000B6WHR50T3PTZY
+    * 7tv.app/emotes/01GEQCQVM0000B6WHR50T3PTZY
+    * https://old.7tv.app/emotes/01GEQCQVM0000B6WHR50T3PTZY
+    * https://www.7tv.app/emotes/01GEQCQVM0000B6WHR50T3PTZY
+    * https://cdn.7tv.app/emote/01HNK8DGF0000FG935RNS75APG/4x.avif
     """
     search = re.search(
-        r"(?:https?:\/\/(?:www\.)?7tv\.app\/emotes\/)?(?P<emote_id>[0-7][0-9A-HJKMNP-TV-Z]{25})",
+        # Old regex used (?:https?:\/\/(?:www\.)?7tv\.app\/emotes\/)?
+        r"(?P<emote_id>[0-7][0-9A-HJKMNP-TV-Z]{25})",
         emote_id_or_link,
     )
     if search is None:
@@ -154,11 +167,14 @@ class SevenTVFeatures(IrePublicComponent):
 
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
+
+        # cycle
         self.reward_ids_cache: set[str] = set()
+
+        # stats
         self._batch_total: defaultdict[int, Counter[int]] = defaultdict(Counter)
         self._batch_last_year: list[BatchLastYearEntry] = []
         self._batch_lock = asyncio.Lock()
-
         self.bulk_insert.add_exception_type(asyncpg.PostgresConnectionError)
 
         async def ws_callback(data: ResponseTypes) -> None:
@@ -201,6 +217,8 @@ class SevenTVFeatures(IrePublicComponent):
         await self.stv_ws.connect()
         await self.stv_ws_multi_subscribe()
         self.fill_known_rewards.start()
+        self.check_reward_redemptions.start()
+
         # self.bulk_insert.start()
         # self.clean_up_old_records.start()
         await super().component_load()
@@ -209,6 +227,7 @@ class SevenTVFeatures(IrePublicComponent):
     async def component_teardown(self) -> None:
         await self.stv_ws.close()
         self.fill_known_rewards.cancel()
+        self.check_reward_redemptions.stop()
         # self.bulk_insert.stop()
         # self.clean_up_old_records.stop()
         await super().component_teardown()
@@ -224,6 +243,27 @@ class SevenTVFeatures(IrePublicComponent):
     #########################################################################################################################
     # 7TV EMOTE CYCLING EMOTES CHANNEL POINTS REWARD                                                                        #
     #########################################################################################################################
+
+    @ireloop(hours=8)
+    async def check_reward_redemptions(self) -> None:
+        """The task that double-checks the reward redemption queues."""
+        query = "SELECT reward_id, broadcaster_id FROM ttv_stv_cycle_rewards"
+        for row in await self.bot.pool.fetch(query):
+            reward = next(
+                iter(await self.bot.create_partialuser(row["broadcaster_id"]).fetch_custom_rewards(ids=[row["reward_id"]])),
+                None,
+            )
+            if reward:
+                async for redemption in reward.fetch_redemptions(status="UNFULFILLED", sort="OLDEST"):
+                    try:
+                        await self.process_redemption(redemption)
+                    except Exception as error:
+                        with contextlib.suppress(twitchio.HTTPException):
+                            await redemption.refund()
+                        if isinstance(error, errors.RespondWithError):
+                            pass
+                        else:
+                            raise
 
     @ireloop(count=1)
     async def fill_known_rewards(self) -> None:
@@ -344,36 +384,44 @@ class SevenTVFeatures(IrePublicComponent):
         old_emote_limit = await self.bot.pool.fetchval(query, new_limit, ctx.broadcaster.id)
         await ctx.send(f"Changed emote_limit from {old_emote_limit} to {new_limit}")
 
-    @guards.is_broadcaster_or_dev()
-    @stv_cycle.command(name="attach")
-    async def stv_cycle_attach(self, ctx: IreContext, *, reward_title: str) -> None:
-        """Attach cycling to an existing channel points reward."""
-        rewards = await ctx.broadcaster.fetch_custom_rewards()
-        find = next(iter(fuzzy.finder(reward_title, rewards, key=lambda x: x.title)), None)
-        if find is None:
-            msg = f"Couldn't find any rewards matching title {reward_title}"
-            raise errors.RespondWithError(msg)
+    # "The ID in the Client-Id header must match the client ID used to create the custom reward,
+    # or the broadcaster doesn't have partner or affiliate status.
+    # So we can't allow the bot to attach to random channel rewards
 
-        query = """
-            INSERT INTO ttv_stv_cycle_rewards
-                (broadcaster_id, reward_id)
-            VALUES ($1, $2)
-            ON CONFLICT(broadcaster_id)
-                DO UPDATE SET reward_id = $2;
-        """
-        await self.bot.pool.execute(query, ctx.broadcaster.id, find.id)
-        await self.fill_known_rewards()
-        await ctx.send(f"Attached cycling emotes reward to the channel points redeem `{find.title}` ({find.id})")
+    # @guards.is_broadcaster_or_dev()
+    # @stv_cycle.command(name="attach")
+    # async def stv_cycle_attach(self, ctx: IreContext, *, reward_title: str) -> None:
+    #     """Attach cycling to an existing channel points reward."""
+    #     rewards = await ctx.broadcaster.fetch_custom_rewards()
+    #     find = next(iter(fuzzy.finder(reward_title, rewards, key=lambda x: x.title)), None)
+    #     if find is None:
+    #         msg = f"Couldn't find any rewards matching title {reward_title}"
+    #         raise errors.RespondWithError(msg)
 
-    @commands.Component.listener(name="custom_redemption_add")
-    async def channel_points_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
-        """Somebody redeemed a custom channel points reward."""
+    #     query = """
+    #         INSERT INTO ttv_stv_cycle_rewards
+    #             (broadcaster_id, reward_id)
+    #         VALUES ($1, $2)
+    #         ON CONFLICT(broadcaster_id)
+    #             DO UPDATE SET reward_id = $2;
+    #     """
+    #     await self.bot.pool.execute(query, ctx.broadcaster.id, find.id)
+    #     await self.fill_known_rewards()
+    #     await ctx.send(f"Attached cycling emotes reward to the channel points redeem `{find.title}` ({find.id})")
+
+    async def process_redemption(
+        self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption
+    ) -> None:
+        """Process Redemption."""
         if redemption.reward.id not in self.reward_ids_cache:
             return
 
         if self.is_dev(redemption.user.id):
             # Refund the points for Irene because you know, testing costs :D
-            await redemption.refund(token_for=redemption.broadcaster.id)
+            if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
+                await redemption.refund(token_for=redemption.reward.broadcaster.id)
+            else:
+                await redemption.refund()
 
         log.debug(
             "User @%s (%s) requested cycle-emote at broadcaster @%s (%s) with input: '%s'",
@@ -439,7 +487,14 @@ class SevenTVFeatures(IrePublicComponent):
         log.info(result)
         # await redemption.respond(result)
         with contextlib.suppress(twitchio.HTTPException):
-            await redemption.fulfill(token_for=redemption.broadcaster.id)
+            if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
+                await redemption.fulfill(token_for=redemption.broadcaster.id)
+            else:
+                await redemption.fulfill()
+
+    @commands.Component.listener(name="custom_redemption_add")
+    async def channel_points_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
+        """Somebody redeemed a custom channel points reward."""
 
     #########################################################################################################################
     # DEVELOPER TESTING COMMANDS                                                                                            #
@@ -631,7 +686,13 @@ class SevenTVFeatures(IrePublicComponent):
 
     @stv_editor.command(name="status", aliases=["check"])
     async def stv_editor_status(self, ctx: IreContext) -> None:
-        """Status."""
+        """Status.
+
+        Notes
+        -----
+        wow
+
+        """
         partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
         editor_for = await partial_user.check_bot_editor()
 

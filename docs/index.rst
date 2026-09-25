@@ -18,6 +18,7 @@ personal multipurpose :iconify:`logos:twitch` `twitch.tv <https://www.twitch.tv>
 
 .. image:: /_static/images/SocialPreview.png
 
+
 .. toctree::
    :maxdepth: 1
    :caption: Getting started
@@ -49,3 +50,4 @@ personal multipurpose :iconify:`logos:twitch` `twitch.tv <https://www.twitch.tv>
    :hidden:
 
    reference/index
+   reference/test

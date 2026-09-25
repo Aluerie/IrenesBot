@@ -127,6 +127,7 @@ class IreBot(commands.AutoBot):
 
         if test_account:
             # test account
+            self.test = True
             client_id = env.TEST_TWITCH_CLIENT_ID
             client_secret = env.TEST_TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Test
@@ -134,6 +135,7 @@ class IreBot(commands.AutoBot):
             self.error_ping = "<@&1337106675433340990>"
         else:
             # production account
+            self.test = False
             client_id = env.TWITCH_CLIENT_ID
             client_secret = env.TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Bot
@@ -401,8 +403,10 @@ class IreBot(commands.AutoBot):
 
             # TWITCHIO ERRORS
             case commands.CommandNotFound():
-                #  otherwise we just spam console with commands from other bots and from my event thing
-                log.info("CommandNotFound: %s", error)
+                if self.test:
+                    # if not `self.test` then we don't need to spam the logs with commands from other bots
+                    # for streams that use several bots with the same prefix.
+                    log.info("CommandNotFound: %s", error)
             case commands.CommandOnCooldown():
                 command_name = f"{ctx.prefix}{command.name}" if command else "this command"
                 await ctx.send(

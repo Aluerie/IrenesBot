@@ -32,7 +32,9 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-twitchio = { git = "https://github.com/PythonistaGuild/TwitchIO.git", rev = "main" }
+# twitchio = { git = "https://github.com/PythonistaGuild/TwitchIO.git", rev = "main" }
+# For a time being:
+twitchio = { git = "https://github.com/Aluerie/TwitchIO.git", rev = "fix-custom-reward-redemption" }
 steamio = { git = "https://github.com/Aluerie/steam.py", rev = "introduce-ext.dota2" }
 stv-event-api = { git = "https://github.com/Aluerie/stv_event_api", rev = "master" }
 

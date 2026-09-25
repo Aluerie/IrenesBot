@@ -12,12 +12,12 @@
    So please,
 
    1. Go to your `7TV editors settings page <https://7tv.app/settings/editors>`_
-   2. Add Editor ```@IrenesBot``
+   2. Add Editor ``@IrenesBot``
    3. Set Editor Permissions - currently, ``Emotes Sets > ✅ Manage`` permission (the default) is enough, 
       but maybe future features will require more.
    4. At the moment, the bot doesn't automatically accept 7TV editor invites. However, you can use ``!7tv editor accept`` 
       to make the bot accept it
-   5. The commands might be of help.
+   5. The commands below might be of help.
 
 ``!7tv editor guide``
 ---------------------
@@ -37,7 +37,7 @@
 
    .. note::
 
-      Invoking this command also makes the bot to link 7tv to your active emote set.
+      Invoking this command also makes the bot attach to to your currently active 7tv emote set.
       Which is identical to performing ``!7tv emoteset link`` with no arguments.
 
 ``!7tv editor status``
@@ -119,8 +119,14 @@ The list of commands:
 
    Create a channel points reward, redeems for which the bot will listen to and process them to add/remove 7tv emotes to the channel.
 
-   PS. Streamers are able to edit the resulting channel points reward in their streamer dashboard (https://dashboard.twitch.tv/u/your-twitch-tv-name/viewer-rewards/channel-points/rewards).
-   Please, don't disable ``Require Viewer to Enter Text`` as the bot won't be able to get anything, obviously.
+   .. admonition:: Notes
+      :class: note
+      
+      * After creating a channel points reward with this command - 
+        streamers are able to edit the resulting channel points reward in their streamer dashboard (https://dashboard.twitch.tv/u/your-twitch-tv-name/viewer-rewards/channel-points/rewards).
+      * Please, don't disable ``Require Viewer to Enter Text`` as the bot won't be able to get anything, obviously.
+      * It's not possible to attach to already created channel point rewards because the bots can manage only those chanel point rewards
+        that were created by the bot itself.
 
 ``!7tv cycle status``
 ---------------------
@@ -147,13 +153,3 @@ The list of commands:
 * **Usage Example(-s)**: ``!7tv cycle limit 20``
 
    Set a new limit for cycling emote list.
-
-
-``!7tv cycle attach``
----------------------
-* **Arguments**: 
-   * ``<reward_name>`` (text) - name of an existing channel points reward for the bot to start listening to.
-* **Usage Example(-s)**: ``!7tv cycle attach add 7tv emote lol``
-
-   Instead of creating a new channel points reward with ``!7tv cycle create`` you can attach an existing reward for the bot to listen to.
-

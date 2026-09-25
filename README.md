@@ -13,4 +13,11 @@ Just a personal twitch.tv bot of mine.
 ## [🏠 Read The Docs](<https://irenesbot.readthedocs.io>)
 
 > [!IMPORTANT]
-> I really like `Sphinx` / `ReadTheDocs` / `.rst` format so I put pretty much everything in there ([🏠 Read The Docs](https://github.com/Aluerie/IreBot/wiki)) instead of writing it in the `README.md`. So check it out.
+> The documentation is there: ([🏠 Read The Docs](https://irenesbot.readthedocs.io/)), including:
+>
+> * Getting Started
+> * Public Features & Commands
+> * Personal Features & Commands
+> * Developer Guides
+> * API Reference
+> * more

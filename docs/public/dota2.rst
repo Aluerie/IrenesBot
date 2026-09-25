@@ -1,6 +1,7 @@
 :iconify:`thesvg-color:dota-2` Dota 2 features
 ==============================================
 
+
 📚 Commands table
 #################
 

@@ -8,33 +8,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 sys.path.insert(0, str(Path("..", "src").resolve()))
+sys.path.append(str(Path("_extensions").resolve()))
 
 if TYPE_CHECKING:
     from sphinx import application
-
-# I don't understand how to solve Pydantic + Sphinx mess properly
-# ---------------------------------------------------------------
-# os.environ["PROJECT_NAME"] = ""
-# os.environ["TWITCH_CLIENT_ID"] = ""
-# os.environ["TWITCH_CLIENT_SECRET"] = ""
-# os.environ["POSTGRES_VPS"] = ""
-# os.environ["POSTGRES_HOME"] = ""
-# os.environ["STEAM_FRIEND_IRENE_ID64"] = "1"
-# os.environ["STEAM_FRIEND_IRENE_ID32"] = "1"
-# os.environ["STEAM_IRENESTEST_USERNAME"] = ""
-# os.environ["STEAM_IRENESTEST_PASSWORD"] = ""
-# os.environ["STEAM_IRENESBOT_USERNAME"] = ""
-# os.environ["STEAM_IRENESBOT_PASSWORD"] = ""
-# os.environ["STRATZ_BEARER"] = ""
-# os.environ["STEAM_API_KEY"] = ""
-# os.environ["SEVEN_TV_BEARER"] = ""
-# os.environ["SPOTIFY_AIDENWALLIS"] = ""
-# os.environ["EVENTSUB"] = ""
-# os.environ["WEBHOOK_LOGGER"] = ""
-# os.environ["WEBHOOK_ERROR"] = ""
-# os.environ["WEBHOOK_STREAM_NOTIFS"] = ""
-# os.environ["WEBHOOK_HEARTBEAT"] = ""
-# os.environ["WEBHOOK_HEARTBEAT"] = ""
 
 
 project = "IrenesBot - Documentation"
@@ -99,9 +76,11 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.napoleon",
     # Extra
     "sphinx_design",
     "sphinx_iconify",
+    "chat_command",
 ]
 
 intersphinx_mapping = {
