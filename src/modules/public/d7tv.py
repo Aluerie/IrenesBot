@@ -662,26 +662,6 @@ class SevenTVFeatures(IrePublicComponent):
             return
 
     #########################################################################################################################
-    # 7TV EMOTE MANAGEMENT                                                                                                  #
-    #########################################################################################################################
-
-    @guards.is_broadcaster_or_dev()
-    @commands.command()
-    async def add(
-        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
-    ) -> None:
-        """Add 7TV emote."""
-        await ctx.send(str(emote_and_alias))
-
-    @guards.is_broadcaster_or_dev()
-    @commands.command()
-    async def remove(
-        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
-    ) -> None:
-        """Remove 7TV emote."""
-        await ctx.send(str(emote_and_alias))
-
-    #########################################################################################################################
     # 7TV EDITOR STATUS / ACCEPT                                                                                            #
     #########################################################################################################################
 
@@ -786,6 +766,26 @@ class SevenTVFeatures(IrePublicComponent):
         """Status."""
         emote_set_id = await self.select_emote_set_id(ctx.broadcaster.id)
         await ctx.send(f"emote_set_id={emote_set_id} {self.EMOTE}")
+
+    #########################################################################################################################
+    # 7TV EMOTE MANAGEMENT                                                                                                  #
+    #########################################################################################################################
+
+    @guards.is_broadcaster_or_dev()
+    @commands.command()
+    async def add(
+        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
+    ) -> None:
+        """Add 7TV emote."""
+        await ctx.send(str(emote_and_alias))
+
+    @guards.is_broadcaster_or_dev()
+    @commands.command()
+    async def remove(
+        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+    ) -> None:
+        """Remove 7TV emote."""
+        await ctx.send(str(emote_and_alias))
 
 
 async def setup(bot: IreBot) -> None:

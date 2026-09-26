@@ -15,6 +15,7 @@ For an example of how starting template for `modules.beta.py` looks - you can lo
 from __future__ import annotations
 
 import asyncio
+import datetime
 import itertools
 import logging
 import platform
