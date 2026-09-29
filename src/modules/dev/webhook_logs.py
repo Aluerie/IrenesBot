@@ -32,7 +32,7 @@ def get_latest_commit() -> str:
     short, _, _ = commit.message.partition("\n")
     short = short[0:40] + "..." if len(short) > 40 else short
     short_sha2 = str(commit.id)[0:6]
-    commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(datetime.UTC).strftime("%H:%M %p %d/%b/%y")
+    commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(datetime.UTC).strftime("%H:%M%p %d/%b/%y")
     return f"<{short_sha2}> '{short}' ({commit_time})"
 
 
