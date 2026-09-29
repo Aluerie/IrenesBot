@@ -2,18 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import datetime
-import itertools
 import logging
 import textwrap
 from typing import TYPE_CHECKING, Any, override
 
 import discord
-import pygit2
 from discord.utils import MISSING
-from pygit2.enums import SortMode
 from twitchio.ext import commands
 
 from core import IreDevComponent, ireloop
+from shared import gh
 from utils import const
 
 if TYPE_CHECKING:
@@ -23,17 +21,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
-
-def get_latest_commit() -> str:
-    """Get latest GitHub commit."""
-    repo = pygit2.repository.Repository("./.git")
-    commit = next(iter(itertools.islice(repo.walk(repo.head.target, SortMode.TOPOLOGICAL), 1)))
-    short, _, _ = commit.message.partition("\n")
-    short = short[0:40] + "..." if len(short) > 40 else short
-    short_sha2 = str(commit.id)[0:6]
-    commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(datetime.UTC).strftime("%H:%M%p %d/%b/%y")
-    return f"<{short_sha2}> '{short}' ({commit_time})"
 
 
 class LoggingHandler(logging.Handler):
@@ -154,8 +141,10 @@ class LogsViaWebhook(IreDevComponent):
     @commands.Component.listener(name="ready")
     async def announce_reloaded(self) -> None:
         """Announce that bot is successfully reloaded/restarted."""
+        commit = gh.get_last_commit()
+        fmt_commit = f"<{commit.short_sha2}> '{commit.emojified_title}' ({commit.utc_dt.strftime('%H:%M%p %d/%b/%y')})"
         await self.bot.irene().send_message(
-            sender=self.bot.bot_id, message=f"{const.STV.hi} the bot is reloaded; commit: {get_latest_commit()}"
+            sender=self.bot.bot_id, message=f"{const.STV.hi} the bot is reloaded; commit: {fmt_commit}"
         )
 
 

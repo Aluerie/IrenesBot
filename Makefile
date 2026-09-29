@@ -24,6 +24,7 @@ Commands:
 	sync                Install dependencies
 	update              Update dependencies
 	run                 Run the bot
+	scopes				Run the bot in the scopes-only mode
 	lint                Run the linter
 	format              Format the code
 	format-check        Check code formatting
@@ -70,8 +71,11 @@ update:  # Update dependencies
 run:  # Run the bot in the subset-mode
 	uv run --no-dev src/main.py --subset-mode --adapter=local --test-account
 
-# Other CLI flags
-# --scopes-only
+.PHONY: scopes
+.SILENT: scopes
+scopes:  # Run the bot in the scopes-only mode
+	uv run --no-dev src/main.py --subset-mode --adapter=local --test-account --scopes-only
+
 
 .PHONY: lint
 .SILENT: lint

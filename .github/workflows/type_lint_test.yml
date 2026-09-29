@@ -34,7 +34,7 @@ jobs:
       #   run: uv run ty check src tests
 
       - name: Ruff Lint Checking
-        run: uv run ruff check src tests examples --output-format github
+        run: uv run ruff check src tests templates --output-format github
 
       - name: Pytest Tests
         run: uv run pytest

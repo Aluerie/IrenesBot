@@ -15,12 +15,16 @@ Use this link:
 
 .. highlights::
     
-    https://parrot-thankful-trivially.ngrok-free.app/oauth?scopes=channel:bot+channel:read:redemptions+channel:manage:redemptions&force_verify=true
+    https://parrot-thankful-trivially.ngrok-free.app/oauth?scopes=channel:bot+channel:read:redemptions+channel:manage:redemptions+channel:manage:moderators&force_verify=true
 
-Yes, I'm sorry. I know the link looks ugly and the host "parrot-thankful-trivially.ngrok-free.app" looks suspicious as hell, 
-but I don't really care to pay money to get a proper domain name 
-(and twitch is dumb that they don't have any way to do this without a web-app with a public facing URL). 
-Idk, I'm a bit stingy like that, but it's safe to click. Me and a few people have already authorized the bot this way.
+Yes, I'm sorry. I know the link looks ugly and the host ``parrot-thankful-trivially.ngrok-free.app`` looks suspicious as hell, 
+but I don't really care to pay money to get a proper domain name.
+Unfortunately, :iconify:`logos:twitch` twitch is dumb and they don't provide any convenient for everybody way to do this. 
+From the developer side, it's quite a headache to set up the authorization process. 
+But without much explanations - 
+even pleb developers like me need to have a running web-app with a public facing URL that :iconify:`logos:twitch` twitch will use to callback after authorization.
+A normal looking domain costs some money, but as I said -  I'm a bit stingy.
+However, I assure you, it's safe to click. Me and a few people have already authorized the bot this way.
 
 So, the link will redirect you to a normal `twitch.tv <https://www.twitch.tv>`_ authorization page like a screenshot below. 
 Here, you read what permissions my bot is asking and press "Authorize" if you are okay with giving my bot those permissions.
@@ -28,6 +32,19 @@ Here, you read what permissions my bot is asking and press "Authorize" if you ar
 .. image:: /_static/images/authorize.png
     :align: center
     :width: 400
+
+.. caution::
+
+    The link asks for "Grant or remove the moderator role from users in your channel" permission only in order to moderate itself.
+    It won't remove/add anybody else.
+    Sadly, the bot itself needs the moderator role because :iconify:`logos:twitch` twitch is stupid (common theme, huh) and they rate-limit 
+    small bot accounts with 
+
+    * ``Your message was not sent because you are sending messages too quickly`` 
+    * ``Your message was not sent because it is identical to the previous one you sent, less than 30 seconds ago``
+
+    even when the bot is not trying to be a bad actor.
+
 
 💔 Troubleshooting
 ##################

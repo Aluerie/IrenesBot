@@ -3,7 +3,8 @@ CREATE TABLE
     IF NOT EXISTS ttv_stv_users (
         broadcaster_id TEXT PRIMARY KEY REFERENCES ttv_tokens (user_id) ON DELETE CASCADE,
         stv_user_id TEXT NOT NULL,
-        emote_set_id TEXT NOT NULL
+        emote_set_id TEXT NOT NULL,
+        allow_common_words BOOLEAN
     );
 
 CREATE TABLE

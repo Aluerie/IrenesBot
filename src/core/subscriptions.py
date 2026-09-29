@@ -163,6 +163,7 @@ def get_personal_oauth_url(domain: str) -> str:
         "channel:manage:redemptions",
         "channel:manage:broadcast",
         "channel:read:subscriptions",
+        "channel:manage:moderators",
     ]
     return get_oauth_url(domain, scopes, "🎬🎬🎬 PERSONAL OAUTH LINK: 🎬🎬🎬")
 
@@ -173,6 +174,7 @@ def get_public_oauth_url(domain: str) -> str:
         "channel:bot",
         "channel:read:redemptions",
         "channel:manage:redemptions",
+        "channel:manage:moderators",
     ]
     return get_oauth_url(domain, scopes, "🌈🌈🌈 PUBLIC OAUTH LINK: 🌈🌈🌈")
 

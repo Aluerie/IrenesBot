@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
+import twitchio
 from twitchio.ext import commands
 
 from shared import errors
 
 if TYPE_CHECKING:
-    import twitchio
-
     from core import IreBot
 
 
@@ -42,3 +41,11 @@ class IreContext(commands.Context["IreBot"]):
                 f'e.g. "{invoked_strip} {next(iter(self.command.commands))}".'
             )
         )
+
+    @override
+    async def send(self, content: str, *, me: bool = False) -> twitchio.SentMessage:
+        try:
+            return await super().send(content, me=me)
+        except twitchio.MessageRejectedError:
+            # Bypass this error with a 7TV trick of adding an unknown character (32 is space though)
+            return await super().send(content + chr(32) + chr(917504), me=me)

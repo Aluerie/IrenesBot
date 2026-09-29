@@ -10,7 +10,7 @@ License
 * Copyright: (C) 2020-present @Aluerie.
 """
 
-# ruff: noqa: D101, D102, D103, EM101, RUF100
+# ruff: noqa: D101, D102, D103, EM101, RUF100, T201
 
 from __future__ import annotations
 

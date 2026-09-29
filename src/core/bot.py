@@ -5,7 +5,6 @@ import contextlib
 import datetime
 import enum
 import logging
-import pprint
 import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict, override
@@ -20,7 +19,7 @@ from twitchio.web import StarletteAdapter
 from config import env
 from modules import PUBLIC_D9MMRBOT, get_modules
 from shared import errors, fmt
-from shared.helpers import MISSING
+from shared.other import MISSING
 from shared.seven_tv_gql import GraphQL7TVClient
 from utils import const
 from utils.dota2 import IreDota2Client
@@ -30,6 +29,8 @@ from .error_manager import ErrorManager
 from .subscriptions import get_all_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+
     from aiohttp import ClientSession
     from twitchio.user import PartialUser
 
@@ -99,6 +100,7 @@ class IreBot(commands.AutoBot):
     if TYPE_CHECKING:
         # it's "str | None" in twitchio, but we do supply it directly
         owner_id: str  # pyright: ignore[reportIncompatibleMethodOverride]
+        user: twitchio.User  # pyright: ignore[reportIncompatibleMethodOverride]
 
     def __init__(
         self,
@@ -270,6 +272,10 @@ class IreBot(commands.AutoBot):
             query = "UPDATE ttv_tokens SET display_name = $1 WHERE user_id = $2;"
             await self.pool.execute(query, user.display_name, user.id)
             log.info("Added a new streamer %s (@%s) to the database", user.id, user.display_name)
+
+            # let's moderate the bot immediately
+            await user.add_moderator(self.user.id)
+
             # TODO: maybe make a notification into irene's discord
 
         log.info("Added token to the database for user: %s", resp.user_id)
@@ -342,21 +348,45 @@ class IreBot(commands.AutoBot):
     @staticmethod
     def add_codeblock_field(embed: discord.Embed, field_name: str, data: dict[str, Any]) -> discord.Embed:
         """A helper method to add arguments as a field for the unknown error report embed."""
-        embed.add_field(
-            name=field_name,
-            value=fmt.codeblock(
-                "\n".join(f"[{name}]: {pprint.pformat(repr(value), indent=4)}" for name, value in data.items())
-                if data
-                else "No arguments"
-            ),
-            inline=False,
-        )
+        embed.add_field(name=field_name, value=fmt.pformat_dict(data), inline=False)
         return embed
 
     SOMETHING_WENT_WRONG_MESSAGE = (
         f"Something went wrong {const.Global.FeelsDankMan} "
         f"but I've notified Irene about the error {const.Global.FeelsDankMan}"
     )
+
+    async def handle_common_errors(
+        self, error: BaseException | None, respond: Callable[..., Coroutine[Any, Any, twitchio.SentMessage]]
+    ) -> bool:
+        """Handle known error types."""
+        match error:
+            # MY CUSTOM ERRORS
+            case errors.SilentError():
+                pass
+            case errors.RespondWithError():
+                await respond(str(error))
+            case errors.RespondAndNotifyDevsError():
+                await respond(str(error))
+                await self.error_webhook.send(f"{self.error_ping}\n{error.for_devs}\n{fmt.pformat_dict(error.debug_data)}")
+
+            # TWITCHIO ERRORS
+            case twitchio.HTTPException():
+                await respond(
+                    f"{error.__class__.__name__} - "
+                    f"{error.extra.get('error', 'Error')} "
+                    f"{error.extra.get('status', 'XXX')}: "
+                    f"{error.extra.get('message') or 'Unknown'} {const.STV.dankFix} "
+                    f"(Irene will surely fix it)"
+                )
+            case twitchio.MessageRejectedError():
+                # This one is a annoying because it stops code execution
+                # let's at least send the response back
+                await respond(error.content + chr(32) + chr(917504))
+
+            case _:
+                return False
+        return True
 
     @override
     async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
@@ -368,40 +398,15 @@ class IreBot(commands.AutoBot):
         if command and command.has_error and ctx.error_dispatched:
             return
 
-        # we aren't interested in the chain traceback:
+        # we aren't interested in the chain traceback from invoking:
         error = error.original if isinstance(error, commands.CommandInvokeError) and error.original else error
 
-        # Unknown Error tools
-
-        async def handle_cause(error: BaseException) -> bool:
-            """
-            Handle cause error, helper function.
-
-            Returns
-            -------
-            bool
-                Whether the cause was handled within this function or not.
-            """
-            if not (cause := error.__cause__):
-                return False
-
-            if isinstance(cause, errors.RespondWithError):
-                # my custom guards / converters / etc should `raise errors.RespondWithError`
-                await ctx.send(str(cause))
-                return True
-            return bool(isinstance(cause, errors.SilentError))
+        # 1. Handle common error
+        if await self.handle_common_errors(error, ctx.send):
+            return
 
         match error:
-            # MY CUSTOM ERRORS
-            case errors.SilentError():
-                return
-            case errors.RespondWithError():
-                await ctx.send(str(error))
-            case errors.RespondAndNotifyDevsError():
-                await ctx.send(str(error))
-                await self.error_webhook.send(f"{self.error_ping}\n{error.for_devs}")
-
-            # TWITCHIO ERRORS
+            # 2. Handle command specific errors
             case commands.CommandNotFound():
                 if self.test:
                     # if not `self.test` then we don't need to spam the logs with commands from other bots
@@ -413,10 +418,9 @@ class IreBot(commands.AutoBot):
                     f"Command {command_name} is on cooldown! Try again in {error.remaining:.0f} sec {const.STV.Timeloth}"
                 )
             case commands.GuardFailure():
-                if await handle_cause(error):
+                if await self.handle_common_errors(error.__cause__, ctx.send):
                     # Guards raise `GuardFailure` errors while we're always interested in `__cause__`.
                     return
-
                 # To make custom responses for default `twitchio` guards - need to cook a bit.
                 # (or make our own guards with the same predicates, not like it's anything complex)
                 guard_response = {
@@ -433,22 +437,13 @@ class IreBot(commands.AutoBot):
                     f'For some reason ("{guard_name}") you are not allowed to use this command',
                 )
                 await ctx.send(f"{guard_response} {const.FFZ.peepoPolice}")
-            case twitchio.HTTPException():
-                await ctx.send(
-                    f"{error.__class__.__name__} - "
-                    f"{error.extra.get('error', 'Error')} "
-                    f"{error.extra.get('status', 'XXX')}: "
-                    f"{error.extra.get('message') or 'Unknown'} {const.STV.dankFix} "
-                    f"(Irene will surely fix it)"
-                )
             case commands.MissingRequiredArgument():
                 await ctx.send(f'You need to provide "{error.param.name}" argument for this command {const.FFZ.peepoPolice}')
             case commands.BadArgument():
-                if await handle_cause(error):
+                if await self.handle_common_errors(error.__cause__, ctx.send):
                     # Converters raise `BadArgument` Failed to convert "this" to <class 'typing._ProtocolMeta'>, which is not
                     # exactly telling much. We are more interested in the original `__cause__`.
                     return
-
                 log.error("%s: %s | error.name=%s | error.value=%s", type(error), error, error.name, error.value)
                 await ctx.send(
                     content=(
@@ -456,16 +451,11 @@ class IreBot(commands.AutoBot):
                         f"to required type/format {const.STV.dankFix}"
                     )
                 )
-            # case commands.ArgumentError():
-            #     await ctx.send(str(error))
-
             case _:
-                # All other errors;
-                # SomethingWentWrongError also goes here (unlike long ago).
-
+                # 3. All other errors;
+                # SomethingWentWrongError also goes here (unlike how it was long ago).
                 await ctx.send(self.SOMETHING_WENT_WRONG_MESSAGE)
                 # await ctx.send(f"{error.__class__.__name__}: {replace_secrets(str(error))}")
-
                 command_name = getattr(ctx.command, "name", "unknown")
                 embed = (
                     discord.Embed(
@@ -473,7 +463,8 @@ class IreBot(commands.AutoBot):
                         title=f"Command Error: `!{command_name}`",
                     )
                     .set_author(
-                        name=f"Chatter {ctx.chatter.display_name}", icon_url=(await ctx.chatter.user()).profile_image
+                        name=f"Chatter {ctx.chatter.display_name}",
+                        icon_url=(await ctx.chatter.user()).profile_image,
                     )
                     .set_footer(
                         text=f"Channel: {ctx.broadcaster.display_name}",
@@ -481,8 +472,8 @@ class IreBot(commands.AutoBot):
                     )
                 )
                 embed = self.add_codeblock_field(embed, "Command Args", ctx.kwargs)
-                if isinstance(error, errors.SomethingWentWrongError) and error.data:
-                    embed = self.add_codeblock_field(embed, "Extra Data", error.data)
+                if isinstance(error, errors.SomethingWentWrongError) and error.debug_data:
+                    embed = self.add_codeblock_field(embed, "Extra Data", error.debug_data)
                 await self.error_manager.register(error, embed=embed)
 
     @override
@@ -496,25 +487,31 @@ class IreBot(commands.AutoBot):
             with contextlib.suppress(twitchio.HTTPException):
                 await original.refund(token_for=original.broadcaster.id)
 
-        if hasattr(original, "respond"):
-            if isinstance(error, errors.RespondWithError):
-                await original.respond(str(error))
-                return
-            if isinstance(error, errors.RespondAndNotifyDevsError):
-                await original.respond(str(error))
-                await self.error_webhook.send(f"{self.error_ping}\n{error.for_devs}")
-                return
-            await original.respond(self.SOMETHING_WENT_WRONG_MESSAGE)
+        if hasattr(original, "respond") and await self.handle_common_errors(error, original.respond):
+            # 1. Handle common error
+            return
 
-        # All other errors;
+        # 2. All other errors;
         # SomethingWentWrongError also goes here (unlike long ago).
 
         embed = discord.Embed(
             title=f"Event Error: `{payload.listener.__qualname__}`",
-        ).add_field(name="Exception", value=f"`{payload.error.__class__.__name__}`")
-        if isinstance(error, errors.SomethingWentWrongError) and error.data:
-            embed = self.add_codeblock_field(embed, "Extra Data", error.data)
-
+        ).add_field(
+            name="Exception",
+            value=f"`{payload.error.__class__.__name__}`",
+        )
+        if broadcaster := getattr(original, "broadcaster", None):
+            embed.set_footer(
+                text=f"Channel: {broadcaster.display_name}",
+                icon_url=(await broadcaster.user()).profile_image,
+            )
+        if chatter := getattr(original, "user", None):
+            embed.set_author(
+                name=f"Chatter {chatter.display_name}",
+                icon_url=(await chatter.user()).profile_image,
+            )
+        if isinstance(error, errors.SomethingWentWrongError) and error.debug_data:
+            embed = self.add_codeblock_field(embed, "Extra Data", error.debug_data)
         await self.error_manager.register(error, embed=embed)
 
     # SHORTCUTS AND UTILITIES
