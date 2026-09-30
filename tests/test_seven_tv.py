@@ -1,6 +1,6 @@
 import pytest
 from src.shared import seven_tv_gql
-from src.shared.helpers import MISSING
+from src.shared.other import MISSING
 from src.utils import const
 
 pytest_plugins = ("pytest_asyncio",)

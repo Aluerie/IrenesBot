@@ -33,12 +33,19 @@ class IreContext(commands.Context["IreBot"]):
             msg = "`self.invoked_with` is None for some reason."
             raise errors.SomethingWentWrongError(msg)
 
-        invoked_strip = self.invoked_with.strip()
+        relative_name = self.command.relative_name.strip()
+        invoked_with = self.invoked_with.strip()
+
+        prefix = (
+            f'"{relative_name}" is a group command, '
+            if invoked_with == relative_name
+            else f"Wrong subcommand '{invoked_with.removeprefix(relative_name)}',"
+        )
         await self.send(
             content=(
-                f'"{invoked_strip}" is a group command, use it together with one of '
-                f"the children: {', '.join(self.command.commands)}, "
-                f'e.g. "{invoked_strip} {next(iter(self.command.commands))}".'
+                f"{prefix}"
+                f" available subcommands: {', '.join(self.command.commands)}, "
+                f'e.g. "{relative_name} {next(iter(self.command.commands))}".'
             )
         )
 

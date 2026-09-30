@@ -259,7 +259,7 @@ class SevenTVFeatures(IrePublicComponent):
         # self.clean_up_old_records.stop()
         await super().component_teardown()
 
-    @commands.group(name="7tv", aliases=["stv"])
+    @commands.group(name="7tv", aliases=["stv"], invoke_fallback=True)
     async def stv(self, ctx: IreContext) -> None:
         """Group command for `!7tv`.
 
@@ -321,7 +321,7 @@ class SevenTVFeatures(IrePublicComponent):
         query = "SELECT reward_id FROM ttv_stv_cycle_rewards"
         self.reward_ids_cache = {r for (r,) in await self.bot.pool.fetch(query)}
 
-    @stv.group(name="cycle")
+    @stv.group(name="cycle", invoke_fallback=True)
     async def stv_cycle(self, ctx: IreContext) -> None:
         """Group command for `!7tv cycle`.
 
