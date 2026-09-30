@@ -600,9 +600,7 @@ class SevenTVFeatures(IrePublicComponent):
                 log.debug("Removed emote %s (#%s)", emote_name_to_remove, emote_id_to_remove)
 
         # Step 4. Add the requested emote
-        await emote_set.add_emote(
-            emote_id=emote.id, chatter_id=redemption.user.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias
-        )
+        await emote_set.add_emote(emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias)
         log.debug("Added emote #%s", emote.id)
 
         query = """
@@ -907,9 +905,7 @@ class SevenTVFeatures(IrePublicComponent):
         """Add 7TV emote helper."""
         emote, alias = emote_and_alias
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
-        await emote_set.add_emote(
-            emote_id=emote.id, chatter_id=ctx.chatter.id, broadcaster_id=ctx.broadcaster.id, emote_alias=alias
-        )
+        await emote_set.add_emote(emote_id=emote.id, broadcaster_id=ctx.broadcaster.id, emote_alias=alias)
         await ctx.send("Added")
 
     @guards.is_broadcaster_or_dev()
@@ -983,9 +979,7 @@ class SevenTVFeatures(IrePublicComponent):
             raise errors.RespondWithError(msg)
         await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
-        await emote_set.rename_emote(
-            emote_id=emote.id, chatter_id=ctx.chatter.id, broadcaster_id=ctx.broadcaster.id, new_emote_alias=alias
-        )
+        await emote_set.rename_emote(emote_id=emote.id, broadcaster_id=ctx.broadcaster.id, new_emote_alias=alias)
         await ctx.send("Renamed")
 
     @is_emote_owner()
