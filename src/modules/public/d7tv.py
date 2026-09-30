@@ -476,7 +476,7 @@ class SevenTVFeatures(IrePublicComponent):
         old_emote_limit = await self.bot.pool.fetchval(query, new_limit, ctx.broadcaster.id)
         await ctx.send(f"Changed emote_limit from {old_emote_limit} to {new_limit} {self.EMOTE}")
 
-    @stv_cycle.command(name="showemotes", aliases=["allemotes"])
+    @stv_cycle.command(name="show-emotes", aliases=["all-emotes"])
     async def stv_cycle_showemotes(self, ctx: IreContext) -> None:
         """Show all cycle emote rewards for the streamer."""
         query = "SELECT emote_id FROM ttv_stv_cycle_emotes WHERE broadcaster_id = $1;"
@@ -882,7 +882,7 @@ class SevenTVFeatures(IrePublicComponent):
             Due to my laziness this doesn't accept emote set links, so please, copy only ID part form the emote set's URL.
         """
         insert_response = await self.insert_into_to_stv_users(ctx.broadcaster.id, emote_set_id=emote_set_id)
-        await ctx.send(f"Successfully {insert_response} {self.EMOTE}")
+        await ctx.send(f"Successfully {insert_response}")
 
     async def select_emote_set(self, broadcaster_id: str) -> PartialEmoteSet:
         """Select emote set id."""

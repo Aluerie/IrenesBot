@@ -142,15 +142,18 @@ class ChatCommandDocumenter(MethodDocumenter):
         # Syntax
         # self.add_line(".. rubric:: **Syntax**", sourcename)
         # self.add_line("", sourcename)
-        self.add_line(".. admonition:: Syntax", sourcename)
-        self.add_line("   :class: important", sourcename)
+        self.add_line(".. code-block::", sourcename)
+        self.add_line("   :caption: Usage Syntax", sourcename)
         self.add_line("", sourcename)
         params = " " + " ".join(f"<{param}>" for param in cmd.parameters) if cmd.parameters else ""
-        self.add_line(f"   * **Usage**: ``{command_name}{params}``\n", sourcename)
+        self.add_line(f"   {command_name}{params}\n", sourcename)
         if cmd.aliases:
             parent = f"{cmd.full_parent_name} " if cmd.full_parent_name else ""
-            aliases = " ".join(f"``{PREFIX}{parent}{alias}``" for alias in cmd.aliases)
-            self.add_line(f"   * **Aliases**: {aliases}", sourcename)
+            aliases = ", ".join(f"{PREFIX}{parent}{alias}" for alias in cmd.aliases)
+            self.add_line(".. code-block::", sourcename)
+            self.add_line("   :caption: Aliases", sourcename)
+            self.add_line("", sourcename)
+            self.add_line(f"   {aliases}", sourcename)
         self.add_line("", sourcename)
 
         # Permissions
