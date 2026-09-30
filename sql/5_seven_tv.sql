@@ -60,3 +60,20 @@ CREATE INDEX IF NOT EXISTS ttv_stv_emote_stats_last_year_broadcaster_id_idx ON t
 CREATE INDEX IF NOT EXISTS ttv_stv_emote_stats_last_year_author_id_idx ON ttv_stv_emote_stats_last_year (author_id);
 
 CREATE INDEX IF NOT EXISTS ttv_stv_emote_stats_last_year_used_idx ON ttv_stv_emote_stats_last_year (used);
+
+CREATE TABLE
+    /* Blacklist Emote Rewards */
+    IF NOT EXISTS ttv_stv_blacklist_rewards (
+        broadcaster_id TEXT PRIMARY KEY REFERENCES ttv_stv_users (broadcaster_id) ON DELETE CASCADE,
+        reward_id TEXT NOT NULL
+    );
+
+CREATE TABLE
+    /* Blacklist Emotes */
+    IF NOT EXISTS ttv_stv_blacklist_emotes (
+        id SERIAL PRIMARY KEY,
+        emote_id TEXT NOT NULL,
+        broadcaster_id TEXT NOT NULL REFERENCES ttv_stv_cycle_rewards (broadcaster_id) ON DELETE CASCADE,
+        blacklisted_at TIMESTAMPTZ DEFAULT (NOW () AT TIME zone 'utc'),
+        requested_by TEXT NOT NULL -- twitch_id string;
+    );

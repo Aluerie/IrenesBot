@@ -74,7 +74,7 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 
 .. autochatcommand:: modules.public.d7tv.SevenTVFeatures.stv_cycle_status
 
-.. autochatcommand:: modules.public.d7tv.SevenTVFeatures.stv_cycle_remove
+.. autochatcommand:: modules.public.d7tv.SevenTVFeatures.stv_cycle_drop
 
 .. autochatcommand:: modules.public.d7tv.SevenTVFeatures.stv_cycle_limit
 
@@ -90,6 +90,12 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 .. autochatcommand:: modules.public.d7tv.SevenTVFeatures.stv_rename
 
 .. autochatcommand:: modules.public.d7tv.SevenTVFeatures.stv_remove
+
+🐦‍⬛ Blacklisting
+##################
+
+.. autochatcommand:: modules.public.d7tv.SevenTVFeatures.stv_blacklist_create
+
 
 🤣 Emote Stats
 ##############

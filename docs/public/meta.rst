@@ -6,6 +6,8 @@ Available commands (docs in detail coming soon)
 ☝️ Commands
 ###########
 
+.. autochatcommand:: modules.public.meta.MetaCommands.hello
+
 ``!clip``
 ---------
 

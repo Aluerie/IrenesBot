@@ -371,14 +371,15 @@ class IreBot(commands.AutoBot):
                 await self.error_webhook.send(f"{self.error_ping}\n{error.for_devs}\n{fmt.pformat_dict(error.debug_data)}")
 
             # TWITCHIO ERRORS
-            case twitchio.HTTPException():
-                await respond(
-                    f"{error.__class__.__name__} - "
-                    f"{error.extra.get('error', 'Error')} "
-                    f"{error.extra.get('status', 'XXX')}: "
-                    f"{error.extra.get('message') or 'Unknown'} {const.STV.dankFix} "
-                    f"(Irene will surely fix it)"
-                )
+            # I don't think we should be sending those in chat?
+            # case twitchio.HTTPException():
+            #     await respond(
+            #         f"{error.__class__.__name__} - "
+            #         f"{error.extra.get('error', 'Error')} "
+            #         f"{error.extra.get('status', 'XXX')}: "
+            #         f"{error.extra.get('message') or 'Unknown'} {const.STV.dankFix} "
+            #         f"(Irene will surely fix it)"
+            #     )
             case twitchio.MessageRejectedError():
                 # This one is a annoying because it stops code execution
                 # let's at least send the response back

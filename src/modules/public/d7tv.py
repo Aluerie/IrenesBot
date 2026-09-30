@@ -193,8 +193,8 @@ class SevenTVFeatures(IrePublicComponent):
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
 
-        # cycle
-        self.reward_ids_cache: set[str] = set()
+        self.cycle_reward_ids_cache: set[str] = set()
+        self.blacklist_reward_ids_cache: set[str] = set()
 
         # stats
         self._batch_total: defaultdict[int, Counter[int]] = defaultdict(Counter)
@@ -241,9 +241,10 @@ class SevenTVFeatures(IrePublicComponent):
     async def component_load(self) -> None:
         # await self.stv_ws.connect()
         # await self.stv_ws_multi_subscribe()
-        self.fill_known_rewards.start()
-        self.try_to_process_redemptions_queue.start()
-        self.try_to_double_check_database.start()
+        self.fill_known_cycle_rewards.start()
+        self.fill_known_blacklist_rewards.start()
+        self.try_to_process_cycle_redemptions_queue.start()
+        self.try_to_double_check_cycle_rewards_database.start()
 
         # self.bulk_insert.start()
         # self.clean_up_old_records.start()
@@ -252,9 +253,10 @@ class SevenTVFeatures(IrePublicComponent):
     @override
     async def component_teardown(self) -> None:
         # await self.stv_ws.close()
-        self.fill_known_rewards.cancel()
-        self.try_to_process_redemptions_queue.stop()
-        self.try_to_double_check_database.stop()
+        self.fill_known_cycle_rewards.cancel()
+        self.fill_known_blacklist_rewards.cancel()
+        self.try_to_process_cycle_redemptions_queue.stop()
+        self.try_to_double_check_cycle_rewards_database.stop()
         # self.bulk_insert.stop()
         # self.clean_up_old_records.stop()
         await super().component_teardown()
@@ -272,7 +274,7 @@ class SevenTVFeatures(IrePublicComponent):
     #########################################################################################################################
 
     @ireloop(hours=8)
-    async def try_to_process_redemptions_queue(self) -> None:
+    async def try_to_process_cycle_redemptions_queue(self) -> None:
         """The task that double-checks the reward redemption queues."""
         query = "SELECT reward_id, broadcaster_id FROM ttv_stv_cycle_rewards"
         for row in await self.bot.pool.fetch(query):
@@ -283,7 +285,7 @@ class SevenTVFeatures(IrePublicComponent):
             if reward:
                 async for redemption in reward.fetch_redemptions(status="UNFULFILLED", sort="OLDEST"):
                     try:
-                        await self.process_redemption(redemption)
+                        await self.process_cycle_redemption(redemption)
                     except Exception as error:
                         with contextlib.suppress(twitchio.HTTPException):
                             await redemption.refund()
@@ -292,8 +294,16 @@ class SevenTVFeatures(IrePublicComponent):
                         else:
                             raise
 
+    async def delete_from_cycle_emotes(self, emote_id: str, emote_set_id: str) -> None:
+        """Delete an emote from ``ttv_stv_cycle_emotes``.
+
+        A common query.
+        """
+        query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2"
+        await self.bot.pool.execute(query, emote_id, emote_set_id)
+
     @ireloop(hours=8)
-    async def try_to_double_check_database(self) -> None:
+    async def try_to_double_check_cycle_rewards_database(self) -> None:
         """Double check database's data.
 
         For example, if the streamer manually deleted emotes while the bot is offline - then database might have wrong data.
@@ -312,20 +322,19 @@ class SevenTVFeatures(IrePublicComponent):
                         "Detected a 7tv emote (%s) that was deleted while bot was inactive - removing from the database",
                         emote_id,
                     )
-                    query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2"
-                    await self.bot.pool.execute(query, emote_id, emote_set_id)
+                    await self.delete_from_cycle_emotes(emote_id, emote_set_id)
 
     @ireloop(count=1)
-    async def fill_known_rewards(self) -> None:
+    async def fill_known_cycle_rewards(self) -> None:
         """The task that fills a set of rewards ids for convenience to cut on a few database queries."""
         query = "SELECT reward_id FROM ttv_stv_cycle_rewards"
-        self.reward_ids_cache = {r for (r,) in await self.bot.pool.fetch(query)}
+        self.cycle_reward_ids_cache = {r for (r,) in await self.bot.pool.fetch(query)}
 
     @stv.group(name="cycle", invoke_fallback=True)
     async def stv_cycle(self, ctx: IreContext) -> None:
         """Group command for `!7tv cycle`.
 
-        These commands manage 7tv cycling emotes and channel points reward.
+        These commands manage 7tv cycle channel points reward and related emotes.
 
         Without a subcommand this lists subcommands.
         """
@@ -338,12 +347,10 @@ class SevenTVFeatures(IrePublicComponent):
 
         A few notes:
 
-        * After creating a channel points reward with this command -
-          streamers are able to edit the resulting channel points reward in their :iconify:`logos:twitch` `streamer dashboard
-          <https://dashboard.twitch.tv/viewer-rewards/channel-points/rewards>`_.
-        * Please, don't disable ``Require Viewer to Enter Text`` as the bot won't be able to get anything, obviously.
-        * It's not possible to attach to already created channel point rewards because the bots can manage only those chanel
-          point rewards that were created by the bot itself (twitch restriction).
+        * You can read some tips about how bot's channel point rewards related features work here:
+          :ref:`channel_points_reward_tips`.
+        * The created channel points reward accepts emote links, emote ids and emote names in its user input.
+          If emote name was provided then the bot will search for the most popular emote in 7tv matching it.
 
         Parameters
         ----------
@@ -362,28 +369,22 @@ class SevenTVFeatures(IrePublicComponent):
                 'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH"'
             ),
         )
-        emote_set = await self.bot.stv.create_partial_user(ctx.broadcaster.id).fetch_active_emote_set()
 
         query = """
             INSERT INTO ttv_stv_cycle_rewards
-            (broadcaster_id, reward_id, emote_limit, emote_set_id)
-            VALUES ($1, $2, $3, $4)
+            (broadcaster_id, reward_id, emote_limit)
+            VALUES ($1, $2, $3)
             ON CONFLICT (broadcaster_id)
-                DO NOTHING
-            returning broadcaster_id
+                DO UPDATE SET reward_id = $2,
+                            emote_limit = $3
+            returning broadcaster_id;
         """
-        broadcaster_id: str | None = await self.bot.pool.fetchval(
-            query,
-            ctx.broadcaster.id,
-            custom_reward.id,
-            emote_limit,
-            emote_set.id,
-        )
+        broadcaster_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, custom_reward.id, emote_limit)
         if broadcaster_id is None:
             msg = f"This channel already has 7TV emote cycle channel reward {self.EMOTE}"
             raise errors.RespondWithError(msg)
 
-        await self.fill_known_rewards()
+        await self.fill_known_cycle_rewards()
         await ctx.send(
             f"Created a 7tv emote cycle channel points reward; "
             "PS. if you want to edit it (e.g. text or color) - visit your creator dashboard "
@@ -393,20 +394,19 @@ class SevenTVFeatures(IrePublicComponent):
         # await self.stv_ws_subscribe(partial_emote_set.id)
 
     @guards.is_broadcaster_or_dev()
-    @stv_cycle.command(name="remove", aliases=["delete"])
-    async def stv_cycle_remove(
+    @stv_cycle.command(name="drop")
+    async def stv_cycle_drop(
         self, ctx: IreContext, emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
     ) -> None:
-        """Remove an emote from the cycle list.
+        """Drop an emote from the cycle list.
 
-        Useful when a streamer wants to stop an emote from being cycled out.
         This removes the emote from the bot's database essentially making it "permanent" and
         up to other 7TV editors (or a broadcaster) to manage it.
         In other words, this command prevents the emote from being eventually cycled out.
 
         Parameters
         ----------
-        emote_alias_link_or_id
+        emote_name_link_or_id
             Either alias of the emote you want to remove, its 7TV link or ID.
 
         Examples
@@ -483,7 +483,8 @@ class SevenTVFeatures(IrePublicComponent):
         emote_ids = [e for (e,) in await self.bot.pool.fetch(query, ctx.broadcaster.id)]
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
         emote_set_emotes = await emote_set.fetch_all_emotes()
-        content = " ".join(emote.alias for emote in emote_set_emotes if emote.id in emote_ids)
+        cycle_emotes = [emote.alias for emote in emote_set_emotes if emote.id in emote_ids]
+        content = f"Total: {len(cycle_emotes)}; " + " ".join(cycle_emotes)
         await ctx.send(content)
 
     @guards.is_broadcaster_or_dev()
@@ -538,19 +539,12 @@ class SevenTVFeatures(IrePublicComponent):
     #     await self.fill_known_rewards()
     #     await ctx.send(f"Attached cycling emotes reward to the channel points redeem `{find.title}` ({find.id})")
 
-    async def process_redemption(
+    async def process_cycle_redemption(
         self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption
     ) -> None:
-        """Process Redemption."""
-        if redemption.reward.id not in self.reward_ids_cache:
+        """Process Cycle Redemption."""
+        if not await self.validate_reward_id(redemption, self.cycle_reward_ids_cache):
             return
-
-        if self.is_dev(redemption.user.id):
-            # Refund the points for Irene because you know, testing costs :D
-            if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
-                await redemption.refund(token_for=redemption.reward.broadcaster.id)
-            else:
-                await redemption.refund()
 
         log.debug(
             "User @%s (%s) requested cycle-emote at broadcaster @%s (%s) with input: '%s'",
@@ -593,6 +587,7 @@ class SevenTVFeatures(IrePublicComponent):
             try:
                 emote_name_to_remove: str = await emote_set.fetch_emote_alias(emote_id=emote_id_to_remove)
                 await emote_set.remove_emote(emote_id=emote_id_to_remove)
+                await self.delete_from_cycle_emotes(emote_id_to_remove, emote_set.id)
             except EmoteNotFoundInSetError:
                 log.debug("Emote Not Found #%s - skipping", emote_id_to_remove)
             else:
@@ -600,7 +595,9 @@ class SevenTVFeatures(IrePublicComponent):
                 log.debug("Removed emote %s (#%s)", emote_name_to_remove, emote_id_to_remove)
 
         # Step 4. Add the requested emote
-        await emote_set.add_emote(emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias)
+        await self.emote_set_add_with_validations(
+            emote_set, emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias
+        )
         log.debug("Added emote #%s", emote.id)
 
         query = """
@@ -613,16 +610,12 @@ class SevenTVFeatures(IrePublicComponent):
         result = f"Added '{alias}' ({emote.url()}) {const.STV.DonkCrayon}"
         log.info(result)
         # await redemption.respond(result)
-        with contextlib.suppress(twitchio.HTTPException):
-            if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
-                await redemption.fulfill(token_for=redemption.broadcaster.id)
-            else:
-                await redemption.fulfill()
+        await self.fullfil_redemption(redemption)
 
     @commands.Component.listener(name="custom_redemption_add")
-    async def channel_points_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
+    async def channel_points_cycle_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
         """Somebody redeemed a custom channel points reward."""
-        await self.process_redemption(redemption)
+        await self.process_cycle_redemption(redemption)
 
     #########################################################################################################################
     # DEVELOPER TESTING COMMANDS                                                                                            #
@@ -921,7 +914,7 @@ class SevenTVFeatures(IrePublicComponent):
         ----------
         emote_name_id_or_link
             7TV emote name, id or link for the bot to add. If name is provided instead of id/link then the bot will
-            search for the most popular emote matching it.
+            search for the most popular emote in 7tv matching it.
         emote_alias
             Optional, the emote will be added with this name instead of its default 7TV name.
 
@@ -1039,6 +1032,169 @@ class SevenTVFeatures(IrePublicComponent):
         @copy_doc(stv_remove)
         """
         await self.remove_helper(ctx, emote_alias)
+
+    #########################################################################################################################
+    # BLACKLIST                                                                                                             #
+    #########################################################################################################################
+
+    @stv.group(name="blacklist", invoke_fallback=True)
+    async def stv_blacklist(self, ctx: IreContext) -> None:
+        """Group command for `!7tv blacklist`.
+
+        These commands manage 7tv blacklist channel points reward and related emotes.
+
+        Without a subcommand this lists subcommands.
+        """
+        await ctx.group_default_response()
+
+    @guards.is_broadcaster_or_dev()
+    @stv_blacklist.command(name="create")
+    async def stv_blacklist_create(self, ctx: IreContext) -> None:
+        """Create a channel points reward, redeems for which will be listened to in order to blacklist and remove 7tv emotes.
+
+        A few notes:
+
+        * Emotes are blocked by emote id. This does mean that bad actors can keep adding emote duplicates.
+        * You can read some tips about how bot's channel point rewards related features work here:
+          :ref:`channel_points_reward_tips`.
+        * The created channel points reward accepts emote links, emote ids and emote names in its user input.
+          If emote name was provided then the bot will search for a match within the broadcaster's cycling emotes.
+        """
+        custom_reward = await ctx.broadcaster.create_custom_reward(
+            # This prompt can be 45 characters max
+            title="Remove and blacklist 7TV emote",
+            cost=10,
+            prompt=(
+                # This prompt can be 200 characters max
+                "This only works for emotes that were added via 'Add 7TV emote' redeem."
+                "Give me a 7TV emote name, link or emote ID."
+                'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF"'
+            ),
+        )
+
+        query = """
+            INSERT INTO ttv_stv_blacklist_rewards
+            (broadcaster_id, reward_id)
+            VALUES ($1, $2)
+            ON CONFLICT (broadcaster_id)
+                DO UPDATE SET reward_id = $2
+            returning broadcaster_id;
+        """
+        broadcaster_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, custom_reward.id)
+        if broadcaster_id is None:
+            msg = f"This channel already has 7TV blacklist channel reward {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+
+        await self.fill_known_blacklist_rewards()
+        await ctx.send(
+            f"Created a 7tv blacklist channel points reward; "
+            "PS. if you want to edit it (e.g. text or color) - visit your creator dashboard "
+            f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards). "
+            f"Just don't remove `Require Viewer to Enter Text`, please {self.EMOTE}"
+        )
+
+    @ireloop(count=1)
+    async def fill_known_blacklist_rewards(self) -> None:
+        """The task that fills a set of rewards ids for convenience to cut on a few database queries."""
+        query = "SELECT reward_id FROM ttv_stv_blacklist_rewards"
+        self.blacklist_reward_ids_cache = {r for (r,) in await self.bot.pool.fetch(query)}
+
+    async def validate_reward_id(
+        self,
+        redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption,
+        cache: set[str],
+    ) -> bool:
+        """Validate reward id.
+
+        Also refunds points to Irene because you know.
+        """
+        if redemption.reward.id not in cache:
+            return False
+
+        if self.is_dev(redemption.user.id):
+            # Refund the points for Irene because you know, testing costs :D
+            if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
+                await redemption.refund(token_for=redemption.reward.broadcaster.id)
+            else:
+                await redemption.refund()
+        return True
+
+    async def fullfil_redemption(
+        self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption
+    ) -> None:
+        """Fullfil redemption."""
+        with contextlib.suppress(twitchio.HTTPException):
+            if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
+                await redemption.fulfill(token_for=redemption.broadcaster.id)
+            else:
+                await redemption.fulfill()
+
+    async def process_blacklist_redemption(
+        self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption
+    ) -> None:
+        """Process Cycle Redemption."""
+        if not await self.validate_reward_id(redemption, self.blacklist_reward_ids_cache):
+            return
+
+        log.debug(
+            "User @%s (%s) requested blacklist-emote at broadcaster @%s (%s) with input: '%s'",
+            redemption.user.display_name,
+            redemption.user.id,
+            redemption.broadcaster.display_name,
+            redemption.broadcaster.id,
+            redemption.user_input,
+        )
+
+        emote, alias = await parse_or_search_emote(self.bot.stv, redemption.user_input, redemption.broadcaster.id)
+        log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
+
+        emote_set = await self.select_emote_set(redemption.broadcaster.id)
+        log.debug("Operating on emote_set #%s", emote_set.id)
+
+        query = "SELECT emote_id FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2;"
+        selected_emote_id: str | None = await self.bot.pool.fetchval(query, emote.id, emote_set.id)
+        if selected_emote_id is None:
+            msg = f"This is not a known temporary emote {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+
+        await emote_set.remove_emote(emote_id=selected_emote_id)
+        await self.delete_from_cycle_emotes(selected_emote_id, emote_set.id)
+        query = """
+            INSERT INTO ttv_stv_blacklist_emotes
+            (emote_id, broadcaster_id, requested_by)
+            VALUES ($1, $2, $3)
+        """
+        await self.bot.pool.execute(query, emote.id, redemption.broadcaster.id, redemption.user.id)
+
+        result = f"Removed and Blacklisted '{alias}' ({emote.url()}) {const.STV.DonkCrayon}"
+        log.info(result)
+        await self.fullfil_redemption(redemption)
+
+    @commands.Component.listener(name="custom_redemption_add")
+    async def channel_points_blacklist_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
+        """Somebody redeemed a custom channel points reward."""
+        await self.process_blacklist_redemption(redemption)
+
+    async def emote_set_add_with_validations(
+        self,
+        emote_set: PartialEmoteSet,
+        emote_id: str,
+        broadcaster_id: str,
+        emote_alias: str | None = None,
+    ) -> None:
+        """Add an emote but also perform some validations."""
+        # blacklist
+        query = "SELECT emote_id FROM ttv_stv_blacklist_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
+        is_blacklisted = bool(await self.bot.pool.fetchval(query, emote_id, broadcaster_id))
+        if is_blacklisted:
+            msg = f"This emote is blacklisted {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+
+        # common words
+        query = "SELECT allow_common_words FROM ttv_stv_users WHERE broadcaster_id = $1;"
+        allow_common_words: bool = await self.bot.pool.fetchval(query, broadcaster_id)
+
+        await emote_set.add_emote(emote_id, emote_alias=emote_alias, allow_common_words=allow_common_words)
 
 
 async def setup(bot: IreBot) -> None:

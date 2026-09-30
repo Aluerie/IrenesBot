@@ -26,10 +26,19 @@ If a feature requires you to do extra action (e.g. add the bot account to 7tv ed
 💡 Random Tips
 ##############
 
-I'm not sure where to put this information but why not here.
+.. _channel_points_reward_tips:
 
 Features related to channel point rewards
 -----------------------------------------
+
+
+* After creating a channel points reward with bot commands -
+  streamers are able to edit the resulting channel points reward in their :iconify:`logos:twitch` `streamer dashboard
+  <https://dashboard.twitch.tv/viewer-rewards/channel-points/rewards>`_.
+* However, please, don't disable ``Require Viewer to Enter Text`` for rewards that require user input as the bot won't be able to get anything, obviously.
+* If the bot sets a max amount of redeems per stream or cooldown for channel points redeem - then it's probably needed (e.g. for "First!" redeems).
+* The bot is not able to attach to already created channel point rewards that were created by other accounts. 
+  It's a twitch restriction - the bots can manage only those channel point rewards that were created by the bot itself.
 
 * If, for some reason, the channel points redemption can't be satisfied - the bot will refund the points to the user.
 * if the bot goes down for some reason - it will still process redemptions as soon as it goes online. 
