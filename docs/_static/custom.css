@@ -14,9 +14,29 @@
 }
 
 h3 {
-    background-image: linear-gradient(120deg, #155799, #790069);
+    background-image: linear-gradient(120deg, #5e5f0d, #790069);
 }
 
 .hello {
-    background-image: linear-gradient(120deg, #a4a72a, #69ad4a);
+    background-image: linear-gradient(120deg, #606110, #69ad4a);
+}
+
+#auto-chat-command>dl>dd>dl>dd>ul>li>p>strong {
+    font-family: var(--sy-f-mono);
+    /* erm, yes, I'm making <strong> into normal */
+    font-weight: normal;
+    /* background: #2a284f; */
+}
+
+/* #auto-chat-command>dl>dt {
+    background-image: linear-gradient(120deg, #155799, #790069);
+    background-size: auto;
+    height: 80%;
+    font-size: larger;
+    /* margin-bottom: 10px */
+/* } 
+*/
+
+#auto-chat-command>dl>dt>span>span {
+    color: white;
 }

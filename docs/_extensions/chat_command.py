@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from enum import IntEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, override
 
-from docutils import nodes
-from docutils.parsers.rst import Directive, directives
-from docutils.parsers.rst.roles import set_classes
-from sphinx.ext.autodoc import ClassDocumenter, Documenter, MethodDocumenter, bool_option
+from numpydoc.docscrape import NumpyDocString
+from sphinx.ext.autodoc import MethodDocumenter
 from sphinx.util.logging import getLogger
+
+if TYPE_CHECKING:
+    from twitchio.ext import commands
 
 log = getLogger(__name__)
 
@@ -16,147 +16,203 @@ if TYPE_CHECKING:
     from sphinx.application import Sphinx
     from sphinx.util.typing import ExtensionMetadata
 
+PREFIX = "!"
 
-class commandname(nodes.General, nodes.Element):
-    pass
-
-
-def visit_commandname_node(self, node):
-    self.body.append(self.starttag(node, "div", CLASS="hello"))
-
-
-def depart_commandname_node(self, node):
-    self.body.append("</div>\n")
-
-
-# class DetailsDirective(Directive):
-#     # final_argument_whitespace = True
-#     # optional_arguments = 1
-
-#     # option_spec = {
-#     #     "class": directives.class_option,
-#     #     "summary-class": directives.class_option,
-#     # }
-
-#     has_content = True
-
-#     def run(self):
-#         # set_classes(self.options)
-#         # self.assert_has_content()
-
-#         log.critical(f"🏠🏠🏠 {self.content} {self.arguments}")
-
-#         text = "\n".join(self.content)
-#         # node = commandname(" ".join(self.arguments), **self.options)
-
-#         node = commandname("xd")
-#         # if self.arguments:
-#         #     summary_node = commandname(" ".join(self.arguments), **self.options)
-#         #     summary_node.source, summary_node.line = self.state_machine.get_source_and_line(self.lineno)
-#         #     node += summary_node
-
-#         # self.state.nested_parse(self.content, self.content_offset, node)
-#         return [node]
+GUARD_NOTE_MAPPING = {
+    "is_moderator": "Only channel moderators are allowed to use this command.",
+    "is_owner": "Only Irene_Adler__ is allowed to use this command.",
+    "is_broadcaster": "Only broadcaster is allowed to use this command.",
+    "is_broadcaster_or_dev": "Only broadcaster is allowed to use this command.",
+    "is_emote_owner": (
+        "Only broadcaster and a person who initially requested this emote (e.g. via a channel redeem) "
+        "to be added can use this command."
+    ),
+}
 
 
-class details(nodes.General, nodes.Element):
-    pass
+class FakeChatCommandDocumenter(MethodDocumenter):
+    """Chat Command Documenter."""
 
-
-class summary(nodes.General, nodes.Element):
-    pass
-
-
-def visit_details_node(self, node):
-    self.body.append(self.starttag(node, "details", CLASS=node.attributes.get("class", "")))
-
-
-def visit_summary_node(self, node):
-    self.body.append(self.starttag(node, "h3", CLASS="hello py sig sig-object"))
-    self.body.append(node.rawsource)
-
-
-def depart_details_node(self, node):
-    self.body.append("</details>\n")
-
-
-def depart_summary_node(self, node):
-    self.body.append("</h3>")
-
-
-class DetailsDirective(Directive):
-    final_argument_whitespace = True
-    optional_arguments = 1
-
-    option_spec = {
-        "class": directives.class_option,
-        "summary-class": directives.class_option,
-    }
-
-    has_content = False
-
-    def run(self):
-        set_classes(self.options)
-        # self.assert_has_content()
-
-        # text = "\n".join(self.content)
-        # node = details(text, **self.options)
-
-        if self.arguments:
-            summary_node = summary(self.arguments[0], **self.options)
-            summary_node.source, summary_node.line = self.state_machine.get_source_and_line(self.lineno)
-            node = summary_node
-
-        # self.state.nested_parse(self.content, self.content_offset, node)
-        return [node]
-
-
-class ChatCommandDocumenter(MethodDocumenter):
     objtype = "chatcommand"
     directivetype = MethodDocumenter.objtype
+    content_indent = ""
 
+    @override
     def add_directive_header(self, sig: str) -> None:
-        # super().add_directive_header(sig)
+        sourcename = self.get_sourcename()
+        cmd: commands.Command[Any, Any] = self.parent.__dict__.get(self.object_name, self.object)
 
-        source_name = self.get_sourcename()
-        obj = self.parent.__dict__.get(self.object_name, self.object)
-        # self.add_line(f".. details:: {obj.qualified_name}", source_name)
-        self.add_line(f"{obj.qualified_name}", source_name)
-        self.add_line("-" * len(obj.qualified_name), source_name)
+        command_name = f"{PREFIX}{cmd.qualified_name}"
+        self.add_line(command_name, sourcename)
+        self.add_line("-" * len(command_name), sourcename)
 
-        # https://stackoverflow.com/a/23096806/19217368
-        self.add_line("..", "")
-        # self.add_line("x", "x")
+        # Syntax
+        # self.add_line(".. rubric:: **Syntax**", sourcename)
+        # self.add_line("", sourcename)
+        # self.add_line(".. admonition:: Syntax", sourcename)
+        # self.add_line("   :class: important", sourcename)
+        # self.add_line("", sourcename)
+        params = " " + " ".join(f"<{param}>" for param in cmd.parameters) if cmd.parameters else ""
+        self.add_line(f"**Syntax**: ``{command_name}{params}``\n", sourcename)
+        self.add_line("", sourcename)
+        if cmd.aliases:
+            parent = f"{cmd.full_parent_name} " if cmd.full_parent_name else ""
+            aliases = " ".join(f"``{PREFIX}{parent}{alias}``" for alias in cmd.aliases)
+            self.add_line(f"**Aliases**: {aliases}", sourcename)
+        self.add_line("", sourcename)
 
+        help_ = cmd.help or "No Description."
+        doc = NumpyDocString(help_)
+
+        if doc["Parameters"]:
+            # self.add_line(".. rubric:: Arguments", sourcename)
+            # self.add_line("", sourcename)
+            # self.add_line(".. admonition:: Arguments", sourcename)
+            # self.add_line("   :class: tip", sourcename)
+            # self.add_line("", sourcename)
+            self.add_line("**Arguments**:", sourcename)
+            self.add_line("", sourcename)
+            for param in doc["Parameters"]:
+                self.add_line(f"* ``<{param.name}>`` - {' '.join(param.desc)}", sourcename)
+            self.add_line("", sourcename)
+
+        # Permissions
+        if cmd.guards:
+            self.add_line(".. admonition:: Permissions", sourcename)
+            self.add_line("   :class: hint", sourcename)
+            self.add_line("", sourcename)
+            note_description = "\n".join(
+                GUARD_NOTE_MAPPING.get(guard_name := guard.__qualname__.removesuffix(".<locals>.predicate"), guard_name)
+                for guard in cmd.guards
+            )
+            self.add_line(f"   {note_description}", sourcename)
+        self.add_line("", sourcename)
+
+        # self.add_line(".. admonition:: Description", sourcename)
+        # self.add_line("   :class: note", sourcename)
+        # self.add_line("", sourcename)
+
+        for line in doc["Summary"]:
+            self.add_line(f"{line}", sourcename)
+        self.add_line("", sourcename)
+        for line in doc["Extended Summary"]:
+            self.add_line(f"{line}", sourcename)
+        self.add_line("", sourcename)
+
+        if doc["Examples"]:
+            # self.add_line(".. rubric:: Examples", sourcename)
+            # self.add_line("", sourcename)
+            # self.add_line(".. admonition:: Examples", sourcename)
+            # self.add_line("   :class: caution", sourcename)
+            # self.add_line("", sourcename)
+            self.add_line("**Examples:**", sourcename)
+            self.add_line("", sourcename)
+            for line in doc["Examples"]:
+                self.add_line(f"{line}", sourcename)
+            self.add_line("", sourcename)
+
+    @override
+    def format_signature(self, **kwargs: Any) -> str:
+        return ""
+
+    @override
     def add_content(
         self,
         more_content: StringList | None,
     ) -> None:
+        return None
 
-        super().add_content(more_content)
-        # self.add_line("xdddddddddddddddddddddd", "xd")
 
-        # source_name = self.get_sourcename()
-        # enum_object: IntEnum = self.object
-        # use_hex = self.options.hex
-        # self.add_line("", source_name)
+class ChatCommandDocumenter(MethodDocumenter):
+    """Chat Command Documenter."""
 
-        # for the_member_name, enum_member in enum_object.__members__.items():  # type: ignore[attr-defined]
-        #     the_member_value = enum_member.value
-        #     if use_hex:
-        #         the_member_value = hex(the_member_value)
+    objtype = "chatcommand"
+    directivetype = MethodDocumenter.objtype
+    content_indent = ""
 
-        #     self.add_line(f"**{the_member_name}**: {the_member_value}", source_name)
-        #     self.add_line("", source_name)
+    @override
+    def add_directive_header(self, sig: str) -> None:
+        sourcename = self.get_sourcename()
+        cmd: commands.Command[Any, Any] = self.parent.__dict__.get(self.object_name, self.object)
+
+        command_name = f"{PREFIX}{cmd.qualified_name}"
+        self.add_line(command_name, sourcename)
+        self.add_line("-" * len(command_name), sourcename)
+
+        # Syntax
+        # self.add_line(".. rubric:: **Syntax**", sourcename)
+        # self.add_line("", sourcename)
+        self.add_line(".. admonition:: Syntax", sourcename)
+        self.add_line("   :class: important", sourcename)
+        self.add_line("", sourcename)
+        params = " " + " ".join(f"<{param}>" for param in cmd.parameters) if cmd.parameters else ""
+        self.add_line(f"   * **Usage**: ``{command_name}{params}``\n", sourcename)
+        if cmd.aliases:
+            parent = f"{cmd.full_parent_name} " if cmd.full_parent_name else ""
+            aliases = " ".join(f"``{PREFIX}{parent}{alias}``" for alias in cmd.aliases)
+            self.add_line(f"   * **Aliases**: {aliases}", sourcename)
+        self.add_line("", sourcename)
+
+        # Permissions
+        if cmd.guards:
+            self.add_line(".. admonition:: Permissions", sourcename)
+            self.add_line("   :class: hint", sourcename)
+            self.add_line("", sourcename)
+            note_description = "\n".join(
+                GUARD_NOTE_MAPPING.get(guard_name := guard.__qualname__.removesuffix(".<locals>.predicate"), guard_name)
+                for guard in cmd.guards
+            )
+            self.add_line(f"   {note_description}", sourcename)
+        self.add_line("", sourcename)
+
+        self.add_line(".. admonition:: Description", sourcename)
+        self.add_line("   :class: note", sourcename)
+        self.add_line("", sourcename)
+        help_ = cmd.help or "No Description."
+        doc = NumpyDocString(help_)
+
+        for line in doc["Summary"]:
+            self.add_line(f"   {line}", sourcename)
+        self.add_line("", sourcename)
+        for line in doc["Extended Summary"]:
+            self.add_line(f"   {line}", sourcename)
+        self.add_line("", sourcename)
+
+        if doc["Parameters"]:
+            # self.add_line(".. rubric:: Arguments", sourcename)
+            # self.add_line("", sourcename)
+            self.add_line(".. admonition:: Arguments", sourcename)
+            self.add_line("   :class: tip", sourcename)
+            self.add_line("", sourcename)
+            for param in doc["Parameters"]:
+                self.add_line(f"   * ``<{param.name}>`` - {' '.join(param.desc)}", sourcename)
+            self.add_line("", sourcename)
+        if doc["Examples"]:
+            # self.add_line(".. rubric:: Examples", sourcename)
+            # self.add_line("", sourcename)
+            self.add_line(".. admonition:: Examples", sourcename)
+            self.add_line("   :class: caution", sourcename)
+            self.add_line("", sourcename)
+            for line in doc["Examples"]:
+                self.add_line(f"   {line}", sourcename)
+            self.add_line("", sourcename)
+
+    @override
+    def format_signature(self, **kwargs: Any) -> str:
+        return ""
+
+    @override
+    def add_content(
+        self,
+        more_content: StringList | None,
+    ) -> None:
+        return None
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
+    """Setup. Framework of Sphinx."""
     app.setup_extension("sphinx.ext.autodoc")  # Require autodoc extension
     app.add_autodocumenter(ChatCommandDocumenter)
-    app.add_node(commandname, html=(visit_commandname_node, depart_commandname_node))
-    app.add_node(details, html=(visit_details_node, depart_details_node))
-    app.add_node(summary, html=(visit_summary_node, depart_summary_node))
-    app.add_directive("details", DetailsDirective)
     return {
         "parallel_read_safe": True,
     }

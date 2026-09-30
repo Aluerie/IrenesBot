@@ -77,7 +77,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
-    # Extra
+    # "numpydoc",
     "sphinx_design",
     "sphinx_iconify",
     "chat_command",

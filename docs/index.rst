@@ -50,4 +50,11 @@ personal multipurpose :iconify:`logos:twitch` `twitch.tv <https://www.twitch.tv>
    :hidden:
 
    reference/index
-   reference/test
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Appendix
+   :hidden:
+
+   appendix/irene_stream
+   appendix/test

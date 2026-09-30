@@ -1,7 +1,7 @@
 .. currentmodule:: shared
 
-Shared Utilities
-================
+💅🏻 Shared Utilities
+=====================
 
 Concepts
 ###############

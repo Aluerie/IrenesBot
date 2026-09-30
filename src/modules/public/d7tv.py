@@ -15,10 +15,11 @@ import datetime
 import logging
 import re
 from collections import Counter, defaultdict
-from typing import TYPE_CHECKING, Annotated, Any, TypedDict, override
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypedDict, override
 
 import asyncpg
 import twitchio
+from discord.utils import copy_doc
 
 # from stv_event_api import SevenTVWebSocket
 # from stv_event_api.models import (
@@ -164,6 +165,24 @@ class GlobalSearchEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
     async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Convert `user_input` to 7TV emote_id."""
         return await parse_or_search_emote(ctx.bot.stv, user_input)
+
+
+def is_emote_owner() -> Any:
+    """Allow the command to be completed only by emote owners.
+
+    An emote is supposed to be managed by
+    * broadcaster
+    * developer
+    * a person who added it in the first place.
+
+    PS. This is a fake guard as validation happens elsewhere because it needs command arguments.
+    This guard is needed solely for documentation quirks purposes.
+    """
+
+    def predicate(_: IreContext) -> bool:
+        return True
+
+    return commands.guard(predicate)
 
 
 class SevenTVFeatures(IrePublicComponent):
@@ -315,7 +334,24 @@ class SevenTVFeatures(IrePublicComponent):
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="create")
     async def stv_cycle_create(self, ctx: IreContext, emote_limit: int = 10) -> None:
-        """Create 7TV Cycling emote channel points reward."""
+        """Create a channel points reward, redeems for which the bot will listen to and process to add/remove 7tv emotes.
+
+        A few notes:
+
+        * After creating a channel points reward with this command -
+          streamers are able to edit the resulting channel points reward in their :iconify:`logos:twitch` `streamer dashboard
+          <https://dashboard.twitch.tv/viewer-rewards/channel-points/rewards>`_.
+        * Please, don't disable ``Require Viewer to Enter Text`` as the bot won't be able to get anything, obviously.
+        * It's not possible to attach to already created channel point rewards because the bots can manage only those chanel
+          point rewards that were created by the bot itself (twitch restriction).
+
+        Parameters
+        ----------
+        emote_limit
+            Optional, 10 by default. Upper limit for total amount of cycling emotes.
+            When total amount of cycle emote becomes more than this number,
+            the bot will have to start deleting the oldest cycle emotes.
+        """
         custom_reward = await ctx.broadcaster.create_custom_reward(
             # This prompt can be 45 characters max
             title=f"Add 7TV emote ({emote_limit} slots, oldest cycle out)",
@@ -358,18 +394,37 @@ class SevenTVFeatures(IrePublicComponent):
 
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="remove", aliases=["delete"])
-    async def stv_cycle_remove(self, ctx: IreContext, emote_id: Annotated[str, UserSearchEmoteConverter]) -> None:
-        """Remove an emote from the cycling list.
+    async def stv_cycle_remove(
+        self, ctx: IreContext, emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+    ) -> None:
+        """Remove an emote from the cycle list.
 
-        Useful when a streamer wants an emote to stop from being cycled out.
+        Useful when a streamer wants to stop an emote from being cycled out.
+        This removes the emote from the bot's database essentially making it "permanent" and
+        up to other 7TV editors (or a broadcaster) to manage it.
+        In other words, this command prevents the emote from being eventually cycled out.
+
+        Parameters
+        ----------
+        emote_alias_link_or_id
+            Either alias of the emote you want to remove, its 7TV link or ID.
+
+        Examples
+        --------
+        All these examples below remove same "smh" emote
+
+        * ``!7tv cycle remove 01FP8TR8G8000EJT2EVEY3JQTF``
+        * ``!7tv cycle remove smh``
+        * ``!7tv cycle remove https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF``
         """
+        emote, alias = emote_and_alias
         query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
-        await self.bot.pool.execute(query, emote_id, ctx.broadcaster.id)
-        await ctx.send(f"The {emote_id} was removed from the cycling emote list {self.EMOTE}")
+        await self.bot.pool.execute(query, emote.id, ctx.broadcaster.id)
+        await ctx.send(f"'{alias or emote.id}' was removed from the cycling emote list {self.EMOTE}")
 
     @stv_cycle.command(name="status")
     async def stv_cycle_status(self, ctx: IreContext) -> None:
-        """Get 7TV Cycling emote channel points reward's status."""
+        """Get some information about cycle emote channel points reward's status."""
         query = """
             SELECT r.reward_id,
                 r.emote_limit,
@@ -404,7 +459,13 @@ class SevenTVFeatures(IrePublicComponent):
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="limit")
     async def stv_cycle_limit(self, ctx: IreContext, new_limit: int) -> None:
-        """Change 7TV Cycling emote channel points reward's limit."""
+        """Change 7TV Cycling emote channel points reward's limit.
+
+        Parameters
+        ----------
+        new_limit
+            Integer, new limit setting for cycle emote reward.
+        """
         query = """
             UPDATE ttv_stv_cycle_rewards
             SET emote_limit = $1
@@ -415,7 +476,6 @@ class SevenTVFeatures(IrePublicComponent):
         old_emote_limit = await self.bot.pool.fetchval(query, new_limit, ctx.broadcaster.id)
         await ctx.send(f"Changed emote_limit from {old_emote_limit} to {new_limit} {self.EMOTE}")
 
-    @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="showemotes", aliases=["allemotes"])
     async def stv_cycle_showemotes(self, ctx: IreContext) -> None:
         """Show all cycle emote rewards for the streamer."""
@@ -425,6 +485,33 @@ class SevenTVFeatures(IrePublicComponent):
         emote_set_emotes = await emote_set.fetch_all_emotes()
         content = " ".join(emote.alias for emote in emote_set_emotes if emote.id in emote_ids)
         await ctx.send(content)
+
+    @guards.is_broadcaster_or_dev()
+    @stv_cycle.command(name="allow-common-words")
+    async def stv_cycle_allowcommonwords(self, ctx: IreContext, *, new_state: bool | None = None) -> None:
+        """Set whether common words are allowed to be emote aliases in this stream.
+
+        Parameters
+        ----------
+        new_state:
+            Optional, boolean-like value, e.g. "yes", "no", "true", "false".
+            If omitted, then the command will show current state of ``allow-common-words`` setting in the stream.
+        """
+        if new_state is None:
+            # show status
+            query = "SELECT allow_common_words FROM ttv_stv_users WHERE broadcaster_id = $1;"
+            allow_common_words: bool = await self.bot.pool.fetchval(query, ctx.broadcaster.id)
+            content = (
+                f"Common words are {'allowed' if allow_common_words else 'not allowed'} "
+                f"for 7tv emote aliases in this stream {self.EMOTE}"
+            )
+            await ctx.send(content)
+            return
+
+        # Set new_state
+        query = "UPDATE ttv_stv_users SET allow_common_words = $1 WHERE broadcaster_id = $2;"
+        await self.bot.pool.execute(query, new_state, ctx.broadcaster.id)
+        await ctx.send(f"Changed allow-common-words setting to '{new_state!s}' {self.EMOTE}")
 
     # "The ID in the Client-Id header must match the client ID used to create the custom reward,
     # or the broadcaster doesn't have partner or affiliate status.
@@ -543,12 +630,26 @@ class SevenTVFeatures(IrePublicComponent):
     # DEVELOPER TESTING COMMANDS                                                                                            #
     #########################################################################################################################
 
+    BALLS: ClassVar = {
+        # cSpell: disable
+        "Blue": "01J8FC6EN0000DNWJ3ST67HH38",
+        "Teal": "01J8FCA6RR0004HJ8DYSFE2PF2",
+        "Purple": "01J8FCAY6R0006NP3M7JY4GDAA",
+        "Yellow": "01J8FCBGRG000A5QBDAQ50YRYC",
+        "Orange": "01J8FCC2B00005G1FWF2H9XPCE",
+        "Pink": "01J8FCG750000D15QN0BDGKN3A",
+        "Olive": "01J8FCGXKR000E0691W9XKC6X0",
+        "LightBlue": "01J8FCHF68000E0691W9XKC6X5",
+        "DarkGreen": "01J8FCHZSG000C93G7AYMMNCBC",
+        "Brown": "01J8FCK00R0006NP3M7JY4GDB0",
+        # cSpell: enable
+    }
+
     @guards.is_dev()
     @commands.command()
     async def balls(self, ctx: IreContext) -> None:
         """Balls."""
-        # cSpell: disable-next-line
-        content = "Blue 01J8FC6EN0000DNWJ3ST67HH38 Teal 01J8FCA6RR0004HJ8DYSFE2PF2 Purple 01J8FCAY6R0006NP3M7JY4GDAA"
+        content = " ".join(f"{k} {v}" for k, v in self.BALLS.items())
         await ctx.send(content)
 
     @guards.is_dev()
@@ -567,21 +668,7 @@ class SevenTVFeatures(IrePublicComponent):
         query = "DELETE FROM ttv_stv_cycle_emotes tce WHERE tce.broadcaster_id = $1;"
         await self.bot.pool.execute(query, const.UserID.Irene)
 
-        color_ball_ids = [
-            # cSpell: disable
-            "01J8FC6EN0000DNWJ3ST67HH38",  # Blue
-            "01J8FCA6RR0004HJ8DYSFE2PF2",  # Teal
-            "01J8FCAY6R0006NP3M7JY4GDAA",  # Purple
-            "01J8FCBGRG000A5QBDAQ50YRYC",  # Yellow
-            "01J8FCC2B00005G1FWF2H9XPCE",  # Orange
-            "01J8FCG750000D15QN0BDGKN3A",  # Pink
-            "01J8FCGXKR000E0691W9XKC6X0",  # Olive
-            "01J8FCHF68000E0691W9XKC6X5",  # LightBlue
-            "01J8FCHZSG000C93G7AYMMNCBC",  # DarkGreen
-            "01J8FCK00R0006NP3M7JY4GDB0",  # Brown
-            # cSpell: enable
-        ]
-        for emote_id in color_ball_ids:
+        for emote_id in self.BALLS.values():
             with contextlib.suppress(EmoteNotFoundInSetError):
                 partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.SevenTV.IRENE_EMOTE_SET_ID)
                 await partial_emote_set.remove_emote(emote_id)
@@ -701,7 +788,6 @@ class SevenTVFeatures(IrePublicComponent):
     # 7TV EDITOR STATUS / ACCEPT                                                                                            #
     #########################################################################################################################
 
-    @guards.is_broadcaster_or_dev()
     @stv.group(name="editor")
     async def stv_editor(self, ctx: IreContext) -> None:
         """Editor."""
@@ -709,13 +795,7 @@ class SevenTVFeatures(IrePublicComponent):
 
     @stv_editor.command(name="status", aliases=["check"])
     async def stv_editor_status(self, ctx: IreContext) -> None:
-        """Status.
-
-        Notes
-        -----
-        wow
-
-        """
+        """Show some debug information about state of 7TV editor request for the streamer."""
         partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
         editor_for = await partial_user.check_bot_editor()
 
@@ -732,7 +812,10 @@ class SevenTVFeatures(IrePublicComponent):
 
     @stv_editor.command(name="guide")
     async def stv_editor_guide(self, ctx: IreContext) -> None:
-        """Guide."""
+        """Sends a small guide on how to make the bot your 7TV editor.
+
+        Practically a TL;DR of the "important" admonition from above.
+        """
         content = (
             f"{DIGITS[1]} Go to 7tv.app/settings/editors "
             f"{DIGITS[2]} Add Editor > @IrenesBot, make sure 'Emote Sets > Manage' permission is given "
@@ -740,9 +823,14 @@ class SevenTVFeatures(IrePublicComponent):
         )
         await ctx.send(content)
 
+    @guards.is_broadcaster_or_dev()
     @stv_editor.command(name="accept")
     async def stv_editor_accept(self, ctx: IreContext) -> None:
-        """Accept."""
+        """Make the bot accept a pending 7TV editor request from the streamer.
+
+        Invoking this command also makes the bot attach to to your currently active 7tv emote set.
+        Which is identical to performing ``!7tv emoteset link`` with no arguments.
+        """
         partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
         res = await partial_user.accept_editor()
         insert_response = await self.insert_into_to_stv_users(ctx.broadcaster.id)
@@ -784,7 +872,15 @@ class SevenTVFeatures(IrePublicComponent):
 
     @stv_emoteset.command(name="attach")
     async def stv_emoteset_attach(self, ctx: IreContext, emote_set_id: str | None = None) -> None:
-        """Link."""
+        """Attach bot's 7tv features to the emote set.
+
+        Parameters
+        ----------
+        emote_set_id
+            Optional, 7TV emote set id for the bot to attach to.
+            If not provided - the bot will attach to streamer's currently active emote set.
+            Due to my laziness this doesn't accept emote set links, so please, copy only ID part form the emote set's URL.
+        """
         insert_response = await self.insert_into_to_stv_users(ctx.broadcaster.id, emote_set_id=emote_set_id)
         await ctx.send(f"Successfully {insert_response} {self.EMOTE}")
 
@@ -799,7 +895,7 @@ class SevenTVFeatures(IrePublicComponent):
 
     @stv_emoteset.command(name="status")
     async def stv_emoteset_status(self, ctx: IreContext) -> None:
-        """Status."""
+        """Show some debug information about currently attached 7tv emote set."""
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
         await ctx.send(f"{emote_set!r} {self.EMOTE}")
 
@@ -817,20 +913,36 @@ class SevenTVFeatures(IrePublicComponent):
         await ctx.send("Added")
 
     @guards.is_broadcaster_or_dev()
-    @stv.command(name="add")
+    @stv.command(name="add", extras={"usage": "!7tv add XDD XDD"})
     async def stv_add(
-        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
+        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
     ) -> None:
-        """Add 7TV emote."""
-        await self.add_helper(ctx, emote_and_alias)
+        """Add 7TV emote.
 
+        PS. This command also has a short version ``!add`` (so no need to type ``!7tv``).
+
+        Parameters
+        ----------
+        emote_name_id_or_link
+            7TV emote name, id or link for the bot to add. If name is provided instead of id/link then the bot will
+            search for the most popular emote matching it.
+        emote_alias
+            Optional, the emote will be added with this name instead of its default 7TV name.
+
+        """
+        await self.add_helper(ctx, emote_alias)
+
+    @copy_doc(stv_add)
     @guards.is_broadcaster_or_dev()
     @commands.command(name="add")
     async def add(
-        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
+        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
     ) -> None:
-        """Add 7TV emote."""
-        await self.add_helper(ctx, emote_and_alias)
+        """Add 7TV emote.
+
+        @copy_doc(stv_add)
+        """
+        await self.add_helper(ctx, emote_alias)
 
     #########################################################################################################################
     # 7TV VIEWER (OR POSSIBLE VIEWER) COMMANDS                                                                              #
@@ -876,33 +988,63 @@ class SevenTVFeatures(IrePublicComponent):
         )
         await ctx.send("Renamed")
 
+    @is_emote_owner()
     @stv.command(name="rename")
     async def stv_rename(
-        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
     ) -> None:
-        """Rename 7TV emote."""
-        await self.rename_helper(ctx, emote_and_alias)
+        """Rename 7TV emote.
 
+        PS. This command also has a short version ``!rename`` (so no need to type ``!7tv``).
+
+        Parameters
+        ----------
+        emote_name_id_or_link
+            7TV emote name, id or link for the bot to rename. If name is provided instead of id/link then the bot will
+            search within the broadcaster's emotes to find a match.
+        emote_alias
+            New name with this name instead of its default 7TV name.
+        """
+        await self.rename_helper(ctx, emote_alias)
+
+    @copy_doc(stv_rename)
+    @is_emote_owner()
     @commands.command(name="rename")
     async def rename(
-        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
     ) -> None:
-        """Rename 7TV emote."""
-        await self.rename_helper(ctx, emote_and_alias)
+        """Rename 7TV emote.
 
+        @copy_doc(stv_rename)
+        """
+        await self.rename_helper(ctx, emote_alias)
+
+    @is_emote_owner()
     @stv.command(name="remove")
     async def stv_remove(
-        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
+        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
     ) -> None:
-        """Remove 7TV emote."""
-        await self.remove_helper(ctx, emote_and_alias)
+        """Remove 7TV emote.
 
+        Parameters
+        ----------
+        emote_name_id_or_link
+            7TV emote name, id or link for the bot to rename. If name is provided instead of id/link then the bot will
+            search within the broadcaster's emotes to find a match.
+        """
+        await self.remove_helper(ctx, emote_alias)
+
+    @copy_doc(stv_remove)
+    @is_emote_owner()
     @commands.command(name="remove")
     async def remove(
-        self, ctx: IreContext, *, emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
     ) -> None:
-        """Remove 7TV emote."""
-        await self.remove_helper(ctx, emote_and_alias)
+        """Remove 7TV emote.
+
+        @copy_doc(stv_remove)
+        """
+        await self.remove_helper(ctx, emote_alias)
 
 
 async def setup(bot: IreBot) -> None:

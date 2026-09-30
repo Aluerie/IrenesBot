@@ -20,6 +20,7 @@ Use this link:
 Yes, I'm sorry. I know the link looks ugly and the host ``parrot-thankful-trivially.ngrok-free.app`` looks suspicious as hell, 
 but I don't really care to pay money to get a proper domain name.
 Unfortunately, :iconify:`logos:twitch` twitch is dumb and they don't provide any convenient for everybody way to do this. 
+
 From the developer side, it's quite a headache to set up the authorization process. 
 But without much explanations - 
 even pleb developers like me need to have a running web-app with a public facing URL that :iconify:`logos:twitch` twitch will use to callback after authorization.
@@ -53,6 +54,8 @@ In most cases - just contact me (:iconify:`logos:twitch` `@Irene_Adler__ <https:
 
 * If the page doesn't load at all - I probably turned off the web-app for some reason. Contact me.
 * If the page loads but it is showing some error (e.g. recently I stumbled upon ``ERR_NGROK_8012``) then also contact me.
+* If your browser shows something like "Secure Connection Failed", "PR_END_OF_FILE_ERROR" then you can try visiting the website with some VPN. 
+  Probably, your provider blocks my suspiciously looking web-app.
 
 🚩 Postscript
 #############
