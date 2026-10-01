@@ -367,8 +367,8 @@ class IreBot(commands.AutoBot):
                     await respond(error.msg)
                 if error.dev_message and not error.register:
                     await self.ping_developers(content=error.formatted_message_for_devs())
-                    return True
-                return False
+                else:
+                    return False
             # 7TV
             case stv_errors.UnauthorizedError():
                 await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
