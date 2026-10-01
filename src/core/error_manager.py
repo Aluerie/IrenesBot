@@ -48,7 +48,7 @@ class ErrorManager:
         if platform.system() == "Linux":
             slash = "/"
             # TODO: fix python 3.12 to be read from info
-            venv_path = f"{Path.cwd()}{slash}.venv{slash}lib{slash}python3.12{slash}site-packages"
+            venv_path = f"{Path.cwd()}{slash}.venv{slash}lib{slash}python3.14{slash}site-packages"
         else:
             # windows
             slash = "\\"
