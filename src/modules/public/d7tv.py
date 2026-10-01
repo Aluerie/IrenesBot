@@ -895,10 +895,14 @@ class SevenTVFeatures(IrePublicComponent):
     #########################################################################################################################
 
     async def add_helper(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
-        """Add 7TV emote helper."""
+        """Add 7TV emote helper.
+
+        Note that this doesn't use `self.emote_set_add_with_validations` because "!7tv add" commands are
+        supposed to be restricted to the broadcaster only.
+        """
         emote, alias = emote_and_alias
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
-        await emote_set.add_emote(emote_id=emote.id, broadcaster_id=ctx.broadcaster.id, emote_alias=alias)
+        await emote_set.add_emote(emote_id=emote.id, emote_alias=alias)
         await ctx.send("Added")
 
     @guards.is_broadcaster_or_dev()
@@ -937,7 +941,7 @@ class SevenTVFeatures(IrePublicComponent):
     # 7TV VIEWER (OR POSSIBLE VIEWER) COMMANDS                                                                              #
     #########################################################################################################################
 
-    async def validate_emote_ownership(self, ctx: IreContext, user_id: str, emote_id: str) -> None:
+    async def validate_emote_ownership(self, ctx: IreContext, user_id: str, emote_id: str) -> str:
         """Validate emote ownership.
 
         An emote is supposed to be managed by
@@ -946,12 +950,12 @@ class SevenTVFeatures(IrePublicComponent):
         * a person who added it in the first place.
         """
         if user_id in {ctx.broadcaster.id, ctx.bot.owner_id}:
-            return
+            return "broadcaster"
 
         query = "SELECT COUNT(*) FROM ttv_stv_cycle_emotes WHERE requested_by = $1 AND emote_id = $2 AND broadcaster_id = $3"
         count: int = await self.bot.pool.fetchval(query, user_id, emote_id, ctx.broadcaster.id)
         if count:
-            return
+            return "chatter"
 
         msg = f"Invalid emote or you are not allowed to manage this emote {self.EMOTE}"
         raise errors.RespondWithError(msg)
@@ -970,9 +974,14 @@ class SevenTVFeatures(IrePublicComponent):
         if alias is None:
             msg = f"You need to provide a new emote alias when using 7tv rename command {self.EMOTE}"
             raise errors.RespondWithError(msg)
-        await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
+
+        ownership_type = await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
-        await emote_set.rename_emote(emote_id=emote.id, broadcaster_id=ctx.broadcaster.id, new_emote_alias=alias)
+        if ownership_type == "broadcaster":
+            await emote_set.rename_emote(emote_id=emote.id, new_emote_alias=alias)
+        else:
+            allow_common_words = await self.select_cycle_allow_common_words(ctx.broadcaster.id)
+            await emote_set.rename_emote(emote_id=emote.id, new_emote_alias=alias, allow_common_words=allow_common_words)
         await ctx.send("Renamed")
 
     @is_emote_owner()
@@ -1175,6 +1184,11 @@ class SevenTVFeatures(IrePublicComponent):
         """Somebody redeemed a custom channel points reward."""
         await self.process_blacklist_redemption(redemption)
 
+    async def select_cycle_allow_common_words(self, broadcaster_id: str) -> bool:
+        """Select Cycle allow common words."""
+        query = "SELECT allow_common_words FROM ttv_stv_users WHERE broadcaster_id = $1;"
+        return await self.bot.pool.fetchval(query, broadcaster_id)
+
     async def emote_set_add_with_validations(
         self,
         emote_set: PartialEmoteSet,
@@ -1190,10 +1204,7 @@ class SevenTVFeatures(IrePublicComponent):
             msg = f"This emote is blacklisted {self.EMOTE}"
             raise errors.RespondWithError(msg)
 
-        # common words
-        query = "SELECT allow_common_words FROM ttv_stv_users WHERE broadcaster_id = $1;"
-        allow_common_words: bool = await self.bot.pool.fetchval(query, broadcaster_id)
-
+        allow_common_words = await self.select_cycle_allow_common_words(broadcaster_id)
         await emote_set.add_emote(emote_id, emote_alias=emote_alias, allow_common_words=allow_common_words)
 
 
