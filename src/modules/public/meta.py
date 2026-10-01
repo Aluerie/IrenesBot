@@ -50,14 +50,14 @@ class MetaCommands(IrePublicComponent):
         # Unresolved
         raise error
 
-    @commands.command(name="commands", aliases=["help", "irenesbot"])
+    @commands.command(name="commands", aliases=["help", "irenesbot", "docs"])
     async def command_list(self, ctx: IreContext) -> None:
         """Get a list of bot commands."""
         await ctx.send("irenesbot.readthedocs.io")
 
     @commands.command(aliases=["hi", "yo", "hallo"])
     async def hello(self, ctx: IreContext) -> None:
-        """Hello."""
+        """A simple command with "hello Hello" response."""
         await ctx.send(f"{const.STV.hello} Hello!")
 
     @commands.command()
