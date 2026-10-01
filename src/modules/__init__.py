@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 # named modules const
-PUBLIC_D9MMRBOT = "modules.public.nkmmrbot"
+PUBLIC_D9MMRBOT = "modules.public.mmrbot"
 DEV_REQUIRED = "modules.dev.required"
 
 

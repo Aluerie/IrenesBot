@@ -35,7 +35,7 @@ from core import IrePublicComponent, ireloop
 from shared import errors
 from shared.concepts.logs import PrefixLoggerAdapter
 from shared.globs import DIGITS, Global7TV
-from shared.seven_tv_gql.exceptions import EmoteNotFoundInSetError
+from shared.seven_tv_gql.exceptions import EmoteNotFoundError
 from shared.seven_tv_gql.models import PartialEmote, PartialEmoteSet
 from utils import const, guards
 
@@ -331,7 +331,12 @@ class SevenTVFeatures(IrePublicComponent):
         query = "SELECT reward_id, broadcaster_id FROM ttv_stv_cycle_rewards"
         for row in await self.bot.pool.fetch(query):
             reward = next(
-                iter(await self.bot.create_partialuser(row["broadcaster_id"]).fetch_custom_rewards(ids=[row["reward_id"]])),
+                iter(
+                    await self.bot.create_partialuser(row["broadcaster_id"]).fetch_custom_rewards(
+                        ids=[row["reward_id"]],
+                        manageable=True,
+                    )
+                ),
                 None,
             )
             if reward:
@@ -636,7 +641,7 @@ class SevenTVFeatures(IrePublicComponent):
                 emote_name_to_remove: str = await emote_set.fetch_emote_alias(emote_id=emote_id_to_remove)
                 await emote_set.remove_emote(emote_id=emote_id_to_remove)
                 await self.delete_from_cycle_emotes(emote_id_to_remove, emote_set.id)
-            except EmoteNotFoundInSetError:
+            except EmoteNotFoundError:
                 log.debug("Emote Not Found #%s - skipping", emote_id_to_remove)
             else:
                 # await redemption.respond(f"Removed {emote_name_to_remove} ({get_seven_tv_link(emote_id_to_remove)})")
@@ -707,7 +712,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.SevenTV.IRENE_EMOTE_SET_ID)
         for emote_id in self.BALLS.values():
-            with contextlib.suppress(EmoteNotFoundInSetError):
+            with contextlib.suppress(EmoteNotFoundError):
                 await partial_emote_set.remove_emote(emote_id)
         await ctx.send(f"Done {const.STV.DonkCrayon}")
 
@@ -1105,8 +1110,8 @@ class SevenTVFeatures(IrePublicComponent):
         """
         broadcaster_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, custom_reward.id)
         if broadcaster_id is None:
-            msg = f"This channel already has 7TV blacklist channel reward {self.EMOTE}"
-            raise errors.RespondWithError(msg)
+            await ctx.send(f"This channel already has 7TV blacklist channel reward {self.EMOTE}")
+            return
 
         await self.fill_known_blacklist_rewards()
         await ctx.send(

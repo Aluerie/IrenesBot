@@ -39,7 +39,7 @@ class IrePersonalComponent(IreComponent):
     async def component_before_invoke(self, ctx: IreContext) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         if not self.is_dev(ctx.broadcaster.id):
             msg = "Command is not allowed anywhere except Irene's channel"
-            raise errors.SilentError(msg)
+            raise errors.NotAllowedError(msg, silent=True)
 
 
 class IreDevComponent(IreComponent):
@@ -53,5 +53,5 @@ class IreDevComponent(IreComponent):
         if ctx.chatter.id != ctx.bot.owner_id:
             msg = f"Command is not allowed by anybody else except Irene {const.FFZ.peepoPolice}"
             if ctx.broadcaster.id == ctx.bot.owner_id:
-                raise errors.RespondWithError(msg)
-            raise errors.SilentError(msg)
+                raise errors.NotAllowedError(msg)
+            raise errors.NotAllowedError(msg, silent=True)

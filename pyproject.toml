@@ -183,7 +183,7 @@ flake8-quotes.inline-quotes = "double"
 
 [tool.ruff.lint.per-file-ignores]
 "modules/beta.py" = ["ANN201"]
-"*.ipynb" = ["I001", "ANN204", "D", "DOC", "ERA", "F404", "T20", "W391"]
+"*.ipynb" = ["I001", "ANN201", "ANN204", "D", "DOC", "ERA", "F404", "T20", "W391"]
 
 [tool.ruff.format]
 quote-style = "double"

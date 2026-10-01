@@ -18,9 +18,9 @@ from twitchio.web import StarletteAdapter
 
 from config import env
 from modules import PUBLIC_D9MMRBOT, get_modules
-from shared import errors, fmt
+from shared import errors, fmt, globs
 from shared.other import MISSING
-from shared.seven_tv_gql import GraphQL7TVClient
+from shared.seven_tv_gql import GraphQL7TVClient, exceptions as stv_errors
 from utils import const
 from utils.dota2 import IreDota2Client
 
@@ -345,12 +345,6 @@ class IreBot(commands.AutoBot):
         if self.dota2:
             await self.dota2.wait_until_ready()
 
-    @staticmethod
-    def add_codeblock_field(embed: discord.Embed, field_name: str, data: dict[str, Any]) -> discord.Embed:
-        """A helper method to add arguments as a field for the unknown error report embed."""
-        embed.add_field(name=field_name, value=fmt.pformat_dict(data), inline=False)
-        return embed
-
     SOMETHING_WENT_WRONG_MESSAGE = (
         f"Something went wrong {const.Global.FeelsDankMan} "
         f"but I've notified Irene about the error {const.Global.FeelsDankMan}"
@@ -359,16 +353,35 @@ class IreBot(commands.AutoBot):
     async def handle_common_errors(
         self, error: BaseException | None, respond: Callable[..., Coroutine[Any, Any, twitchio.SentMessage]]
     ) -> bool:
-        """Handle known error types."""
+        """Handle known common error types.
+
+        Common in a sense that they can happen in commands, events, tasks, etc.
+        So all error handlers can use this function as a helper.
+        """
         match error:
             # MY CUSTOM ERRORS
-            case errors.SilentError():
-                pass
-            case errors.RespondWithError():
-                await respond(str(error))
-            case errors.RespondAndNotifyDevsError():
-                await respond(str(error))
-                await self.error_webhook.send(f"{self.error_ping}\n{error.for_devs}\n{fmt.pformat_dict(error.debug_data)}")
+            case errors.BotError():
+                if error.silent:
+                    return True
+                if error.respond:
+                    await respond(error.msg)
+                if error.dev_message and not error.register:
+                    await self.ping_developers(content=error.formatted_message_for_devs())
+                    return True
+                return False
+            # 7TV
+            case stv_errors.UnauthorizedError():
+                await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
+                await self.ping_developers(
+                    content=f"The bot's 7TV Bearer Token is expired.\n{fmt.codeblock(repr(error.debug_data))}"
+                )
+            case stv_errors.InvokeQueryError():
+                await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
+                await self.ping_developers(content=str(error))
+            case stv_errors.SomethingWentWrongError():
+                return False
+            case stv_errors.SevenTVError():
+                await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
 
             # TWITCHIO ERRORS
             # I don't think we should be sending those in chat?
@@ -471,10 +484,10 @@ class IreBot(commands.AutoBot):
                         text=f"Channel: {ctx.broadcaster.display_name}",
                         icon_url=(await ctx.broadcaster.user()).profile_image,
                     )
+                    .add_field(name="Command Args", value=fmt.pformat_dict(ctx.kwargs), inline=False)
                 )
-                embed = self.add_codeblock_field(embed, "Command Args", ctx.kwargs)
-                if isinstance(error, errors.SomethingWentWrongError) and error.debug_data:
-                    embed = self.add_codeblock_field(embed, "Extra Data", error.debug_data)
+                if isinstance(error, errors.BotError) and error.debug_data:
+                    embed.add_field(name="Extra Debug Data", value=error.formatted_message_for_devs(), inline=False)
                 await self.error_manager.register(error, embed=embed)
 
     @override
@@ -511,8 +524,8 @@ class IreBot(commands.AutoBot):
                 name=f"Chatter {chatter.display_name}",
                 icon_url=(await chatter.user()).profile_image,
             )
-        if isinstance(error, errors.SomethingWentWrongError) and error.debug_data:
-            embed = self.add_codeblock_field(embed, "Extra Data", error.debug_data)
+        if isinstance(error, errors.BotError) and error.debug_data:
+            embed.add_field(name="Extra Debug Data", value=error.formatted_message_for_devs(), inline=False)
         await self.error_manager.register(error, embed=embed)
 
     # SHORTCUTS AND UTILITIES
@@ -530,6 +543,17 @@ class IreBot(commands.AutoBot):
     def error_webhook(self) -> discord.Webhook:
         """A webhook in hideout server to send errors/notifications to the developer(-s)."""
         return self.webhook_from_url(env.WEBHOOK_ERROR)
+
+    async def ping_developers(self, **send_kwargs: Any) -> None:
+        """Ping developers.
+
+        Parameters
+        ----------
+        send_kwargs
+            Kwargs for `webhook.send` method.
+        """
+        content = f"{self.error_ping}\n{send_kwargs.get('content') or ''}"
+        await self.error_webhook.send(content, **send_kwargs)
 
     @discord.utils.cached_property
     def heartbeat_webhook(self) -> discord.Webhook:

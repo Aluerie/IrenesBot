@@ -153,30 +153,30 @@ def get_bot_oauth_url(domain: str) -> str:
     return get_oauth_url(domain, scopes, "🤖🤖🤖 BOT OAUTH LINK: 🤖🤖🤖")
 
 
+PUBLIC_SCOPES = [
+    "channel:bot",
+    "channel:read:redemptions",
+    "channel:manage:redemptions",
+    "channel:manage:moderators",
+]
+
+PERSONAL_SCOPES = [
+    *PUBLIC_SCOPES,
+    "channel:edit:commercial",
+    "channel:moderate",
+    "channel:manage:broadcast",
+    "channel:read:subscriptions",
+]
+
+
 def get_personal_oauth_url(domain: str) -> str:
     """Print a link for me (personal bot user with all the features) to click and authorize the scopes for the bot."""
-    scopes = [
-        "channel:bot",
-        "channel:edit:commercial",  # "channel:read:ads",
-        "channel:moderate",
-        "channel:read:redemptions",
-        "channel:manage:redemptions",
-        "channel:manage:broadcast",
-        "channel:read:subscriptions",
-        "channel:manage:moderators",
-    ]
-    return get_oauth_url(domain, scopes, "🎬🎬🎬 PERSONAL OAUTH LINK: 🎬🎬🎬")
+    return get_oauth_url(domain, PERSONAL_SCOPES, "🎬🎬🎬 PERSONAL OAUTH LINK: 🎬🎬🎬")
 
 
 def get_public_oauth_url(domain: str) -> str:
     """Print a link for public streamers to click and authorize the scopes for the bot."""
-    scopes = [
-        "channel:bot",
-        "channel:read:redemptions",
-        "channel:manage:redemptions",
-        "channel:manage:moderators",
-    ]
-    return get_oauth_url(domain, scopes, "🌈🌈🌈 PUBLIC OAUTH LINK: 🌈🌈🌈")
+    return get_oauth_url(domain, PUBLIC_SCOPES, "🌈🌈🌈 PUBLIC OAUTH LINK: 🌈🌈🌈")
 
 
 def get_oauth_url(domain: str, scopes: list[str], prefix: str) -> str:

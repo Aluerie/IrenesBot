@@ -38,7 +38,7 @@ def is_vps() -> Any:
         if not ctx.bot.subset_mode or ctx.chatter.id == ctx.bot.owner_id:
             return True
         msg = f"Sorry, this command is currently disabled while Irene is testing some stuff {const.FFZ.peepoPolice}"
-        raise errors.RespondWithError(msg)
+        raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)
 
@@ -50,7 +50,7 @@ def is_online() -> Any:
         if ctx.bot.is_online(ctx.broadcaster.id):
             return True
         msg = f"This commands is allowed only during online streams {const.FFZ.peepoPolice}"
-        raise errors.RespondWithError(msg)
+        raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)
 
@@ -65,7 +65,7 @@ def is_owner_channel() -> Any:
         # `.component_before_invoke` after local decorators
         # so this workaround fixes that order
         msg = f"This command is allowed only in Irene's channel {const.FFZ.peepoPolice}"
-        raise errors.SilentError(msg)
+        raise errors.NotAllowedError(msg, silent=True)
 
     return commands.guard(predicate)
 
@@ -80,7 +80,7 @@ def is_broadcaster_or_dev() -> Any:
         if ctx.chatter.id in {ctx.broadcaster.id, ctx.bot.owner_id}:
             return True
         msg = f"Sorry, this command can only be used by the streamer {const.FFZ.peepoPolice}"
-        raise errors.RespondWithError(msg)
+        raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)
 
@@ -95,6 +95,6 @@ def is_dev() -> Any:
         if ctx.chatter.id == ctx.bot.owner_id:
             return True
         msg = f"Sorry, this command can only be used by Irene {const.FFZ.peepoPolice}"
-        raise errors.RespondWithError(msg)
+        raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)
