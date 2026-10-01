@@ -11,7 +11,6 @@ __all__ = (
     "Global",
     "Logo",
     "LowerName",
-    "SevenTV",
     "UserID",
 )
 
@@ -74,13 +73,6 @@ class FFZ(StrEnum):
     PepoG = "PepoG"
     sadKEK = "sadKEK"
     WTFF = "WTFF"
-
-
-class SevenTV(StrEnum):
-    """Some often used 7TV snowflakes."""
-
-    IRENE_EMOTE_SET_ID = "01FAQVCS500002EV4FV330P46A"  # also irene seven tv id
-    IRENESBOT_USER_ID = "01KFF67D46PJPD1S6DPFFT06E3"
 
 
 class STV(StrEnum):
@@ -189,3 +181,12 @@ class Logo(StrEnum):
     Twitch = (
         "https://cdn3.iconfinder.com/data/icons/social-messaging-ui-color-shapes-2-free/128/social-twitch-circle-512.png"
     )
+
+
+class SevenTV(StrEnum):
+    """Some often used 7TV snowflakes."""
+
+    IRENE_EMOTE_SET_ID = "01FAQVCS500002EV4FV330P46A"
+    IRENE_ID = "01FAQVCS500002EV4FV330P46A"
+    BOT_EMOTE_SET_ID = "01FAQVCS500002EV4FV330P46A"
+    BOT_ID = "01KFF67D46PJPD1S6DPFFT06E3"

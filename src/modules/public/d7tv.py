@@ -245,7 +245,6 @@ class SevenTVFeatures(IrePublicComponent):
         self.fill_known_blacklist_rewards.start()
         self.try_to_process_cycle_redemptions_queue.start()
         self.try_to_double_check_cycle_rewards_database.start()
-
         # self.bulk_insert.start()
         # self.clean_up_old_records.start()
         await super().component_load()
@@ -261,6 +260,59 @@ class SevenTVFeatures(IrePublicComponent):
         # self.clean_up_old_records.stop()
         await super().component_teardown()
 
+    #########################################################################################################################
+    # COMMON QUERIES
+    #########################################################################################################################
+
+    async def select_cycle_allow_common_words(self, broadcaster_id: str) -> bool:
+        """Select Cycle allow common words."""
+        query = "SELECT allow_common_words FROM ttv_stv_users WHERE broadcaster_id = $1;"
+        return await self.bot.pool.fetchval(query, broadcaster_id)
+
+    async def select_emote_set(self, broadcaster_id: str) -> PartialEmoteSet:
+        """Select emote set id."""
+        query = "SELECT emote_set_id FROM ttv_stv_users WHERE broadcaster_id = $1;"
+        emote_set_id: str | None = await self.bot.pool.fetchval(query, broadcaster_id)
+        if emote_set_id is None:
+            msg = f"7tv features are not attached to any of the emote sets {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+        return PartialEmoteSet(self.bot.stv, emote_set_id=emote_set_id)
+
+    async def insert_into_to_stv_users(self, broadcaster_id: str, emote_set_id: str | None = None) -> str:
+        """Add to `stv_users` table."""
+        partial_user = self.bot.stv.create_partial_user(broadcaster_id)
+        user_info = await partial_user.fetch_info()
+
+        query = """
+            INSERT INTO ttv_stv_users
+                (broadcaster_id, stv_user_id, emote_set_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT(broadcaster_id)
+                DO UPDATE SET stv_user_id  = $2,
+                            emote_set_id = $3;
+        """
+        if emote_set_id and emote_set_id != user_info.active_emote_set_id:
+            # we need to fetch its name
+            emote_set_info = await self.bot.stv.create_partial_emote_set(emote_set_id).fetch_info()
+            emote_set_name = emote_set_info.name
+        else:
+            emote_set_name = user_info.active_emote_set_name
+            emote_set_id = user_info.active_emote_set_id
+        await self.bot.pool.execute(query, broadcaster_id, user_info.id, emote_set_id)
+        return f"linked bot's 7tv features to your '{emote_set_name}' emote set ({emote_set_id}) {self.EMOTE}"
+
+    async def delete_from_cycle_emotes(self, emote_id: str, emote_set_id: str) -> None:
+        """Delete an emote from ``ttv_stv_cycle_emotes``.
+
+        A common query.
+        """
+        query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2"
+        await self.bot.pool.execute(query, emote_id, emote_set_id)
+
+    #########################################################################################################################
+    # MAIN COMMAND
+    #########################################################################################################################
+
     @commands.group(name="7tv", aliases=["stv"], invoke_fallback=True)
     async def stv(self, ctx: IreContext) -> None:
         """Group command for `!7tv`.
@@ -270,7 +322,7 @@ class SevenTVFeatures(IrePublicComponent):
         await ctx.group_default_response()
 
     #########################################################################################################################
-    # 7TV EMOTE CYCLING EMOTES CHANNEL POINTS REWARD                                                                        #
+    # CYCLE TASKS
     #########################################################################################################################
 
     @ireloop(hours=8)
@@ -293,14 +345,6 @@ class SevenTVFeatures(IrePublicComponent):
                             pass
                         else:
                             raise
-
-    async def delete_from_cycle_emotes(self, emote_id: str, emote_set_id: str) -> None:
-        """Delete an emote from ``ttv_stv_cycle_emotes``.
-
-        A common query.
-        """
-        query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2"
-        await self.bot.pool.execute(query, emote_id, emote_set_id)
 
     @ireloop(hours=8)
     async def try_to_double_check_cycle_rewards_database(self) -> None:
@@ -329,6 +373,10 @@ class SevenTVFeatures(IrePublicComponent):
         """The task that fills a set of rewards ids for convenience to cut on a few database queries."""
         query = "SELECT reward_id FROM ttv_stv_cycle_rewards"
         self.cycle_reward_ids_cache = {r for (r,) in await self.bot.pool.fetch(query)}
+
+    #########################################################################################################################
+    # 7TV EMOTE CYCLING EMOTES CHANNEL POINTS REWARD
+    #########################################################################################################################
 
     @stv.group(name="cycle", invoke_fallback=True)
     async def stv_cycle(self, ctx: IreContext) -> None:
@@ -595,7 +643,7 @@ class SevenTVFeatures(IrePublicComponent):
                 log.debug("Removed emote %s (#%s)", emote_name_to_remove, emote_id_to_remove)
 
         # Step 4. Add the requested emote
-        await self.emote_set_add_with_validations(
+        await self.emote_set_add_emote_with_validations(
             emote_set, emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias
         )
         log.debug("Added emote #%s", emote.id)
@@ -606,11 +654,9 @@ class SevenTVFeatures(IrePublicComponent):
             VALUES ($1, $2, $3, $4)
         """
         await self.bot.pool.execute(query, emote.id, redemption.broadcaster.id, emote_set.id, redemption.user.id)
-
-        result = f"Added '{alias}' ({emote.url()}) {const.STV.DonkCrayon}"
-        log.info(result)
-        # await redemption.respond(result)
+        await self.redemption_respond(redemption, f"Done {self.EMOTE}")
         await self.fullfil_redemption(redemption)
+        log.info("Done with cycle redemption for '%s' (%s)", alias, emote.id)
 
     @commands.Component.listener(name="custom_redemption_add")
     async def channel_points_cycle_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
@@ -659,9 +705,9 @@ class SevenTVFeatures(IrePublicComponent):
         query = "DELETE FROM ttv_stv_cycle_emotes tce WHERE tce.broadcaster_id = $1;"
         await self.bot.pool.execute(query, const.UserID.Irene)
 
+        partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.SevenTV.IRENE_EMOTE_SET_ID)
         for emote_id in self.BALLS.values():
             with contextlib.suppress(EmoteNotFoundInSetError):
-                partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.SevenTV.IRENE_EMOTE_SET_ID)
                 await partial_emote_set.remove_emote(emote_id)
         await ctx.send(f"Done {const.STV.DonkCrayon}")
 
@@ -828,29 +874,6 @@ class SevenTVFeatures(IrePublicComponent):
         content = f"Just {res.lower()} your 7TV editor request; also {insert_response} {self.EMOTE}"
         await ctx.send(content)
 
-    async def insert_into_to_stv_users(self, broadcaster_id: str, emote_set_id: str | None = None) -> str:
-        """Add to `stv_users` table."""
-        partial_user = self.bot.stv.create_partial_user(broadcaster_id)
-        user_info = await partial_user.fetch_info()
-
-        query = """
-            INSERT INTO ttv_stv_users
-                (broadcaster_id, stv_user_id, emote_set_id)
-            VALUES ($1, $2, $3)
-            ON CONFLICT(broadcaster_id)
-                DO UPDATE SET stv_user_id  = $2,
-                            emote_set_id = $3;
-        """
-        if emote_set_id and emote_set_id != user_info.active_emote_set_id:
-            # we need to fetch its name
-            emote_set_info = await self.bot.stv.create_partial_emote_set(emote_set_id).fetch_info()
-            emote_set_name = emote_set_info.name
-        else:
-            emote_set_name = user_info.active_emote_set_name
-            emote_set_id = user_info.active_emote_set_id
-        await self.bot.pool.execute(query, broadcaster_id, user_info.id, emote_set_id)
-        return f"linked bot's 7tv features to your '{emote_set_name}' emote set ({emote_set_id}) {self.EMOTE}"
-
     #########################################################################################################################
     # 7TV EMOTESET                                                                                                          #
     #########################################################################################################################
@@ -874,15 +897,6 @@ class SevenTVFeatures(IrePublicComponent):
         """
         insert_response = await self.insert_into_to_stv_users(ctx.broadcaster.id, emote_set_id=emote_set_id)
         await ctx.send(f"Successfully {insert_response}")
-
-    async def select_emote_set(self, broadcaster_id: str) -> PartialEmoteSet:
-        """Select emote set id."""
-        query = "SELECT emote_set_id FROM ttv_stv_users WHERE broadcaster_id = $1;"
-        emote_set_id: str | None = await self.bot.pool.fetchval(query, broadcaster_id)
-        if emote_set_id is None:
-            msg = f"7tv features are not attached to any of the emote sets {self.EMOTE}"
-            raise errors.RespondWithError(msg)
-        return PartialEmoteSet(self.bot.stv, emote_set_id=emote_set_id)
 
     @stv_emoteset.command(name="status")
     async def stv_emoteset_status(self, ctx: IreContext) -> None:
@@ -1138,6 +1152,15 @@ class SevenTVFeatures(IrePublicComponent):
             else:
                 await redemption.fulfill()
 
+    async def redemption_respond(
+        self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption, content: str
+    ) -> None:
+        """Redemption respond."""
+        if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
+            await redemption.respond(content)
+        else:
+            await redemption.broadcaster.send_message(content, sender=self.bot.bot_id)
+
     async def process_blacklist_redemption(
         self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption
     ) -> None:
@@ -1175,21 +1198,16 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.bot.pool.execute(query, emote.id, redemption.broadcaster.id, redemption.user.id)
 
-        result = f"Removed and Blacklisted '{alias}' ({emote.url()}) {const.STV.DonkCrayon}"
-        log.info(result)
+        await self.redemption_respond(redemption, f"Done {self.EMOTE}")
         await self.fullfil_redemption(redemption)
+        log.info("Done with blacklist redemption for '%s' (%s)", alias, emote.id)
 
     @commands.Component.listener(name="custom_redemption_add")
     async def channel_points_blacklist_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
         """Somebody redeemed a custom channel points reward."""
         await self.process_blacklist_redemption(redemption)
 
-    async def select_cycle_allow_common_words(self, broadcaster_id: str) -> bool:
-        """Select Cycle allow common words."""
-        query = "SELECT allow_common_words FROM ttv_stv_users WHERE broadcaster_id = $1;"
-        return await self.bot.pool.fetchval(query, broadcaster_id)
-
-    async def emote_set_add_with_validations(
+    async def emote_set_add_emote_with_validations(
         self,
         emote_set: PartialEmoteSet,
         emote_id: str,
