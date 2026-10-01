@@ -59,6 +59,8 @@ __all__ = ("Dota2RichPresenceFlow",)
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+NKMMRBOT_MODULE_NAME = __name__
+
 
 @dataclass
 class Score:

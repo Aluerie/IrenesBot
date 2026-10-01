@@ -112,11 +112,11 @@ async def parse_or_search_emote(
     if len(split) > 2:
         # More than 2 words = bad
         msg = "Bad Input; I require '<emote_link_or_id> <optional_emote_alias>' - no extra words"
-        raise errors.RespondWithError(msg)
+        raise errors.BadUserInputError(msg)
     if len(split) <= 0:
         # 0 words = why
         msg = "Bad Input; why would you type an empty text?"
-        raise errors.RespondWithError(msg)
+        raise errors.BadUserInputError(msg)
 
     # Either
     # 2 words - 'emote_id_link_or_name + emote_alias' were provided
@@ -429,7 +429,7 @@ class SevenTVFeatures(IrePublicComponent):
         """
         broadcaster_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, custom_reward.id, emote_limit)
         if broadcaster_id is None:
-            msg = f"This channel already has 7TV emote cycle channel reward {self.EMOTE}"
+            msg = f"This channel already has 7TV emotes cycle channel reward {self.EMOTE}"
             raise errors.RespondWithError(msg)
 
         await self.fill_known_cycle_rewards()
@@ -487,16 +487,16 @@ class SevenTVFeatures(IrePublicComponent):
         row: CycleStatusQueryRow | None = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
 
         if row is None:
-            msg = f"The streamer doesn't have 7tv cycling emote channel points reward set up {self.EMOTE}"
-            raise errors.RespondWithError(msg)
+            await ctx.send(f"The streamer doesn't have 7tv emotes cycle channel points reward set up {self.EMOTE}")
+            return
 
         reward = next(iter(await ctx.broadcaster.fetch_custom_rewards(ids=[row["reward_id"]])), None)
         if reward is None:
-            msg = (
+            await ctx.send(
                 "Somehow my database has wrong information about the current streamer's 7tv cycle reward - "
                 f"please, use '!7tv cycle create' to recreate the reward {self.EMOTE}"
             )
-            raise errors.SomethingWentWrongError(msg)
+            return
 
         content = (
             f"title={reward.title} cost={reward.cost} reward_id={row['reward_id']} emote_limit={row['emote_limit']} "

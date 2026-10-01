@@ -33,7 +33,7 @@ CATEGORY_MODULES_MAPPING = {
         # "timers",
     ],
     "public": [
-        # "9kmmrbot",
+        # "nkmmrbot",
         # "meta"
     ],
 }

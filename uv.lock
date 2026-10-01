@@ -818,7 +818,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "pygit2", specifier = ">=1.20.1" },
     { name = "steamio", git = "https://github.com/Aluerie/steam.py?rev=introduce-ext.dota2" },
-    { name = "twitchio", extras = ["starlette"], git = "https://github.com/Aluerie/TwitchIO.git?rev=fix-custom-reward-redemption" },
+    { name = "twitchio", extras = ["starlette"], git = "https://github.com/PythonistaGuild/TwitchIO.git?rev=main" },
     { name = "uvloop", marker = "sys_platform == 'linux'", specifier = ">=0.22.1" },
     { name = "websockets", specifier = ">=17.1" },
     { name = "zstandard", specifier = ">=0.25.0" },
@@ -1861,7 +1861,7 @@ wheels = [
 [[package]]
 name = "twitchio"
 version = "3.3.3"
-source = { git = "https://github.com/Aluerie/TwitchIO.git?rev=fix-custom-reward-redemption#6114dc19a7d8539fdfc6378fffc239ead4a966c5" }
+source = { git = "https://github.com/PythonistaGuild/TwitchIO.git?rev=main#b077c64d0741855fa7563afeda3145b4ec283b81" }
 dependencies = [
     { name = "aiohttp" },
 ]
