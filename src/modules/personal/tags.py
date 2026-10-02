@@ -61,7 +61,7 @@ class Tags(IrePersonalComponent):
         """
         if tag_name in ("delete", "remove", "del", "add", "list", "edit", "a", "d", "r", "e", "l"):
             msg = f"This tag_name is reserved {const.STV.uuhAcktshucally}"
-            raise errors.RespondWithError(msg) from None
+            raise errors.RespondWithError(msg)
         try:
             query = """
                 INSERT INTO ttv_tags

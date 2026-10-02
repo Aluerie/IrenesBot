@@ -35,7 +35,7 @@ from core import IrePublicComponent, ireloop
 from shared import errors
 from shared.concepts.logs import PrefixLoggerAdapter
 from shared.globs import DIGITS, Global7TV
-from shared.seven_tv_gql.exceptions import EmoteNotFoundError
+from shared.seven_tv_gql import exceptions as stv_errors
 from shared.seven_tv_gql.models import PartialEmote, PartialEmoteSet
 from utils import const, guards
 
@@ -346,7 +346,7 @@ class SevenTVFeatures(IrePublicComponent):
                     except Exception as error:
                         with contextlib.suppress(twitchio.HTTPException):
                             await redemption.refund()
-                        if isinstance(error, errors.RespondWithError):
+                        if isinstance(error, stv_errors):
                             pass
                         else:
                             raise
@@ -402,8 +402,12 @@ class SevenTVFeatures(IrePublicComponent):
 
         * You can read some tips about how bot's channel point rewards related features work here:
           :ref:`channel_points_reward_tips`.
-        * The created channel points reward accepts emote links, emote ids and emote names in its user input.
-          If emote name was provided then the bot will search for the most popular emote in 7tv matching it.
+        * The created channel points reward accepts user input in a format ``<emote_id_link_or_name> <emote_alias>``.
+          If emote name was provided (over id or link) then
+          the bot will search for the most popular emote in 7tv matching it.
+          If ``<emote_alias>`` was provided then the specified emote will be added with an alias.
+
+          Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF smh" will add this "MinaSmh" emote as "smh".
 
         Parameters
         ----------
@@ -453,18 +457,18 @@ class SevenTVFeatures(IrePublicComponent):
     ) -> None:
         """Drop an emote from the cycle list.
 
-        This removes the emote from the bot's database essentially making it "permanent" and
+        This removes the emote from the bot's database essentially making it "permanent", leaving it
         up to other 7TV editors (or a broadcaster) to manage it.
-        In other words, this command prevents the emote from being eventually cycled out.
+        In other words, this command stops the emote from being eventually cycled out.
 
         Parameters
         ----------
         emote_name_link_or_id
-            Either alias of the emote you want to remove, its 7TV link or ID.
+            Either alias of the emote you want to drop, its 7TV link or ID.
 
         Examples
         --------
-        All these examples below remove same "smh" emote
+        All these examples below drop same "smh" emote
 
         * ``!7tv cycle remove 01FP8TR8G8000EJT2EVEY3JQTF``
         * ``!7tv cycle remove smh``
@@ -638,14 +642,12 @@ class SevenTVFeatures(IrePublicComponent):
 
         for emote_id_to_remove in emote_ids_to_remove:
             try:
-                emote_name_to_remove: str = await emote_set.fetch_emote_alias(emote_id=emote_id_to_remove)
                 await emote_set.remove_emote(emote_id=emote_id_to_remove)
-                await self.delete_from_cycle_emotes(emote_id_to_remove, emote_set.id)
-            except EmoteNotFoundError:
+            except stv_errors.EmoteNotFoundError:
                 log.debug("Emote Not Found #%s - skipping", emote_id_to_remove)
             else:
-                # await redemption.respond(f"Removed {emote_name_to_remove} ({get_seven_tv_link(emote_id_to_remove)})")
-                log.debug("Removed emote %s (#%s)", emote_name_to_remove, emote_id_to_remove)
+                await self.delete_from_cycle_emotes(emote_id_to_remove, emote_set.id)
+                log.debug("Removed emote %s", emote_id_to_remove)
 
         # Step 4. Add the requested emote
         await self.emote_set_add_emote_with_validations(
@@ -712,7 +714,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.SevenTV.IRENE_EMOTE_SET_ID)
         for emote_id in self.BALLS.values():
-            with contextlib.suppress(EmoteNotFoundError):
+            with contextlib.suppress(stv_errors.EmoteNotFoundError):
                 await partial_emote_set.remove_emote(emote_id)
         await ctx.send(f"Done {const.STV.DonkCrayon}")
 
@@ -871,7 +873,7 @@ class SevenTVFeatures(IrePublicComponent):
         """Make the bot accept a pending 7TV editor request from the streamer.
 
         Invoking this command also makes the bot attach to to your currently active 7tv emote set.
-        Which is identical to performing ``!7tv emoteset link`` with no arguments.
+        Which is identical to performing ``!7tv emoteset attach`` with no arguments.
         """
         partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
         res = await partial_user.accept_editor()
@@ -883,12 +885,12 @@ class SevenTVFeatures(IrePublicComponent):
     # 7TV EMOTESET                                                                                                          #
     #########################################################################################################################
 
-    @guards.is_broadcaster_or_dev()
     @stv.group(name="emoteset")
     async def stv_emoteset(self, ctx: IreContext) -> None:
         """Editor."""
         await ctx.group_default_response()
 
+    @guards.is_broadcaster_or_dev()
     @stv_emoteset.command(name="attach")
     async def stv_emoteset_attach(self, ctx: IreContext, emote_set_id: str | None = None) -> None:
         """Attach bot's 7tv features to the emote set.
@@ -1041,6 +1043,8 @@ class SevenTVFeatures(IrePublicComponent):
     ) -> None:
         """Remove 7TV emote.
 
+        PS. This command also has a short version ``!remove`` (so no need to type ``!7tv``).
+
         Parameters
         ----------
         emote_name_id_or_link
@@ -1141,10 +1145,11 @@ class SevenTVFeatures(IrePublicComponent):
 
         if self.is_dev(redemption.user.id):
             # Refund the points for Irene because you know, testing costs :D
-            if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
-                await redemption.refund(token_for=redemption.reward.broadcaster.id)
-            else:
-                await redemption.refund()
+            with contextlib.suppress(twitchio.HTTPException):
+                if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
+                    await redemption.refund(token_for=redemption.reward.broadcaster.id)
+                else:
+                    await redemption.refund()
         return True
 
     async def fullfil_redemption(

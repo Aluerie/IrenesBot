@@ -346,8 +346,8 @@ class IreBot(commands.AutoBot):
             await self.dota2.wait_until_ready()
 
     SOMETHING_WENT_WRONG_MESSAGE = (
-        f"Something went wrong {const.Global.FeelsDankMan} "
-        f"but I've notified Irene about the error {const.Global.FeelsDankMan}"
+        f"Something went wrong {globs.Global7TV.FeelsDankMan} "
+        f"but I've notified Irene about the error {globs.Global7TV.FeelsDankMan}"
     )
 
     async def handle_common_errors(
@@ -360,13 +360,13 @@ class IreBot(commands.AutoBot):
         """
         match error:
             # MY CUSTOM ERRORS
+            case errors.SomethingWentWrongError():
+                return False
             case errors.BotError():
                 if error.silent:
                     return True
                 if error.respond:
                     await respond(error.msg)
-                if error.dev_message and not error.register:
-                    await self.ping_developers(content=error.formatted_message_for_devs())
                 if error.register:
                     return False
             # 7TV
@@ -401,6 +401,12 @@ class IreBot(commands.AutoBot):
             case _:
                 return False
         return True
+
+    @staticmethod
+    def add_codeblock_field(embed: discord.Embed, field_name: str, data: dict[str, Any]) -> discord.Embed:
+        """A helper method to add arguments as a field for the unknown error report embed."""
+        embed.add_field(name=field_name, value=fmt.pformat_dict(data), inline=False)
+        return embed
 
     @override
     async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
@@ -486,8 +492,8 @@ class IreBot(commands.AutoBot):
                     )
                     .add_field(name="Command Args", value=fmt.pformat_dict(ctx.kwargs), inline=False)
                 )
-                if isinstance(error, errors.BotError) and error.debug_data:
-                    embed.add_field(name="Extra Debug Data", value=error.formatted_message_for_devs(), inline=False)
+                if debug_data := getattr(error, "debug_data", None):
+                    embed = self.add_codeblock_field(embed, "Extra Debug Data", debug_data)
                 await self.error_manager.register(error, embed=embed)
 
     @override
@@ -497,23 +503,21 @@ class IreBot(commands.AutoBot):
         original = payload.original
 
         if isinstance(original, twitchio.ChannelPointsRedemptionAdd):
-            # let's be nice and refund channel points for failed redeems
+            # Twitch channel point redeems are somewhat like commands
+            # So let's answer them in chat if any errors happened.
             with contextlib.suppress(twitchio.HTTPException):
+                # let's be nice and refund channel points for failed redeems
                 await original.refund(token_for=original.broadcaster.id)
 
-        if hasattr(original, "respond") and await self.handle_common_errors(error, original.respond):
-            # 1. Handle common error
-            return
+            if await self.handle_common_errors(error, original.respond):
+                # 1. Handle common error
+                return
+
+            if isinstance(error, errors.SomethingWentWrongError):
+                await original.respond(self.SOMETHING_WENT_WRONG_MESSAGE)
 
         # 2. All other errors;
-        # SomethingWentWrongError also goes here (unlike long ago).
-
-        embed = discord.Embed(
-            title=f"Event Error: `{payload.listener.__qualname__}`",
-        ).add_field(
-            name="Exception",
-            value=f"`{payload.error.__class__.__name__}`",
-        )
+        embed = discord.Embed(title=f"Event Error: `{payload.listener.__qualname__}`")
         if broadcaster := getattr(original, "broadcaster", None):
             embed.set_footer(
                 text=f"Channel: {broadcaster.display_name}",
@@ -524,8 +528,8 @@ class IreBot(commands.AutoBot):
                 name=f"Chatter {chatter.display_name}",
                 icon_url=(await chatter.user()).profile_image,
             )
-        if isinstance(error, errors.BotError) and error.debug_data:
-            embed.add_field(name="Extra Debug Data", value=error.formatted_message_for_devs(), inline=False)
+        if debug_data := getattr(error, "debug_data", None):
+            embed = self.add_codeblock_field(embed, "Extra Debug Data", debug_data)
         await self.error_manager.register(error, embed=embed)
 
     # SHORTCUTS AND UTILITIES

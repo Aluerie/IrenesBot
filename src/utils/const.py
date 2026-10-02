@@ -45,10 +45,6 @@ class Global(StrEnum):
     # FFZ
     # None - no good ones?..
 
-    # STV
-    EZ = "EZ"
-    FeelsDankMan = "FeelsDankMan"
-
 
 class BTTV(StrEnum):
     """Some of BTTV emotes enabled on the channel."""

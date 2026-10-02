@@ -7,7 +7,7 @@
 * The bot's command prefixes are ``!``, ``?``, ``$``. 
   Which means that the bot will respond to all of these commands: ``!hi``, ``?hi``, ``$hi`` with the same response.
   Maybe in future the bot will support custom per channel command prefixes.
-
+* To be short, this documentation will just write one command prefix (``!``) when mentioning a command.
 * The bot should moderate itself upon joining your channel. If it doesn't for some reason - please, moderate it yourself.
   As it was said in the :ref:`how_to_invite` section -
   :iconify:`logos:twitch` twitch is silly and they rate-limit small bots quite a lot, 

@@ -31,8 +31,9 @@ There is quite a few features, so let's get started.
 ###########################################
 
 7tv features are mostly performed on 7TV emote sets, links to which the bot saves in its database. 
-This documentation will refer to such emote as "attached emote set". 
+This documentation will refer to such emote sets as "attached emote set". 
 As it was mentioned above - if the streamer uses ``!7tv editor accept`` command then the bot will attach to their currently active emote set by default.
+
 If, in future, the streamer decides to mess around with their 7tv emote sets, e.g. make a new one or select some other emote set as their active - 
 the commands here will help to reattach the bot to a proper emote set that the streamer wants the bot to manage.
 
