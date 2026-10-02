@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Protocol, TypeVar, override
 import discord
 from discord.utils import MISSING
 
-from shared import errors
 from shared.concepts import tasks
 
 if TYPE_CHECKING:
@@ -53,8 +52,8 @@ class IreLoop(tasks.CustomLoop[LF]):
     async def _error(self, cog: HasBotAttribute, exception: Exception) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Same `_error` as in parent class but with `exc_manager` integrated."""
         embed = discord.Embed(title=f"Task Error `{self.coro.__qualname__}`", colour=0x1A7A8A)
-        if isinstance(exception, errors.BotError) and exception.debug_data:
-            embed = embed.add_field(name="Extra Debug Data", value=exception.formatted_message_for_devs(), inline=False)
+        if debug_data := getattr(exception, "debug_data", None):
+            embed = cog.bot.add_codeblock_field(embed, "Extra Debug Data", debug_data)
         await cog.bot.error_manager.register(exception, embed)
 
 

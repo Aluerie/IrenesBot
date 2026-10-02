@@ -228,7 +228,10 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
         msg = (
             f'@{redemption.user.display_name}, gratz on your very first "First!" {const.STV.gg}'
             if count == 1
-            else f"@{redemption.user.display_name}, Gratz! you've been first {count} times {const.STV.gg} {const.Global.EZ}"
+            else (
+                f"@{redemption.user.display_name}, Gratz! you've been first {count} times "
+                f"{const.STV.gg} {globs.Global7TV.EZ}"
+            )
         )
         await redemption.respond(msg)
         with contextlib.suppress(twitchio.HTTPException):

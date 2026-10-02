@@ -6,6 +6,7 @@ import twitchio  # noqa: TC002
 from twitchio.ext import commands
 
 from core import IrePublicComponent
+from shared import globs
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -63,7 +64,7 @@ class MetaCommands(IrePublicComponent):
     @commands.command()
     async def irene(self, ctx: IreContext) -> None:
         """Just a random command that is unlikely to be in other bots."""
-        await ctx.send(const.Global.FeelsDankMan)
+        await ctx.send(globs.Global7TV.FeelsDankMan)
 
     @commands.command()
     async def ping(self, ctx: IreContext) -> None:
