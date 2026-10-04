@@ -103,6 +103,23 @@ def regex_to_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> PartialE
 
 
 async def parse_or_search_emote(
+    stv_gql: GraphQL7TVClient, emote_id_link_or_name: str, broadcaster_id: str | None
+) -> PartialEmote:
+    """Parse or search."""
+    try:
+        # try parsing `emote_id`
+        return regex_to_emote(stv_gql, emote_id_link_or_name)
+    except errors.BadUserInputError:
+        # `emote_name` was provided to search
+        if broadcaster_id:
+            # search within the broadcaster
+            user = stv_gql.create_partial_user(broadcaster_id)
+            return await user.search_emote(emote_id_link_or_name)
+        # search top globally
+        return await stv_gql.search_emote(emote_id_link_or_name)
+
+
+async def parse_add_rename_input(
     stv_gql: GraphQL7TVClient,
     user_input: str,
     broadcaster_id: str | None = None,
@@ -114,11 +131,9 @@ async def parse_or_search_emote(
     """
     split = user_input.split()
     if len(split) > 2:
-        # More than 2 words = bad
         msg = "Bad Input; I require '<emote_link_or_id> <optional_emote_alias>' - no extra words"
         raise errors.BadUserInputError(msg)
     if len(split) <= 0:
-        # 0 words = why
         msg = "Bad Input; why would you type an empty text?"
         raise errors.BadUserInputError(msg)
 
@@ -130,24 +145,11 @@ async def parse_or_search_emote(
     except IndexError:
         emote_alias = None
 
-    emote_id_link_or_name = split[0]
-    try:
-        # try parsing `emote_id`
-        emote = regex_to_emote(stv_gql, emote_id_link_or_name)
-    except errors.BadUserInputError:
-        # `emote_name` was provided to search
-        if broadcaster_id:
-            # search within the broadcaster
-            user = stv_gql.create_partial_user(broadcaster_id)
-            emote = await user.search_emote(emote_id_link_or_name)
-        else:
-            # search top globally
-            emote = await stv_gql.search_emote(emote_id_link_or_name)
-
+    emote = await parse_or_search_emote(stv_gql, split[0], broadcaster_id)
     return (emote, emote_alias)
 
 
-class UserSearchEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
+class RenameEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
     """Seven TV Emote Converter.
 
     Converts user_input from `str` type into 7TV emote_id.
@@ -156,10 +158,10 @@ class UserSearchEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
     @override
     async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
-        return await parse_or_search_emote(ctx.bot.stv, user_input, ctx.broadcaster.id)
+        return await parse_add_rename_input(ctx.bot.stv, user_input, ctx.broadcaster.id)
 
 
-class GlobalSearchEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
+class AddEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
     """Seven TV Emote Converter.
 
     Converts user_input from `str` type into 7TV emote_id.
@@ -168,7 +170,40 @@ class GlobalSearchEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
     @override
     async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
-        return await parse_or_search_emote(ctx.bot.stv, user_input)
+        return await parse_add_rename_input(ctx.bot.stv, user_input)
+
+
+async def parse_remove_input(
+    stv_gql: GraphQL7TVClient,
+    user_input: str,
+    broadcaster_id: str,
+) -> PartialEmote:
+    """Get emote_id from `user_input`.
+
+    Accepts
+    *
+    """
+    split = user_input.split()
+    if len(split) > 1:
+        msg = "Bad Input; I require '<emote_link_or_id>' - no extra words"
+        raise errors.BadUserInputError(msg)
+    if len(split) <= 0:
+        msg = "Bad Input; why would you type an empty text?"
+        raise errors.BadUserInputError(msg)
+
+    return await parse_or_search_emote(stv_gql, split[0], broadcaster_id)
+
+
+class RemoveEmoteConverter(commands.Converter[PartialEmote]):
+    """Seven TV Emote Converter.
+
+    Converts user_input from `str` type into 7TV emote_id.
+    """
+
+    @override
+    async def convert(self, ctx: IreContext, user_input: str) -> PartialEmote:  # ty: ignore[invalid-method-override]
+        """Convert `user_input` to 7TV emote_id."""
+        return await parse_remove_input(ctx.bot.stv, user_input, ctx.broadcaster.id)
 
 
 def is_emote_owner() -> Any:
@@ -459,7 +494,7 @@ class SevenTVFeatures(IrePublicComponent):
     async def stv_cycle_drop(
         self,
         ctx: IreContext,
-        emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter],
+        emote: Annotated[PartialEmote, RenameEmoteConverter],
     ) -> None:
         """Drop an emote from the cycle list.
 
@@ -469,8 +504,11 @@ class SevenTVFeatures(IrePublicComponent):
 
         Parameters
         ----------
-        emote_name_link_or_id
-            Either alias of the emote you want to drop, its 7TV link or ID.
+        emote
+            ``<emote_name_link_or_id>`` which is supposed to be an emote identifier for the bot to find the emote:
+            emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            emote ID (characters sequence in after the last "/" in the emote link) or emote name that the bot will use to
+            search for the desired emote in the broadcaster's emote set.
 
         Examples
         --------
@@ -480,10 +518,9 @@ class SevenTVFeatures(IrePublicComponent):
         * ``!7tv cycle remove smh``
         * ``!7tv cycle remove https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF``
         """
-        emote, alias = emote_and_alias
         query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
         await self.bot.pool.execute(query, emote.id, ctx.broadcaster.id)
-        await ctx.send(f"'{alias or emote.id}' was removed from the cycling emote list {self.EMOTE}")
+        await ctx.send(f"'{emote.id}' was removed from the cycling emote list {self.EMOTE}")
 
     @stv_cycle.command(name="status")
     async def stv_cycle_status(self, ctx: IreContext) -> None:
@@ -621,7 +658,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         # Step 1. Parse User Input
 
-        emote, alias = await parse_or_search_emote(self.bot.stv, redemption.user_input)
+        emote, alias = await parse_add_rename_input(self.bot.stv, redemption.user_input)
         log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
 
         # Step 2. Get Emote Set
@@ -942,7 +979,7 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter],
+        emote_and_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
     ) -> None:
         """Add 7TV emote.
 
@@ -950,14 +987,17 @@ class SevenTVFeatures(IrePublicComponent):
 
         Parameters
         ----------
-        emote_name_id_or_link
-            7TV emote name, id or link for the bot to add. If name is provided instead of id/link then the bot will
-            search for the most popular emote in 7tv matching it.
-        emote_alias
-            Optional, the emote will be added with this name instead of its default 7TV name.
+        emote_and_alias
+            ``<emote_name_link_or_id> <optional_emote_alias>``, separated by space, 1 or 2 "words".
+            The first one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
+            emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            emote ID (characters sequence in after the last "/" in the emote link) or emote name that the bot will use to
+            search the desired emote globally across 7TV.
+            The second one (<optional_emote_alias>) is optional and
+            it can be an emote alias with which the emote will be added.
 
         """
-        await self.add_helper(ctx, emote_alias)
+        await self.add_helper(ctx, emote_and_alias)
 
     @copy_doc(stv_add)
     @guards.is_broadcaster_or_dev()
@@ -966,7 +1006,7 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter],
+        emote_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
     ) -> None:
         """Add 7TV emote.
 
@@ -997,9 +1037,8 @@ class SevenTVFeatures(IrePublicComponent):
         msg = f"Invalid emote or you are not allowed to manage this emote {self.EMOTE}"
         raise errors.RespondWithError(msg)
 
-    async def remove_helper(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
+    async def remove_helper(self, ctx: IreContext, emote: PartialEmote) -> None:
         """Remove 7TV emote helper."""
-        emote, _alias = emote_and_alias
         await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
         partial_emote_set = await self.select_emote_set(ctx.broadcaster.id)
         await partial_emote_set.remove_emote(emote_id=emote.id)
@@ -1027,7 +1066,7 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter],
+        emote_and_alias: Annotated[PartialEmoteAndAlias, RenameEmoteConverter],
     ) -> None:
         """Rename 7TV emote.
 
@@ -1035,13 +1074,16 @@ class SevenTVFeatures(IrePublicComponent):
 
         Parameters
         ----------
-        emote_name_id_or_link
-            7TV emote name, id or link for the bot to rename. If name is provided instead of id/link then the bot will
-            search within the broadcaster's emotes to find a match.
-        emote_alias
-            New name with this name instead of its default 7TV name.
+        emote_and_alias
+            ``<emote_name_link_or_id> <optional_emote_alias>``, separated by space, 1 or 2 "words".
+            The first one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
+            emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            emote ID (characters sequence in after the last "/" in the emote link) or emote name that the bot will use to
+            search the desired emote globally across 7TV.
+            The second one (<optional_emote_alias>) is optional and
+            it can be an emote alias with which the emote will be added.
         """
-        await self.rename_helper(ctx, emote_alias)
+        await self.rename_helper(ctx, emote_and_alias)
 
     @copy_doc(stv_rename)
     @is_emote_owner()
@@ -1050,13 +1092,13 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter],
+        emote_and_alias: Annotated[PartialEmoteAndAlias, RenameEmoteConverter],
     ) -> None:
         """Rename 7TV emote.
 
         @copy_doc(stv_rename)
         """
-        await self.rename_helper(ctx, emote_alias)
+        await self.rename_helper(ctx, emote_and_alias)
 
     @is_emote_owner()
     @stv.command(name="remove")
@@ -1064,7 +1106,7 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter],
+        emote: Annotated[PartialEmote, AddEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
@@ -1072,11 +1114,13 @@ class SevenTVFeatures(IrePublicComponent):
 
         Parameters
         ----------
-        emote_name_id_or_link
-            7TV emote name, id or link for the bot to rename. If name is provided instead of id/link then the bot will
-            search within the broadcaster's emotes to find a match.
+        emote
+            ``<emote_name_link_or_id>`` which is supposed to be an emote identifier for the bot to find the emote:
+            emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            emote ID (characters sequence in after the last "/" in the emote link) or emote name that the bot will use to
+            search for the desired emote in the broadcaster's emote set.
         """
-        await self.remove_helper(ctx, emote_alias)
+        await self.remove_helper(ctx, emote)
 
     @copy_doc(stv_remove)
     @is_emote_owner()
@@ -1085,13 +1129,13 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter],
+        emote: Annotated[PartialEmote, RenameEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
         @copy_doc(stv_remove)
         """
-        await self.remove_helper(ctx, emote_alias)
+        await self.remove_helper(ctx, emote)
 
     #########################################################################################################################
     # BLACKLIST                                                                                                             #
@@ -1219,7 +1263,7 @@ class SevenTVFeatures(IrePublicComponent):
             redemption.user_input,
         )
 
-        emote, alias = await parse_or_search_emote(self.bot.stv, redemption.user_input, redemption.broadcaster.id)
+        emote, alias = await parse_add_rename_input(self.bot.stv, redemption.user_input, redemption.broadcaster.id)
         log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
 
         emote_set = await self.select_emote_set(redemption.broadcaster.id)

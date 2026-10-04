@@ -32,6 +32,7 @@ Running the bot:
 
 Linters, Type-checkers, formatters and tests:
 	lint                Run the Ruff's linter
+	ruff 			    Run the Ruff's linter (same as "make lint", just an alias)
 	format              Format the code
 	ty                  Run typechecker (ty)
 	check               Run both typechecker and linter
@@ -97,6 +98,13 @@ scopes:  # Run the bot in the scopes-only mode
 .PHONY: lint
 .SILENT: lint
 lint:  # Run the Ruff's linter
+	uv run ruff check $(sources)
+	uv run ruff format --check $(sources)
+
+
+.PHONY: ruff
+.SILENT: ruff
+ruff:  # Run the Ruff's linter (same as "make lint", just an alias)
 	uv run ruff check $(sources)
 	uv run ruff format --check $(sources)
 

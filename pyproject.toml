@@ -33,7 +33,6 @@ dependencies = [
     "zstandard",
 ]
 
-
 [tool.uv.sources]
 twitchio = { git = "https://github.com/PythonistaGuild/TwitchIO.git", rev = "main" }
 steamio = { git = "https://github.com/Aluerie/steam.py", rev = "introduce-ext.dota2" }
@@ -72,6 +71,7 @@ unsound-assignment = "ignore" # `Any` is fine
 unsound-return-statement = "ignore" # `Any` is fine
 unsound-yield = "ignore" # `Any` is fine
 
+
 [tool.ruff]
 preview = true
 line-length = 125
@@ -98,44 +98,48 @@ ignore = [
     "missing-trailing-comma",
     "prohibited-trailing-comma",
     "multi-line-implicit-string-concatenation",
-    # Other Rules
-    "ambiguous-unicode-character-string",
-    "any-type",
-    "assert", # assert is fine for forced type checking and in tests
-    "commented-out-code",
-    "complex-structure",
-    "implicit-namespace-package", # Annoying rule, it doesn't understand what is NOT an implicit namespace-package
-    "magic-value-comparison", # I hate this rule (quoting @AbstractUmbra)
-    "missing-todo-author",
-    "missing-todo-link",
-    "line-contains-todo", # I use TODO Tree VSCode extension for this
-    "no-self-use",
-    "non-empty-init-module", # we do some stuff here
-    "suspicious-non-cryptographic-random-usage",
-    "too-many-arguments",
-    "too-many-branches",
-    "too-many-public-methods",
-    "undefined-local-with-import-star",
-    "undefined-local-with-import-star-usage",
     # Docstring related
     "docstring-missing-exception", 
     "docstring-missing-returns",
     "docstring-missing-yields",
     "undocumented-magic-method",
+    # Complexity memes
+    "complex-structure",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-public-methods",
+    "too-many-statements-in-try-clause",
+    # Todo
+    "line-contains-todo", # I use TODO Tree VSCode extension for this
+    "missing-todo-author",
+    "missing-todo-link",
+    # Other (uncategorized) Rules
+    "ambiguous-unicode-character-string",
+    "any-type",
+    "assert", # assert is fine for "casting" type checking and in tests
+    "commented-out-code",
+    "implicit-namespace-package", # Annoying rule, it doesn't understand what is NOT an implicit namespace-package
+    "magic-value-comparison", # I hate this rule (quoting @AbstractUmbra)
+    "no-self-use",
+    "non-empty-init-module", # we do some stuff here
+    "suspicious-non-cryptographic-random-usage",
+    "undefined-local-with-import-star",
+    "undefined-local-with-import-star-usage",
 ]
 extend-select = [
-    "multi-line-summary-first-line", # NumPy Doc convention turns this rule off
-    "undocumented-param" # NumPy Doc convention turns this rule off
+    # NumPy Doc convention turns these rules off
+    "multi-line-summary-first-line", 
+    "undocumented-param",
 ]
 unfixable = [
-    "commented-out-code", # Don't delete commented out code
+    "commented-out-code",
     "unused-noqa",
 ]
 flake8-quotes.inline-quotes = "double"
 
 [tool.ruff.lint.per-file-ignores]
 "{src/modules/beta.py,templates/fresh_beta.py,src/alpha.py,src/zeta.py,*.ipynb}" = [
-    # In these files I mess around.
+    # These files are my playground to mess around and test stuff.
     "D", 
     "missing-copyright-notice",
     "unused-noqa",
@@ -156,6 +160,7 @@ combine-as-imports = true
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
 
 [tool.pytest]
 pythonpath = ["src"]
