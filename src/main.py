@@ -1,21 +1,16 @@
-"""
-Python file to launch the bot with, so called "main".
+"""The bot's launcher, so called "main.py" file.
 
 You can launch this bot with:
-* `make run` (preferred for local testing)
-* `uv run src/main.py`
-* `python src/main.py`
+* `make run` - preferred for local testing;
+* `uv run --no-dev src/main.py` preferred for production.
 
-CLI supported flags can be viewed with `--help` flag.
+CLI supported flags can be viewed with `--help` flag (or looked up in this file).
 
-License
+Notices
 -------
-* License: MPL-2.0, see LICENSE for more details.
-* Copyright: (C) 2020-present @Aluerie.
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
-
-# uvloop existing only for Linux makes that reportMissingImports to be invalid for Linux, but valid for Windows
-# pyright: reportUnnecessaryTypeIgnoreComment=false
 
 from __future__ import annotations
 
@@ -23,27 +18,14 @@ import asyncio
 import logging
 import platform
 import sys
-from typing import TYPE_CHECKING
 
 import aiohttp
-import asyncpg
 import click
 
 from config import env
 from core import AdapterEnum, IreBot, get_eventsub_subscriptions
-from shared.concepts import logs
-
-if TYPE_CHECKING:
-    from shared.types_.database import PoolTypedWithAny
-
-try:
-    import uvloop  # pyright: ignore[reportMissingImports]  # ty: ignore[unresolved-import]
-except ModuleNotFoundError:
-    # WINDOWS - uvloop does not support Windows
-    RUNTIME = asyncio.run  # pyright: ignore[reportConstantRedefinition]
-else:
-    # LINUX
-    RUNTIME = uvloop.run  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+from shared.concepts import db, logs
+from shared.other import run
 
 # generated at https://patorjk.com/software/taag/ using "Standard" font
 ASCII_STARTING_UP_ART = r"""
@@ -56,12 +38,6 @@ ASCII_STARTING_UP_ART = r"""
 """
 
 
-async def create_pool() -> asyncpg.Pool[asyncpg.Record]:
-    """Create AsyncPG Pool."""
-    postgres_url = env.POSTGRES_VPS if platform.system() == "Linux" else env.POSTGRES_HOME
-    return await asyncpg.create_pool(postgres_url, command_timeout=60, min_size=10, max_size=10, statement_cache_size=0)
-
-
 async def start_the_bot(
     *,
     scopes_only: bool,
@@ -72,9 +48,9 @@ async def start_the_bot(
 ) -> None:
     """Start the bot."""
     log = logging.getLogger()
+    postgres_url = env.POSTGRES_VPS if platform.system() == "Linux" else env.POSTGRES_HOME
     try:
-        # Unfortunate `asyncpg` typing crutch. Read `types_.database` for more
-        pool: PoolTypedWithAny = await create_pool()  # pyright: ignore[reportAssignmentType]  # ty:ignore[invalid-assignment]
+        pool = await db.create_pool(postgres_url)
     except Exception:
         msg = "Could not set up PostgreSQL. Exiting."
         click.echo(msg, file=sys.stderr)
@@ -164,19 +140,19 @@ def launch(
             filename="irebot.log",
         ):
             try:
-                RUNTIME(
+                run(
                     start_the_bot(
                         scopes_only=scopes_only,
                         force_subscribe=force_subscribe,
                         adapter_enum=adapter,
                         subset_mode=subset_mode,
                         test_account=test_account,
-                    )
+                    ),
                 )
             except KeyboardInterrupt:
-                print("Aborted! The bot was interrupted with `KeyboardInterrupt`!")  # noqa: T201
+                print("Aborted! The bot was interrupted with `KeyboardInterrupt`!")  # ruff: ignore[print]
             except asyncio.CancelledError:
-                print("Aborted! The bot was interrupted with `asyncio.CancelledError`!")  # noqa: T201
+                print("Aborted! The bot was interrupted with `asyncio.CancelledError`!")  # ruff: ignore[print]
 
 
 if __name__ == "__main__":

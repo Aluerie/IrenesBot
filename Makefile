@@ -19,23 +19,36 @@ define HELP_BODY
 Usage:
 	make <command>
 
-Commands:
+# Commands list
+	
+Environment and Setup:
 	setup               Setup the repository - recommended to use right after cloning
 	sync                Install dependencies
 	update              Update dependencies
+
+Running the bot:
 	run                 Run the bot
 	scopes				Run the bot in the scopes-only mode
-	lint                Run the linter
+
+Linters, Type-checkers, formatters and tests:
+	lint                Run the Ruff's linter
 	format              Format the code
-	format-check        Check code formatting
-	tests               Run the tests
-	pages               Locally run the github pages website
-	ty                  Run ty (beta testing ty typechecker)
-	basedpyright        Run basedpyright
+	ty                  Run typechecker (ty)
+	check               Run both typechecker and linter
+	tests               Run the tests with pytest
+
+Documentation:
+	pages              [Deprecated] Locally run the github pages website
+	docs				Build the docs with Sphinx
+	
+Github and VPS:
 	commit              Lazy git commit and push+
 	com                 This creates and pushes commits to IreBot repository
-	echo                Testing stuff with make, why don't we test it with echo
-	sphinx				Sphinx
+	scp					Copy required files into the VPS
+
+Other:
+	echo                Testing stuff
+
 endef
 
 .PHONY: help
@@ -51,25 +64,29 @@ help:  # Help
 .SILENT: setup
 setup:  # Setup the repository - recommended to use right after cloning
 	git submodule update --init --recursive
-	uv sync
+	make sync
 	prek install
+
 
 .PHONY: sync
 .SILENT: sync
 sync:  # Install dependencies
-	uv sync
+	uv sync --group docs --all-extras
+
 
 .PHONY: update
 .SILENT: update
 update:  # Update dependencies
 	uv lock --upgrade
-	uv sync
+	make sync
 	prek autoupdate
+
 
 .PHONY: run
 .SILENT: run
 run:  # Run the bot in the subset-mode
 	uv run --no-dev src/main.py --subset-mode --adapter=local --test-account
+
 
 .PHONY: scopes
 .SILENT: scopes
@@ -79,35 +96,51 @@ scopes:  # Run the bot in the scopes-only mode
 
 .PHONY: lint
 .SILENT: lint
-lint:  # Run the linter
+lint:  # Run the Ruff's linter
 	uv run ruff check $(sources)
 	uv run ruff format --check $(sources)
 
+
 .PHONY: format
 .SILENT: format
-format:  # Format the code
+format:  # Format the code with Ruff
 	uv run ruff check $(sources) --fix
 	uv run ruff format $(sources)
 
-.PHONY: tests
-.SILENT: tests
-tests:  # Run the tests
-	uv run pytest
-
-.PHONY: pages
-.SILENT: pages
-pages:  # Run the pages
-	cd docs && bundle exec jekyll serve
 
 .PHONY: ty
 .SILENT: ty
-ty:  # Run ty (beta testing ty typechecker)
+ty:  # Run typechecker (ty)
 	uv run ty check .
 
-.PHONY: basedpyright
-.SILENT: basedpyright
-basedpyright:  # Run basedpyright
-	uv run basedpyright $(sources)
+
+.PHONY: check
+.SILENT: check
+check:  # Run both typechecker and linter
+	make lint
+	make ty
+
+
+.PHONY: tests
+.SILENT: tests
+tests:  # Run the tests with pytest
+	uv run pytest
+
+
+.PHONY: pages
+.SILENT: pages
+pages:  # [Deprecated] Locally run the github pages website
+	cd docs && bundle exec jekyll serve
+
+
+.PHONY: docs
+.SILENT: docs
+docs:  # Build the docs with Sphinx
+	-cd docs && rm -Recurse _build
+	cd docs && uv run sphinx-build . _build
+# It's recommended to clear `_build` folder before running the docs
+# to avoid random unobvious issues, like left sidebar not properly updating for "old" pages.
+
 
 .PHONY: commit
 .SILENT: commit
@@ -124,6 +157,7 @@ commit:
 	-git commit -a -m "$(m)"
 	-git push
 
+
 .PHONY: com
 .SILENT: com
 # This creates and pushes commits to IreBot repository
@@ -132,26 +166,19 @@ com:
 	git commit -a -m "$(m)"
 	git push
 
+
+.PHONY: scp
+.SILENT: scp
+scp:  # Copy required files into the VPS
+	scp -i "${SSH_PRIVATE_KEY}" .env ${SSH_USERNAME}@${SSH_HOST}:~/IrenesBot/.env
+
+
 .PHONY: echo
 .SILENT: echo
-echo:  # Testing stuff with make, why don't we test it with echo
+echo:  # Testing stuff
 	[console]::OutputEncoding
 	echo $(SHELL)
 	echo "$(m)"
 	echo $(LANG)
 	@Write-Output $(m)
-
-
-.PHONY: sphinx
-.SILENT: sphinx
-sphinx:  # sphinx
-	-cd docs && rm -Recurse _build
-	cd docs && uv run sphinx-build . _build
-# It's recommended to clear `_build` folder before running the docs
-# to avoid random unobvious issues, like left sidebar not properly updating for "old" pages.
-
-
-.PHONY: scp
-.SILENT: scp
-scp:  # Commands to copy required files into the VPS
-	scp -i "${SSH_PRIVATE_KEY}" .env ${SSH_USERNAME}@${SSH_HOST}:~/IrenesBot/.env
+	@echo -e "\e[1;34mBuilding $<\e[0m"

@@ -1,4 +1,13 @@
-# ruff: noqa: N815
+"""Constants.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
+# ruff: file-ignore[mixed-case-variable-in-class-scope]
+
 from __future__ import annotations
 
 from enum import StrEnum
@@ -153,22 +162,24 @@ class BotsLowerName(StrEnum):
     """
 
     # Invited to Irene's channel;
+    IrenesTest = "irenestest"
     IrenesBot = "irenesbot"
     PotatBotat = "potatbotat"
     Supibot = "supibot"
     WizeBot = "wizebot"
+    Sery_Bot = "sery_bot"
 
     # Not invited to Irene's channel currently;
     # d9kmmrbot = "9kmmrbot"
     # dotabod = "dotabod"
-    # Fossabot = "fossabot"
     # LolRankBot = "lolrankbot"
     # Moobot = "moobot"
     # Nightbot = "nightbot"
-    # Sery_Bot = "sery_bot"
     # StreamLabs = "streamlabs"
+    # Fossabot = "fossabot"
     # Streamelements = "streamelements"
     # poggSpin = "poggspin"  # https://bot.itsbr0dyy.dev/
+    # KofiStreamBot = "kofistreambot"
 
 
 class Logo(StrEnum):

@@ -1,10 +1,9 @@
-"""
-New module.
+"""New module.
 
-License
+Notices
 -------
-* License: MPL-2.0, see LICENSE for more details.
-* Copyright: (C) 2020-present @Aluerie.
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations
@@ -24,7 +23,7 @@ class NewCog(IrePersonalComponent):
 
     @commands.command()
     async def new_command(self, ctx: IreContext) -> None:
-        """New command."""
+        """Send this."""
         await ctx.send("Not implemented yet!")
 
 

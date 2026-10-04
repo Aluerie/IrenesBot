@@ -1,5 +1,4 @@
-"""
-Subscriptions and Oath.
+"""Subscriptions and Oath.
 
 Contains functions to subscribe to proper EventSub subscriptions as well as helper functions for twitch permissions.
 
@@ -17,16 +16,16 @@ Notes
 Links
 ----------
 TwitchDev Docs
-    * Eventsub:        https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types
-    * Scopes:          https://dev.twitch.tv/docs/authentication/scopes/
+    * Eventsub:  https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types
+    * Scopes: https://dev.twitch.tv/docs/authentication/scopes/
 TwitchIO  Docs
     * Event Reference: https://twitchio.dev/en/latest/references/events/events.html
-    * Models:          https://twitchio.dev/en/latest/references/eventsub/index.html
+    * Models: https://twitchio.dev/en/latest/references/eventsub/index.html
 
-License
+Notices
 -------
-* This Source Code Form is subject to the terms of the [Mozilla Public License v2.0](<http://mozilla.org/MPL/2.0/>).
-* Copyright (C) 2020-present [@Aluerie](<https://github.com/Aluerie>).
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations
@@ -40,7 +39,7 @@ from twitchio import eventsub
 from utils import const
 
 if TYPE_CHECKING:
-    from shared.types_.database import PoolTypedWithAny
+    from shared.concepts.db import PoolTypedWithAny
 
     class GetMemberAccountsQueryRow(TypedDict):
         user_id: str
@@ -196,10 +195,8 @@ def get_oauth_url(domain: str, scopes: list[str], prefix: str) -> str:
 
 def get_all_oauth_urls(domain: str) -> str:
     """Helper function to get all bot oauth urls at once."""
-    return "\n".join(
-        [
-            get_bot_oauth_url(domain),
-            get_personal_oauth_url(domain),
-            get_public_oauth_url(domain),
-        ]
-    )
+    return "\n".join([
+        get_bot_oauth_url(domain),
+        get_personal_oauth_url(domain),
+        get_public_oauth_url(domain),
+    ])

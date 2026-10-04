@@ -1,3 +1,11 @@
+"""Stable Personal Commands.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,11 +14,11 @@ import logging
 import random
 from typing import TYPE_CHECKING, NamedTuple, TypedDict
 
-import twitchio  # noqa: TC002
+import twitchio  # ruff: ignore[typing-only-third-party-import]
 from twitchio.ext import commands
 
 from config import env
-from core import IreBot, IrePersonalComponent
+from core import IrePersonalComponent
 from shared import errors, fmt, globs
 from utils import const, guards
 

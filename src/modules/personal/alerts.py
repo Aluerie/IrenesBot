@@ -1,3 +1,11 @@
+"""Alerts.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -39,7 +47,7 @@ class Alerts(IrePersonalComponent):
             return
 
         # just testing
-        print(f"{redemption.user.display_name} redeemed {redemption.reward.title}.")  # noqa: T201
+        print(f"{redemption.user.display_name} redeemed {redemption.reward.title}.")  # ruff: ignore[print]
 
     # SECTION 2
     # Actual events
@@ -51,12 +59,21 @@ class Alerts(IrePersonalComponent):
         if not self.is_dev(follow.broadcaster.id):
             return
 
-        random_phrase = random.choice(
-            ["welcome in", "I appreciate it", "enjoy your stay", "nice to see you", "enjoy the show"]
-        )
-        random_emote = random.choice(
-            [const.STV.donkHappy, const.BTTV.PogU, const.STV.dankHey, const.STV.donkHey, const.BTTV.peepoHey, const.STV.Hey]
-        )
+        random_phrase = random.choice([
+            "welcome in",
+            "I appreciate it",
+            "enjoy your stay",
+            "nice to see you",
+            "enjoy the show",
+        ])
+        random_emote = random.choice([
+            const.STV.donkHappy,
+            const.BTTV.PogU,
+            const.STV.dankHey,
+            const.STV.donkHey,
+            const.BTTV.peepoHey,
+            const.STV.Hey,
+        ])
         await follow.respond(f"@{follow.user.display_name} just followed! Thanks, {random_phrase} {random_emote}")
 
     @commands.Component.listener(name="raid")

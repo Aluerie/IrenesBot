@@ -1,12 +1,11 @@
-"""
-First feature.
+"""First! redeem feature.
 
 Manages the channel point reward (usually called "First!") which only one chatter (the very first one) can redeem.
 
-License
+Notices
 -------
-* License: MPL-2.0, see LICENSE for more details.
-* Copyright: (C) 2020-present @Aluerie.
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations
@@ -98,13 +97,13 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
         await ctx.send(
             "Successfully created channel reward 'First'! If you want to edit it (e.g. text or color) - "
             "visit your creator dashboard "
-            f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards)"
+            f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards)",
         )
 
     @guards.is_broadcaster_or_dev()
     @commands.command()
     async def fix_first_reward(self, ctx: IreContext) -> None:
-        """Setup First Chatter Channel Reward in the broadcaster channel."""
+        """Set up First Chatter Channel Reward in the broadcaster channel."""
         if (reward_row := await self.fetch_reward(ctx.broadcaster.id)) is None:
             msg = (
                 "This stream does not have First Chatter Channel Reward set up. "
@@ -295,7 +294,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
 
     @ireloop(time=[datetime.time(hour=3, minute=59)])
     async def check_first_reward(self) -> None:
-        """The task that ensures the reward "First" under a specific id exists.
+        """Task that ensures the reward "First" under a specific id exists.
 
         Just a fool proof measure in case I randomly snap and delete it.
         """
@@ -354,7 +353,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
                 f"{rank_medals[i]} {(await self.bot.create_partialuser(row['user_id']).user()).display_name}: "
                 f"{fmt.plural(number=row['first_times']):time};"
                 for i, row in enumerate(rows)
-            ]
+            ],
         )
         await ctx.send(content)
 

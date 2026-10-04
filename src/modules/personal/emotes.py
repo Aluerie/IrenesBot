@@ -1,3 +1,13 @@
+"""Emote Management.
+
+7TV, FFZ, BTTV.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -39,7 +49,7 @@ class EmoteChecker(IrePersonalComponent):
         await super().component_teardown()
 
     async def send_error_embed(self, emotes_to_send: list[str], service: str, colour: int) -> None:
-        """Helper function to send a ping to Aluerie that something is wrong with emote services."""
+        """Send ping to developers that something is wrong with emote services."""
         content = self.bot.error_ping
         embed = Embed(
             title=f"Problem with {service} emotes",
@@ -64,7 +74,7 @@ class EmoteChecker(IrePersonalComponent):
 
     @ireloop(time=[datetime.time(hour=5, minute=59)])
     async def check_emotes(self) -> None:
-        """The task to check emotes."""
+        """Task to check emotes."""
         if datetime.datetime.now(datetime.UTC).weekday() != 5:
             # simple way to make a task run once/week
             return

@@ -1,3 +1,11 @@
+"""Keywords.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -50,7 +58,7 @@ class Keywords(IrePersonalComponent):
 
     @commands.Component.listener(name="message")
     async def keywords_response(self, message: twitchio.ChatMessage) -> None:
-        """Sends a flavour message if a keyword/key phrase was spotted in the chat."""
+        """Send flavour message if a keyword/key phrase was spotted in the chat."""
         if not self.is_dev(message.broadcaster.id):
             return
 

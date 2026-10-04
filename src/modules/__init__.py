@@ -1,14 +1,10 @@
-"""
-_Insert Module Docstring Here_.
+"""Get modules to load.
 
 License
 -------
 * This Source Code Form is subject to the terms of the [Mozilla Public License v2.0](<http://mozilla.org/MPL/2.0/>).
 * Copyright (C) 2020-present [@Aluerie](<https://github.com/Aluerie>).
 """
-
-# VPS / HOME import difference
-# pyright: reportUnnecessaryTypeIgnoreComment=false
 
 from __future__ import annotations
 
@@ -17,9 +13,9 @@ from pathlib import Path
 from pkgutil import iter_modules
 
 try:
-    from modules_subset import MODULES_SUBSET  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
+    from modules_subset import MODULES_SUBSET  # ty: ignore[unresolved-import, unused-ignore-comment]
 except ModuleNotFoundError:
-    MODULES_SUBSET: dict[str, list[str]] = {}  # pyright: ignore[reportConstantRedefinition]
+    MODULES_SUBSET: dict[str, list[str]] = {}
 
 __all__ = ("get_modules",)
 

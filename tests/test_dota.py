@@ -1,9 +1,15 @@
+"""Test Dota 2 features.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 import pytest
 from src.shared.dota2.tools import extract_hero_index
 from steam.ext import dota2
 
-# pyright bug: if I do `from steam.ext.dota2 import Hero` it will fail to find stubs:
-# Stub file not found for "steam.ext.dota2" (reportMissingTypeStubs)
 Hero = dota2.Hero
 
 ALL_HEROES = list(Hero)

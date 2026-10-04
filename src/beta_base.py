@@ -1,16 +1,20 @@
+"""Contains base class for BetaCog for `modules.beta.py`.
+
+In `modules.beta.py` I quickly beta-test some things.
+
+It might be a bit silly, but the purpose of the current file is to minimize amount of imports and lines of code
+for anything we're going to do in `modules.beta.py`. The performance cost of extra imports is probably
+negligible compared to annoyance of typing them manually out every time we need them.
+
+For an example of how starting template for `modules.beta.py` looks - you can look in the `templates` folder.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
-Base class for BetaCog for `modules.beta.py`.
 
-In `modules.beta.py` I quickly beta-test some things. It's a bit silly but very efficient.
-
-The purpose of the current file is to minimize amount of imports and lines of code
-for anything we're going to do while beta-testing. The performance cost of extra imports is probably
-negligible compared to annoyance to type them manually out every time we need them.
-
-For an example of how starting template for `modules.beta.py` looks - you can look in `examples` folder.
-"""
-
-#  pyright: basic
+# ruff: file-ignore[unused-import]
 
 from __future__ import annotations
 

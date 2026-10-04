@@ -1,10 +1,9 @@
-"""
-Seven TV Public Features.
+"""Seven TV Public Features.
 
-License
+Notices
 -------
-* License: MPL-2.0, see LICENSE for more details.
-* Copyright: (C) 2020-present @Aluerie.
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations
@@ -67,14 +66,14 @@ type PartialEmoteAndAlias = tuple[PartialEmote, str | None]
 
 
 def regex_to_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> PartialEmote:
-    """A function to convert a 7TV emote link to an emote_id.
+    """Convert a string containing 7TV emote id or link to  to a `PartialEmote`.
 
     Does not do anything if the user input is already an emote_id.
     If no emote_id is provided then it errors out.
 
     Note
     ----
-    The regex in this function is not restrictive on `emote_id_or_link`.
+    The regex in this function is not restrictive for `emote_id_or_link`.
     It allows any strings that contain 7TV ids.
 
     This way all these are valid:
@@ -84,12 +83,15 @@ def regex_to_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> PartialE
     * https://www.7tv.app/emotes/01GEQCQVM0000B6WHR50T3PTZY
     * https://cdn.7tv.app/emote/01HNK8DGF0000FG935RNS75APG/4x.avif
     * https://7tv.app/emotes/669ea9ca106a10c8be7c621d
+
+    Raises
+    ------
+    errors.BadUserInputError
+        Could not parse emote id / emote link.
     """
     search = re.search(
-        # Old regex used (?:https?:\/\/(?:www\.)?7tv\.app\/emotes\/)?
-        # But it's better if we allow users to use any kinds of links.
         # Valid 7tv ids are
-        # * old - MOngoDB ObjectID format: [0-9a-fA-F]{24}
+        # * old - MongoDB ObjectID format: [0-9a-fA-F]{24}
         # * new - ULID format: [0-7][0-9A-HJKMNP-TV-Z]{25}
         r"(?P<emote_id>[0-9a-fA-F]{24}|[0-7][0-9A-HJKMNP-TV-Z]{25})",
         emote_id_or_link,
@@ -101,7 +103,9 @@ def regex_to_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> PartialE
 
 
 async def parse_or_search_emote(
-    stv_gql: GraphQL7TVClient, user_input: str, broadcaster_id: str | None = None
+    stv_gql: GraphQL7TVClient,
+    user_input: str,
+    broadcaster_id: str | None = None,
 ) -> PartialEmoteAndAlias:
     """Get emote_id from `user_input`.
 
@@ -150,7 +154,7 @@ class UserSearchEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
     """
 
     @override
-    async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
         return await parse_or_search_emote(ctx.bot.stv, user_input, ctx.broadcaster.id)
 
@@ -162,7 +166,7 @@ class GlobalSearchEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
     """
 
     @override
-    async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
         return await parse_or_search_emote(ctx.bot.stv, user_input)
 
@@ -327,7 +331,7 @@ class SevenTVFeatures(IrePublicComponent):
 
     @ireloop(hours=8)
     async def try_to_process_cycle_redemptions_queue(self) -> None:
-        """The task that double-checks the reward redemption queues."""
+        """Double-check the reward redemption queues."""
         query = "SELECT reward_id, broadcaster_id FROM ttv_stv_cycle_rewards"
         for row in await self.bot.pool.fetch(query):
             reward = next(
@@ -335,7 +339,7 @@ class SevenTVFeatures(IrePublicComponent):
                     await self.bot.create_partialuser(row["broadcaster_id"]).fetch_custom_rewards(
                         ids=[row["reward_id"]],
                         manageable=True,
-                    )
+                    ),
                 ),
                 None,
             )
@@ -346,7 +350,7 @@ class SevenTVFeatures(IrePublicComponent):
                     except Exception as error:
                         with contextlib.suppress(twitchio.HTTPException):
                             await redemption.refund()
-                        if isinstance(error, stv_errors):
+                        if isinstance(error, stv_errors.UnsatisfyingResultError):
                             pass
                         else:
                             raise
@@ -375,7 +379,7 @@ class SevenTVFeatures(IrePublicComponent):
 
     @ireloop(count=1)
     async def fill_known_cycle_rewards(self) -> None:
-        """The task that fills a set of rewards ids for convenience to cut on a few database queries."""
+        """Task that fills a set of rewards ids for convenience to cut on a few database queries."""
         query = "SELECT reward_id FROM ttv_stv_cycle_rewards"
         self.cycle_reward_ids_cache = {r for (r,) in await self.bot.pool.fetch(query)}
 
@@ -446,14 +450,16 @@ class SevenTVFeatures(IrePublicComponent):
             f"Created a 7tv emote cycle channel points reward; "
             "PS. if you want to edit it (e.g. text or color) - visit your creator dashboard "
             f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards). "
-            f"Just don't remove `Require Viewer to Enter Text`, please {self.EMOTE}"
+            f"Just don't remove `Require Viewer to Enter Text`, please {self.EMOTE}",
         )
         # await self.stv_ws_subscribe(partial_emote_set.id)
 
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="drop")
     async def stv_cycle_drop(
-        self, ctx: IreContext, emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+        self,
+        ctx: IreContext,
+        emote_and_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter],
     ) -> None:
         """Drop an emote from the cycle list.
 
@@ -503,7 +509,7 @@ class SevenTVFeatures(IrePublicComponent):
         if reward is None:
             await ctx.send(
                 "Somehow my database has wrong information about the current streamer's 7tv cycle reward - "
-                f"please, use '!7tv cycle create' to recreate the reward {self.EMOTE}"
+                f"please, use '!7tv cycle create' to recreate the reward {self.EMOTE}",
             )
             return
 
@@ -597,7 +603,8 @@ class SevenTVFeatures(IrePublicComponent):
     #     await ctx.send(f"Attached cycling emotes reward to the channel points redeem `{find.title}` ({find.id})")
 
     async def process_cycle_redemption(
-        self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption
+        self,
+        redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption,
     ) -> None:
         """Process Cycle Redemption."""
         if not await self.validate_reward_id(redemption, self.cycle_reward_ids_cache):
@@ -651,7 +658,10 @@ class SevenTVFeatures(IrePublicComponent):
 
         # Step 4. Add the requested emote
         await self.emote_set_add_emote_with_validations(
-            emote_set, emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias
+            emote_set,
+            emote_id=emote.id,
+            broadcaster_id=redemption.broadcaster.id,
+            emote_alias=alias,
         )
         log.debug("Added emote #%s", emote.id)
 
@@ -810,7 +820,7 @@ class SevenTVFeatures(IrePublicComponent):
 
     @commands.Component.listener(name="message")
     async def collect_emote_usage_stats(self, message: twitchio.ChatMessage) -> None:
-        """Collects emote usage data in batches from twitch chat messages to be ready for database INSERT.
+        """Collect emote usage data in batches from twitch chat messages to be ready for database INSERT.
 
         Parameters
         ----------
@@ -856,7 +866,7 @@ class SevenTVFeatures(IrePublicComponent):
 
     @stv_editor.command(name="guide")
     async def stv_editor_guide(self, ctx: IreContext) -> None:
-        """Sends a small guide on how to make the bot your 7TV editor.
+        """Send a small guide on how to make the bot your 7TV editor.
 
         Practically a TL;DR of the "important" admonition from above.
         """
@@ -929,7 +939,10 @@ class SevenTVFeatures(IrePublicComponent):
     @guards.is_broadcaster_or_dev()
     @stv.command(name="add", extras={"usage": "!7tv add XDD XDD"})
     async def stv_add(
-        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
+        self,
+        ctx: IreContext,
+        *,
+        emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter],
     ) -> None:
         """Add 7TV emote.
 
@@ -950,7 +963,10 @@ class SevenTVFeatures(IrePublicComponent):
     @guards.is_broadcaster_or_dev()
     @commands.command(name="add")
     async def add(
-        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
+        self,
+        ctx: IreContext,
+        *,
+        emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter],
     ) -> None:
         """Add 7TV emote.
 
@@ -1008,7 +1024,10 @@ class SevenTVFeatures(IrePublicComponent):
     @is_emote_owner()
     @stv.command(name="rename")
     async def stv_rename(
-        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+        self,
+        ctx: IreContext,
+        *,
+        emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter],
     ) -> None:
         """Rename 7TV emote.
 
@@ -1028,7 +1047,10 @@ class SevenTVFeatures(IrePublicComponent):
     @is_emote_owner()
     @commands.command(name="rename")
     async def rename(
-        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+        self,
+        ctx: IreContext,
+        *,
+        emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter],
     ) -> None:
         """Rename 7TV emote.
 
@@ -1039,7 +1061,10 @@ class SevenTVFeatures(IrePublicComponent):
     @is_emote_owner()
     @stv.command(name="remove")
     async def stv_remove(
-        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter]
+        self,
+        ctx: IreContext,
+        *,
+        emote_alias: Annotated[PartialEmoteAndAlias, GlobalSearchEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
@@ -1057,7 +1082,10 @@ class SevenTVFeatures(IrePublicComponent):
     @is_emote_owner()
     @commands.command(name="remove")
     async def remove(
-        self, ctx: IreContext, *, emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter]
+        self,
+        ctx: IreContext,
+        *,
+        emote_alias: Annotated[PartialEmoteAndAlias, UserSearchEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
@@ -1122,12 +1150,12 @@ class SevenTVFeatures(IrePublicComponent):
             f"Created a 7tv blacklist channel points reward; "
             "PS. if you want to edit it (e.g. text or color) - visit your creator dashboard "
             f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards). "
-            f"Just don't remove `Require Viewer to Enter Text`, please {self.EMOTE}"
+            f"Just don't remove `Require Viewer to Enter Text`, please {self.EMOTE}",
         )
 
     @ireloop(count=1)
     async def fill_known_blacklist_rewards(self) -> None:
-        """The task that fills a set of rewards ids for convenience to cut on a few database queries."""
+        """Task that fills a set of rewards ids for convenience to cut on a few database queries."""
         query = "SELECT reward_id FROM ttv_stv_blacklist_rewards"
         self.blacklist_reward_ids_cache = {r for (r,) in await self.bot.pool.fetch(query)}
 
@@ -1153,7 +1181,8 @@ class SevenTVFeatures(IrePublicComponent):
         return True
 
     async def fullfil_redemption(
-        self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption
+        self,
+        redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption,
     ) -> None:
         """Fullfil redemption."""
         with contextlib.suppress(twitchio.HTTPException):
@@ -1163,7 +1192,9 @@ class SevenTVFeatures(IrePublicComponent):
                 await redemption.fulfill()
 
     async def redemption_respond(
-        self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption, content: str
+        self,
+        redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption,
+        content: str,
     ) -> None:
         """Redemption respond."""
         if isinstance(redemption, twitchio.ChannelPointsRedemptionAdd):
@@ -1172,7 +1203,8 @@ class SevenTVFeatures(IrePublicComponent):
             await redemption.broadcaster.send_message(content, sender=self.bot.bot_id)
 
     async def process_blacklist_redemption(
-        self, redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption
+        self,
+        redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption,
     ) -> None:
         """Process Cycle Redemption."""
         if not await self.validate_reward_id(redemption, self.blacklist_reward_ids_cache):

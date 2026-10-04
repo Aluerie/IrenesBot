@@ -1,3 +1,11 @@
+"""Some caches and features for other modules.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -83,7 +91,7 @@ class StreamerIndexManagement(IreDevComponent):
 
     @ireloop(time=datetime.time(hour=6, minute=34, second=10))
     async def check_twitch_accounts_renames(self) -> None:
-        """Checks if people in FPC database renamed themselves on twitch.tv.
+        """Check if people in FPC database renamed themselves on twitch.tv.
 
         I think we're using twitch ids everywhere so this timer is more for convenience matter
         when I'm browsing the database, but still.
@@ -97,7 +105,7 @@ class StreamerIndexManagement(IreDevComponent):
 
         twitch_users = await self.bot.fetch_users(ids=list(database_streamers.keys()))
         for user in twitch_users:
-            if user.display_name.lower() != database_streamers[user.id]:
+            if (user.display_name or "").lower() != database_streamers[user.id]:
                 query = "UPDATE ttv_tokens SET display_name = $1 WHERE user_id = $2"
                 await self.bot.pool.execute(query, user.display_name, user.id)
 

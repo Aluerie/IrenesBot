@@ -1,3 +1,11 @@
+"""Webhook Logger.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -34,9 +42,7 @@ class LoggingHandler(logging.Handler):
     def filter(self, record: logging.LogRecord) -> bool:
         """Filter out some somewhat pointless messages so we don't spam the channel as much."""
         messages_to_ignore = ("Webhook ID 1280488051776163903 is rate limited.",)
-        if any(msg in record.message for msg in messages_to_ignore):  # noqa: SIM103
-            return False
-        return True
+        return not any(msg in record.message for msg in messages_to_ignore)
 
     @override
     def emit(self, record: logging.LogRecord) -> None:
@@ -94,7 +100,7 @@ class LogsViaWebhook(IreDevComponent):
         self._logging_queue.put_nowait(record)
 
     def get_avatar(self, username: str) -> str:
-        """Helper function to get an avatar ulr based on a webhook username to send the record with."""
+        """Fet an avatar_ulr based on a webhook username to send the record with."""
         # exact name
         if avatar_url := self.EXACT_AVATAR_MAPPING.get(username):
             return avatar_url
@@ -114,10 +120,8 @@ class LogsViaWebhook(IreDevComponent):
         msg = textwrap.shorten(f"{emoji} {discord.utils.format_dt(dt, style='T')} {record.message}", width=1995)
         avatar_url = self.get_avatar(record.name)
 
-        # Otherwise we hit the following exception:
+        # Without this `.replace` we get the following exception:
         # 400 Bad Request (error code: 50035): Invalid Form Body In username: Username cannot contain "discord"
-        # PS. Doing "smart" replacement like
-        # "discоrd" with a cyrillic letter "о" still errors out  # noqa: RUF003 cSpell: ignore discоrd
         username = record.name.replace("discord", "dpy")
 
         embed = discord.Embed(color=color, description=msg)

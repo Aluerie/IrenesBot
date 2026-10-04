@@ -1,3 +1,11 @@
+"""Context.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -8,7 +16,7 @@ from twitchio.ext import commands
 from shared import errors
 
 if TYPE_CHECKING:
-    from core import IreBot
+    from core import IreBot  # ruff: ignore[unused-import]
 
 
 class IreContext(commands.Context["IreBot"]):
@@ -18,11 +26,11 @@ class IreContext(commands.Context["IreBot"]):
         # I will only use IreContext with message commands
         # (twitchio also provides Channel Points commands).
         # therefore some type-hints can be reduced for convenience.
-        chatter: twitchio.Chatter  # pyright: ignore[reportIncompatibleMethodOverride]
-        message: twitchio.ChatMessage  # pyright: ignore[reportIncompatibleMethodOverride]
+        chatter: twitchio.Chatter
+        message: twitchio.ChatMessage
 
     async def group_default_response(self) -> None:
-        """Default group response.
+        """Get a default response for group commands.
 
         Answers with a list of subcommands.
         """

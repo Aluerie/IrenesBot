@@ -5,6 +5,11 @@ Notes
 1. Remember, group guards apply to children as well.
 2. Due to my weird implementation - each guard also needs an error message
     defined directly in the `IreBot.event_command_error`
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations

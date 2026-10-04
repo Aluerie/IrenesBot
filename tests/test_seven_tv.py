@@ -1,3 +1,11 @@
+"""Test 7TV features.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 import pytest
 from src.shared import seven_tv_gql
 from src.shared.other import MISSING
@@ -7,7 +15,7 @@ pytest_plugins = ("pytest_asyncio",)
 
 
 @pytest.fixture
-async def stv() -> seven_tv_gql.GraphQL7TVClient:
+def stv() -> seven_tv_gql.GraphQL7TVClient:
     """7TV client fixture."""
     return seven_tv_gql.GraphQL7TVClient(
         bot_7tv_user_id=const.SevenTV.BOT_ID,

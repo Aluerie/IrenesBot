@@ -61,14 +61,3 @@ class IreDota2Client(Dota2Client):
         """
         payload = SteamUserUpdate(before=before, after=after)
         self.bot.dispatch("steam_user_update", payload)
-
-    @ireloop(time=datetime.time(hour=6, minute=44))  # (count=1)
-    async def refresh_database_dota_constants(self) -> None:
-        """Daily Refresh Database's Dota Constants.
-
-        Notes
-        -----
-        * IreBot currently only utilizes `dota_constants_items` table.
-        * This task first tries to update stuff with Stratz API, if not successful then fallback to OpenDota.
-        """
-        await self.refresh_dota_constants_items()

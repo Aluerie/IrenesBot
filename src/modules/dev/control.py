@@ -1,3 +1,11 @@
+"""Developer control features.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -23,7 +31,8 @@ class ModuleConverter(commands.Converter[str]):
     """
 
     @override
-    async def convert(self, ctx: IreContext, arg: str) -> str:  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def convert(self, ctx: IreContext, arg: str) -> str:  # ty: ignore[invalid-method-override]
+        # TODO: do somwething like where "stv" and "public.stv" are allowed to be used
         return f"modules.{arg}"
 
 

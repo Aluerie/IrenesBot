@@ -1,6 +1,6 @@
 [project]
 name = "IrenesBot"
-version = "7.7.7"
+version = "0.7.7"
 description = "Personal Twitch.tv Bot"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -18,20 +18,21 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "aiofiles>=25.1.0",
-    "asyncpg>=0.31.0",
-    "backoff>=2.2.1",
-    "click>=8.3.3",
-    "discord-py[speed]>=2.7.1",
-    "orjson>=3.12.0",
-    "pydantic-settings>=2.14.1",
-    "pygit2>=1.20.1",
-    "steamio>=1.1.3",
-    "twitchio[starlette]>=3.3.0b2031",
-    "uvloop>=0.22.1 ; sys_platform == 'linux'",
-    "websockets>=17.1",
-    "zstandard>=0.25.0",
+    "aiofiles",
+    "asyncpg",
+    "backoff",
+    "click",
+    "discord-py[speed]",
+    "orjson",
+    "pydantic-settings",
+    "pygit2",
+    "steamio",
+    "twitchio[starlette]",
+    "uvloop ; sys_platform == 'linux'",
+    "websockets",
+    "zstandard",
 ]
+
 
 [tool.uv.sources]
 twitchio = { git = "https://github.com/PythonistaGuild/TwitchIO.git", rev = "main" }
@@ -39,27 +40,20 @@ steamio = { git = "https://github.com/Aluerie/steam.py", rev = "introduce-ext.do
 stv-event-api = { git = "https://github.com/Aluerie/stv_event_api", rev = "master" }
 
 [dependency-groups]
-dev = [
-    "asyncpg-stubs",
-    "basedpyright>=1.39.10",
-    "ipykernel",
-    "prek>=0.4.0",
-    "pyright>=1.1.408",
-    "pytest",
-    "pytest-asyncio>=1.4.0",
-    "ruff>=0.15.11",
-    "ty>=0.0.37",
-    { include-group = "docs" },
-]
-doc = []
+dev = [{ include-group = "type_lint" }, { include-group = "test" }, "prek"]
+type_lint = ["asyncpg-stubs", "ruff", "ty"]
+test = ["pytest", "pytest-asyncio"]
 docs = [
-    "numpydoc>=1.11.0",
-    "shibuya>=2026.7.12",
-    "sphinx>=9.1.0",
-    "sphinx-copybutton>=0.5.2",
-    "sphinx-design>=0.7.0",
-    "sphinx-iconify>=0.3.0",
+    "numpydoc",
+    "shibuya",
+    "sphinx",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "sphinx-iconify",
 ]
+
+[project.optional-dependencies]
+tools = ["ipykernel"]
 
 [[tool.uv.index]]
 name = "umbra"
@@ -69,127 +63,92 @@ explicit = true
 [tool.uv]
 package = false
 
-# ##############################
-# SHARED PYPROJECT TOML CONFIG #
-# ##############################
-
-[tool.pyright]
-exclude = [".venv", "docs", "**/__pycache__", "**/node_modules", "**/.*"]
-pythonVersion = "3.14"
-deprecateTypingAliases = true
-typeCheckingMode = "strict"
-venvPath = "."
-venv = ".venv"
-allowedUntypedLibraries = []
-
-reportCallInDefaultInitializer = "warning"
-reportImplicitOverride = "warning"
-reportImplicitStringConcatenation = "none"
-reportImportCycles = "none"
-reportMissingSuperCall = "none"
-reportPropertyTypeMismatch = "warning"
-reportUninitializedInstanceVariable = "warning"
-reportUnnecessaryTypeIgnoreComment = "warning"
-reportUnreachable = "warning"
-reportUnusedCallResult = "none"
-
-reportDuplicateImport = "none"
-# reportIncompatibleMethodOverride = "none"
-# reportIncompatibleVariableOverride = "none"
-# reportMissingTypeStubs = "none"
-
-[tool.ty.environment]
-root = ["./src"]
 
 [tool.ty.rules]
-# Ctrl F "level: ignore" in https://docs.astral.sh/ty/reference/rules/ and mark some of them as "warn"
-blanket-ignore-comment = "warn"
-missing-override-decorator = "warn"
-missing-type-argument = "warn"
+all = "error"
+dynamic-function-decorator-return = "ignore" # TwitchIO's decorators return `Any`
+possibly-missing-import = "ignore" # False positives, maybe we'll try it later.
+unsound-assignment = "ignore" # `Any` is fine
+unsound-return-statement = "ignore" # `Any` is fine
+unsound-yield = "ignore" # `Any` is fine
 
 [tool.ruff]
+preview = true
 line-length = 125
 target-version = "py314"
-preview = false
 exclude = [".venv"]
 src = ["src"]
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "ERA",      # eradicate
-    "W191",     # tab-indentation
-    "E111",     # indentation-with-invalid-multiple
-    "E114",     # indentation-with-invalid-multiple-comment 
-    "E117",     # over-indented
-    "D206",     # docstring-tab-indentation
-    "D300",     # triple-single-quotes 
-    "Q000",     # bad-quotes-inline-string
-    "Q001",     # bad-quotes-multiline-string
-    "Q002",     # bad-quotes-docstring
-    "Q003",     # avoidable-escaped-quote
-    "COM812",   # missing-trailing-comma
-    "COM819",   # prohibited-trailing-comma
-    "ISC002",   # multi-line-implicit-string-concatenation
-    "ANN401",
-    "ASYNC116",
-    "ASYNC109",
-    "C90",
-    "CPY001",
-    "F401",
-    "F402",
-    "F403",
-    "F405",
-    "FBT003",
-    "FIX",
-    "INP001",
-    "PD011",
-    "PLC0415",
-    "PLR0904",
-    "PLR0911",
-    "PLR0912",
-    "PLR0913",
-    "PLR0914",
-    "PLR0915",
-    "PLR0917",
-    "PLR6301",
-    "PLR2004",
-    "PYI058",
-    "RUF001",
-    "RUF029",
-    "S101",
-    "S311",
-    "SIM105",
-    "SLF001",
-    "TD",
-    "TRY003",
-    "TRY301",
-    "FLY002",
-    "PLW2901",
-    "S608",
-    "TID252",
-    "D100",
-    "D104",
-    "D105",
-    "D107",
-    "D401",
-    "DOC201",
-    "DOC402",
-    "DOC501",
+    # Recommended to disable by https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "tab-indentation",
+    "indentation-with-invalid-multiple",
+    "indentation-with-invalid-multiple-comment",
+    "over-indented",
+    "incorrect-blank-line-before-class",
+    "docstring-tab-indentation",
+    "triple-single-quotes",
+    "bad-quotes-inline-string",
+    "bad-quotes-multiline-string",
+    "bad-quotes-docstring",
+    "avoidable-escaped-quote",
+    "unnecessary-escaped-quote",
+    "missing-trailing-comma",
+    "prohibited-trailing-comma",
+    "multi-line-implicit-string-concatenation",
+    # Other Rules
+    "ambiguous-unicode-character-string",
+    "any-type",
+    "assert", # assert is fine for forced type checking and in tests
+    "commented-out-code",
+    "complex-structure",
+    "implicit-namespace-package", # Annoying rule, it doesn't understand what is NOT an implicit namespace-package
+    "magic-value-comparison", # I hate this rule (quoting @AbstractUmbra)
+    "missing-todo-author",
+    "missing-todo-link",
+    "line-contains-todo", # I use TODO Tree VSCode extension for this
+    "no-self-use",
+    "non-empty-init-module", # we do some stuff here
+    "suspicious-non-cryptographic-random-usage",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-public-methods",
+    "undefined-local-with-import-star",
+    "undefined-local-with-import-star-usage",
+    # Docstring related
+    "docstring-missing-exception", 
+    "docstring-missing-returns",
+    "docstring-missing-yields",
+    "undocumented-magic-method",
 ]
-unfixable = ["E501", "ERA", "RUF100"]
-flake8-annotations.allow-star-arg-any = true
+extend-select = [
+    "multi-line-summary-first-line", # NumPy Doc convention turns this rule off
+    "undocumented-param" # NumPy Doc convention turns this rule off
+]
+unfixable = [
+    "commented-out-code", # Don't delete commented out code
+    "unused-noqa",
+]
 flake8-quotes.inline-quotes = "double"
 
 [tool.ruff.lint.per-file-ignores]
-"modules/beta.py" = ["ANN201"]
-"*.ipynb" = ["I001", "ANN201", "ANN204", "D", "DOC", "ERA", "F404", "T20", "W391"]
+"{src/modules/beta.py,templates/fresh_beta.py,src/alpha.py,src/zeta.py,*.ipynb}" = [
+    # In these files I mess around.
+    "D", 
+    "missing-copyright-notice",
+    "unused-noqa",
+]
+"src/modules/*.py" = [
+    "undocumented-param", # I don't want to document all the `ctx: IreContext`
+]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
-line-ending = "lf"
+line-ending = "auto"
 
 [tool.ruff.lint.isort]
 split-on-trailing-comma = true
@@ -206,6 +165,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 testpaths = ["tests/"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+
 
 [tool.esbonio.sphinx]
 pythonCommand = ["uv", "run", "python"]

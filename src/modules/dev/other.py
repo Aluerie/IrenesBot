@@ -1,3 +1,11 @@
+"""Other developer tools.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -28,7 +36,7 @@ class OtherDevCommands(IreDevComponent):
 
     @commands.command(aliases=["char"])
     async def charinfo(self, ctx: IreContext, *, characters: str) -> None:
-        """Shows information about character(-s).
+        """Show information about character(-s).
 
         Only up to a 10 characters at a time though.
 

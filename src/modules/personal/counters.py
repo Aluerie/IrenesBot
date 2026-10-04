@@ -1,3 +1,11 @@
+"""Counters.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -22,8 +30,6 @@ if TYPE_CHECKING:
 
 
 __all__ = ("Counters",)
-
-FIRST_ID: str = "902e931b-3d09-4a2e-9996-1d1ad599761d"
 
 
 class Counters(IrePersonalComponent):
@@ -61,7 +67,7 @@ class Counters(IrePersonalComponent):
             return
 
         # random notification/reminder
-        now: datetime.datetime = datetime.datetime.now(datetime.UTC)
+        now = datetime.datetime.now(datetime.UTC)
         if random.randint(0, 150) < 2 and (now - self.last_erm_notification).seconds > 180:
             await asyncio.sleep(3)
             query = "SELECT value FROM ttv_counters WHERE name = $1"

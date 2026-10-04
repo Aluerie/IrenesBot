@@ -1,3 +1,11 @@
+"""Temporary Personal Commands.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
@@ -22,7 +30,7 @@ __all__ = ("TemporaryCommands",)
 class TemporaryCommands(IrePersonalComponent):
     """Miscellaneous commands.
 
-    Commands that are likely to be removed in future or edited a lot.
+    Commands that are likely to be removed in future.
     """
 
     @commands.group(invoke_fallback=True)

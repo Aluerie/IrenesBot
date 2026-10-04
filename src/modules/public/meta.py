@@ -1,8 +1,16 @@
+"""Meta.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
 
-import twitchio  # noqa: TC002
+import twitchio  # ruff: ignore[typing-only-third-party-import]
 from twitchio.ext import commands
 
 from core import IrePublicComponent
@@ -53,12 +61,15 @@ class MetaCommands(IrePublicComponent):
 
     @commands.command(name="commands", aliases=["help", "irenesbot", "docs"])
     async def command_list(self, ctx: IreContext) -> None:
-        """Get a list of bot commands."""
+        """Get link to the bot's documentation (this web-page)."""
         await ctx.send("irenesbot.readthedocs.io")
 
     @commands.command(aliases=["hi", "yo", "hallo"])
     async def hello(self, ctx: IreContext) -> None:
-        """A simple command with "hello Hello" response."""
+        """Respond with "hello Hello" response.
+
+        Simple command.
+        """
         await ctx.send(f"{const.STV.hello} Hello!")
 
     @commands.command()
@@ -76,7 +87,7 @@ class MetaCommands(IrePublicComponent):
 
     @commands.command()
     async def source(self, ctx: IreContext) -> None:
-        """Get the link to the bot's GitHub repository."""
+        """Get link to the bot's GitHub repository."""
         await ctx.send("github.com/Aluerie/IreBot")
 
     @commands.command(aliases=["id", "twitchid"])

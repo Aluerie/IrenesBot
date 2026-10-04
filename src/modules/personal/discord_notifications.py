@@ -1,3 +1,11 @@
+"""Discord Notifications.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -30,8 +38,8 @@ class DiscordNotifications(IrePersonalComponent):
         self.active_notification_messages: list[discord.WebhookMessage] = []
 
     @discord.utils.cached_property
-    def notification_webhook(self) -> discord.Webhook:
-        """A shortcut to error webhook."""
+    def logger_webhook(self) -> discord.Webhook:
+        """Shortcut to logger webhook."""
         webhook_url = env.WEBHOOK_STREAM_NOTIFS if not self.bot.subset_mode else env.WEBHOOK_LOGGER
         return discord.Webhook.from_url(url=webhook_url, session=self.bot.session)
 
@@ -49,10 +57,11 @@ class DiscordNotifications(IrePersonalComponent):
         current_vod = next(iter(await self.bot.fetch_videos(user_id=irene.id, period="day")), None)
         current_vod_link = f"/[VOD]({current_vod.url})" if current_vod else ""
         self.active_notification_messages.append(
-            await self.notification_webhook.send(
+            await self.logger_webhook.send(
                 content=f"<@&760082003495223298> and chat, **`@{irene.display_name}`** just went live!",
                 wait=True,
-                embed=discord.Embed(
+                embed=discord
+                .Embed(
                     color=0x9146FF,
                     title=f"{channel_info.title}",
                     url=stream_url,
@@ -76,7 +85,7 @@ class DiscordNotifications(IrePersonalComponent):
 
     @commands.Component.listener("stream_offline")
     async def twitch_tv_offline_edit_notification(self, offline: twitchio.StreamOffline) -> None:
-        """Starts the task to edit the notification message."""
+        """Start the task to edit the notification message."""
         if not self.is_dev(offline.broadcaster.id):
             return
 

@@ -1,3 +1,11 @@
+"""Timers.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -83,7 +91,7 @@ class Timers(IrePersonalComponent):
 
     # @commands.Component.listener(name="message")
     async def count_messages(self, message: twitchio.ChatMessage) -> None:
-        """The listener responsible for sending timer-messages.
+        """Count messages and send timer-messages when needed.
 
         Timer messages are sent if the following conditions are met
         * there were X amount of messages in the chat between bot timer-messages

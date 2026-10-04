@@ -1,16 +1,15 @@
-"""
-Scheduler.
+"""Scheduler.
 
-License
+Sources
 -------
-* This Source Code Form is subject to the terms of the [Mozilla Public License v2.0](<http://mozilla.org/MPL/2.0/>).
-* Copyright (C) 2020-present [@Aluerie](<https://github.com/Aluerie>).
-
-More Attributions
------------------
-The code below is largely taken/inspired by these:
+The code below is largely taken/inspired by these (a lot to learn from these):
 * @mikeshardmind's scheduler https://github.com/mikeshardmind/discord-scheduler
 * @Rapptz's reminders cog https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/reminder.py
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
 
 # from __future__ import annotations

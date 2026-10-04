@@ -1,3 +1,11 @@
+"""Information.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import contextlib
@@ -106,10 +114,10 @@ class StreamInformation(IrePersonalComponent):
         await ctx.send(f'Changed game to "{game.name}" {const.STV.DankMods}')
         return
 
-    async def update_title(self, streamer: twitchio.PartialUser, title: str) -> None:
-        """Helper function to update the streamer's title."""
+    async def update_title(self, broadcaster: twitchio.PartialUser, title: str) -> None:
+        """Update broadcaster's stream title."""
         self.title_dt = datetime.datetime.now(datetime.UTC)
-        await streamer.modify_channel(title=title)
+        await broadcaster.modify_channel(title=title)
 
     @commands.group(name="title", invoke_fallback=True)
     async def title_group(self, ctx: IreContext, *, title: str = "") -> None:

@@ -27,11 +27,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
-      - name: Basedpyright Type Checking
-        run: uv run basedpyright
-
-      # - name: Ty Type Checking (Choose one typechecker)
-      #   run: uv run ty check src tests
+      - name: Ty Type Checking
+        run: uv run ty check src tests --output-format github
 
       - name: Ruff Lint Checking
         run: uv run ruff check src tests templates --output-format github
@@ -39,7 +36,7 @@ jobs:
       - name: Pytest Tests
         run: uv run pytest
         env:
-          # it doesn't need any real .env values for most of it, just so pydantic doesn't crash out
+          # it doesn't need any real .env values for the most of it, just so pydantic doesn't crash out
           PROJECT_NAME: irenesbot
           TWITCH_CLIENT_ID: str
           TWITCH_CLIENT_SECRET: str

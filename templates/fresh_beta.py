@@ -1,16 +1,13 @@
-"""
-Template for `modules.beta` module.
+"""Template for `modules.beta` module.
 
 Just copy-paste it there without this docstring.
-Then you cna beta-test some random code snippets with ease.
+Then you can beta-test some random code snippets with ease.
 
-License
+Notices
 -------
-* License: MPL-2.0, see LICENSE for more details.
-* Copyright: (C) 2020-present @Aluerie.
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
-
-# ruff: noqa: D101, D102, D103, EM101, RUF100, T201
 
 from __future__ import annotations
 

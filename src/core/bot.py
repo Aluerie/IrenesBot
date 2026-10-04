@@ -1,3 +1,11 @@
+"""Bot.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -5,24 +13,20 @@ import contextlib
 import datetime
 import enum
 import logging
-import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict, override
 
 import discord
-import steam
 import twitchio
 from twitchio import eventsub
 from twitchio.ext import commands
 from twitchio.web import StarletteAdapter
 
 from config import env
-from modules import PUBLIC_D9MMRBOT, get_modules
+from modules import get_modules
 from shared import errors, fmt, globs
-from shared.other import MISSING
 from shared.seven_tv_gql import GraphQL7TVClient, exceptions as stv_errors
 from utils import const
-from utils.dota2 import IreDota2Client
 
 from .bases import IreContext
 from .error_manager import ErrorManager
@@ -34,7 +38,7 @@ if TYPE_CHECKING:
     from aiohttp import ClientSession
     from twitchio.user import PartialUser
 
-    from shared.types_.database import PoolTypedWithAny
+    from shared.concepts.db import PoolTypedWithAny
 
     class LoadTokensQueryRow(TypedDict):
         user_id: str
@@ -117,12 +121,12 @@ class IreBot(commands.AutoBot):
         """Initiate IreBot."""
         if adapter_enum is AdapterEnum.local:
             self.domain = "http://localhost:4343"
-            adapter: StarletteAdapter[Any] | None = None
+            adapter = None
         else:
             # AdapterEnum.remote
             self.domain = "https://parrot-thankful-trivially.ngrok-free.app"
             adapter = StarletteAdapter(
-                host="0.0.0.0",  # noqa: S104
+                host="0.0.0.0",  # ruff: ignore[hardcoded-bind-all-interfaces]
                 domain=self.domain,
                 eventsub_secret=env.EVENTSUB,
             )
@@ -150,7 +154,7 @@ class IreBot(commands.AutoBot):
             bot_id=bot_id,
             owner_id=const.UserID.Irene,
             prefix=self.prefixes,
-            adapter=adapter,  # pyright: ignore[reportArgumentType], it's hinted as `NotRequired` while I need to use `None`.
+            adapter=adapter,  # ty: ignore[invalid-argument-type], it's hinted as `NotRequired` while I need to use `None`.
             subscriptions=subscriptions,
             force_subscribe=force_subscribe,  # Set to `True` if we need urgent manual refreshing eventsub subs.
         )
@@ -178,14 +182,12 @@ class IreBot(commands.AutoBot):
         )
 
         # initialized later
-        self.dota2: IreDota2Client = MISSING
         self.launch_time: datetime.datetime
         self.logs_via_webhook_handler: logging.Handler
 
     @override
     async def setup_hook(self) -> None:
-        """
-        Setup Hook. Method called after `.login` has been called but before the bot is ready.
+        """Run setup hook. Method called after `.login` has been called but before the bot is ready.
 
         TwitchIO OAuth Tokens Magic
         ---------------------------
@@ -290,41 +292,6 @@ class IreBot(commands.AutoBot):
             await self.add_token(row["token"], row["refresh"])
 
     @override
-    async def start(
-        self,
-        token: str | None = None,
-        *,
-        with_adapter: bool = True,
-        load_tokens: bool = True,
-        save_tokens: bool = True,
-    ) -> None:
-        if PUBLIC_D9MMRBOT in self.modules_to_load:
-            self.dota2 = IreDota2Client(self)
-            try:
-                await asyncio.gather(
-                    super().start(token, with_adapter=with_adapter, load_tokens=load_tokens, save_tokens=save_tokens),
-                    self.dota2.login(),
-                )
-            # A potential workaround for steam login issues
-            # https://github.com/Gobot1234/steam.py/issues/446
-            # My service / docker files are set to restart the bot on exits
-            # So it will keep restarting the bot until Steam Issues are resolved.
-            except steam.errors.NoCMsFound:
-                log.warning("🔴 Encountered `steam.errors.NoCMsFound` - restarting. 🔴")
-                sys.exit(1)
-            except steam.errors.LoginError:
-                log.warning("🔴 Encountered `steam.errors.LoginError` - restarting. 🔴")
-                sys.exit(1)
-        else:
-            await super().start()
-
-    @override
-    async def close(self, **options: Any) -> None:
-        if self.dota2:
-            await self.dota2.close()
-        await super().close(**options)
-
-    @override
     def get_context(
         self,
         payload: twitchio.ChatMessage | twitchio.ChannelPointsRedemptionAdd | twitchio.ChannelPointsRedemptionUpdate,
@@ -342,8 +309,6 @@ class IreBot(commands.AutoBot):
         if not hasattr(self, "launch_time"):
             # who knows maybe it triggers many times like `discord.py`
             self.launch_time = datetime.datetime.now(datetime.UTC)
-        if self.dota2:
-            await self.dota2.wait_until_ready()
 
     SOMETHING_WENT_WRONG_MESSAGE = (
         f"Something went wrong {globs.Global7TV.FeelsDankMan} "
@@ -351,7 +316,9 @@ class IreBot(commands.AutoBot):
     )
 
     async def handle_common_errors(
-        self, error: BaseException | None, respond: Callable[..., Coroutine[Any, Any, twitchio.SentMessage]]
+        self,
+        error: BaseException | None,
+        respond: Callable[..., Coroutine[Any, Any, twitchio.SentMessage]],
     ) -> bool:
         """Handle known common error types.
 
@@ -373,7 +340,7 @@ class IreBot(commands.AutoBot):
             case stv_errors.UnauthorizedError():
                 await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
                 await self.ping_developers(
-                    content=f"The bot's 7TV Bearer Token is expired.\n{fmt.codeblock(repr(error.debug_data))}"
+                    content=f"The bot's 7TV Bearer Token is expired.\n{fmt.codeblock(repr(error.debug_data))}",
                 )
             case stv_errors.InvokeQueryError():
                 await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
@@ -404,7 +371,7 @@ class IreBot(commands.AutoBot):
 
     @staticmethod
     def add_codeblock_field(embed: discord.Embed, field_name: str, data: dict[str, Any]) -> discord.Embed:
-        """A helper method to add arguments as a field for the unknown error report embed."""
+        """Add data to an embed as nicely formatted field."""
         embed.add_field(name=field_name, value=fmt.pformat_dict(data), inline=False)
         return embed
 
@@ -412,7 +379,7 @@ class IreBot(commands.AutoBot):
     async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
         """Called when error happens during command invoking."""
         command = payload.context.command
-        ctx: IreContext = payload.context  # pyright: ignore[reportAssignmentType] we do not use Channel Point commands.
+        ctx: IreContext = payload.context  # ty: ignore[invalid-assignment] we do not use Channel Point commands.
         error = payload.exception
 
         if command and command.has_error and ctx.error_dispatched:
@@ -432,10 +399,13 @@ class IreBot(commands.AutoBot):
                     # if not `self.test` then we don't need to spam the logs with commands from other bots
                     # for streams that use several bots with the same prefix.
                     log.info("CommandNotFound: %s", error)
+                if ctx.broadcaster.id == self.owner_id:
+                    # TODO: fuzzy
+                    await ctx.send("Command not found.")
             case commands.CommandOnCooldown():
                 command_name = f"{ctx.prefix}{command.name}" if command else "this command"
                 await ctx.send(
-                    f"Command {command_name} is on cooldown! Try again in {error.remaining:.0f} sec {const.STV.Timeloth}"
+                    f"Command {command_name} is on cooldown! Try again in {error.remaining:.0f} sec {const.STV.Timeloth}",
                 )
             case commands.GuardFailure():
                 if await self.handle_common_errors(error.__cause__, ctx.send):
@@ -469,7 +439,7 @@ class IreBot(commands.AutoBot):
                     content=(
                         f"Couldn't convert value `{error.value}` for argument `{error.name}` "
                         f"to required type/format {const.STV.dankFix}"
-                    )
+                    ),
                 )
             case _:
                 # 3. All other errors;
@@ -478,7 +448,8 @@ class IreBot(commands.AutoBot):
                 # await ctx.send(f"{error.__class__.__name__}: {replace_secrets(str(error))}")
                 command_name = getattr(ctx.command, "name", "unknown")
                 embed = (
-                    discord.Embed(
+                    discord
+                    .Embed(
                         colour=ctx.chatter.colour.code if ctx.chatter.colour else 0x890620,
                         title=f"Command Error: `!{command_name}`",
                     )
@@ -535,17 +506,17 @@ class IreBot(commands.AutoBot):
     # SHORTCUTS AND UTILITIES
 
     def webhook_from_url(self, url: str) -> discord.Webhook:
-        """A shortcut function with filled in discord.Webhook.from_url args."""
+        """Shortcut to discord.Webhook.from_url with some filled args."""
         return discord.Webhook.from_url(url=url, session=self.session)
 
     @discord.utils.cached_property
     def logger_webhook(self) -> discord.Webhook:
-        """A webhook in hideout's #logger channel."""
+        """Webhook in hideout's #logger channel."""
         return self.webhook_from_url(env.WEBHOOK_LOGGER)
 
     @discord.utils.cached_property
     def error_webhook(self) -> discord.Webhook:
-        """A webhook in hideout server to send errors/notifications to the developer(-s)."""
+        """Webhook in hideout server to send errors/notifications to the developer(-s)."""
         return self.webhook_from_url(env.WEBHOOK_ERROR)
 
     async def ping_developers(self, **send_kwargs: Any) -> None:
@@ -561,7 +532,7 @@ class IreBot(commands.AutoBot):
 
     @discord.utils.cached_property
     def heartbeat_webhook(self) -> discord.Webhook:
-        """A webhook in hideout server to send small heartbeat reports."""
+        """Webhook in my discord hideout server to send heartbeat reports."""
         return self.webhook_from_url(env.WEBHOOK_HEARTBEAT)
 
     def is_online(self, user_id: str) -> bool:
