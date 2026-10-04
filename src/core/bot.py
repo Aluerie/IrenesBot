@@ -178,7 +178,6 @@ class IreBot(commands.AutoBot):
         self.stv: GraphQL7TVClient = GraphQL7TVClient(
             bearer_token=env.SEVEN_TV_BEARER,
             bot_7tv_user_id=const.SevenTV.BOT_ID,
-            pool=pool,
         )
 
         # initialized later
