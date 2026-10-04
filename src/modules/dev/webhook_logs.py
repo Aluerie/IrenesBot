@@ -54,9 +54,9 @@ class LogsViaWebhook(DiscordWebhookLogs, IreDevComponent):
     async def announce_reloaded(self) -> None:
         """Announce that bot is successfully reloaded/restarted."""
         commit = gh.get_last_commit()
-        fmt_commit = f"'{commit.emojified_title}' <{commit.short_sha2}> ({commit.utc_dt.strftime('%H:%M%p %d/%b/%y')})"
+        fmt_commit = f"{commit.emojified_title} <{commit.short_sha2}> ({commit.utc_dt.strftime('%H:%M%p %d/%b/%y')})"
         await self.bot.irene().send_message(
-            sender=self.bot.bot_id, message=f"{const.STV.hi} I reloaded myself; Commit: {fmt_commit}"
+            sender=self.bot.bot_id, message=f"{const.STV.hi} I reloaded myself - commit: {fmt_commit}"
         )
 
 
