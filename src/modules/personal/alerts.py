@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 from twitchio.ext import commands
 
 from core import IrePersonalComponent, ireloop
-from shared import fmt
+from shared import clock, fmt
 from utils import const
 
 if TYPE_CHECKING:
@@ -174,7 +174,7 @@ class Alerts(IrePersonalComponent):
             return
 
         word = "automatic" if ad_break.automatic else "manual"
-        human_delta = fmt.timedelta_to_words(seconds=ad_break.duration, fmt=fmt.TimeDeltaFormat.Short)
+        human_delta = clock.dm_human_timedelta(ad_break.duration, mode="short")
         await ad_break.respond(f"{human_delta} {word} ad starting {const.STV.peepoAds}")
 
         # this is pointless probably

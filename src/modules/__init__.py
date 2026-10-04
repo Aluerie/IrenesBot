@@ -13,7 +13,7 @@ from pathlib import Path
 from pkgutil import iter_modules
 
 try:
-    from modules_subset import MODULES_SUBSET  # ty: ignore[unresolved-import, unused-ignore-comment]
+    from modules_subset import MODULES_SUBSET  # ty: ignore[unresolved-import, unused-ignore-comment, unused-ignore-comment]
 except ModuleNotFoundError:
     MODULES_SUBSET: dict[str, list[str]] = {}
 

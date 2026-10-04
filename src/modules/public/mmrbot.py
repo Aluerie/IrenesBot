@@ -1111,7 +1111,7 @@ class Dota2RichPresenceFlow(IrePublicComponent):
 
     @ireloop(hours=1)
     async def fill_completed_matches_from_gc_match_history(self) -> None:
-        """A backup task to double check if we haven't missed any games.
+        """Backup task to double check if we haven't missed any games.
 
         Useful to keep W-L as precise as possible.
         """
@@ -1284,9 +1284,9 @@ class Dota2RichPresenceFlow(IrePublicComponent):
             known_party_members = " \N{BULLET} ".join(v[1] for v in members.values() if v[1])
             response += known_party_members
 
-        unknown_party_members = " \N{BULLET} ".join(
-            [f"{(await self.bot.dota2.fetch_user(v[0])).name} ({k})" for k, v in members.items() if not v[1]]
-        )
+        unknown_party_members = " \N{BULLET} ".join([
+            f"{(await self.bot.dota2.fetch_user(v[0])).name} ({k})" for k, v in members.items() if not v[1]
+        ])
         if response:
             response += f". And not notable to the bot: {unknown_party_members}"
         else:

@@ -29,7 +29,7 @@ class IreComponent(commands.Component):
         self.bot: IreBot = bot
 
     def is_dev(self, user_id: str) -> bool:
-        """A check whether the user is a bot owner."""
+        """Check whether the user is a bot owner."""
         return user_id == self.bot.owner_id
 
 
@@ -44,7 +44,7 @@ class IrePersonalComponent(IreComponent):
     """
 
     @override
-    async def component_before_invoke(self, ctx: IreContext) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def component_before_invoke(self, ctx: IreContext) -> None:  # ty: ignore[invalid-method-override]
         if not self.is_dev(ctx.broadcaster.id):
             msg = "Command is not allowed anywhere except Irene's channel"
             raise errors.NotAllowedError(msg, silent=True)
@@ -57,7 +57,7 @@ class IreDevComponent(IreComponent):
     """
 
     @override
-    async def component_before_invoke(self, ctx: IreContext) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def component_before_invoke(self, ctx: IreContext) -> None:  # ty: ignore[invalid-method-override]
         if ctx.chatter.id != ctx.bot.owner_id:
             msg = f"Command is not allowed by anybody else except Irene {const.FFZ.peepoPolice}"
             if ctx.broadcaster.id == ctx.bot.owner_id:

@@ -326,11 +326,11 @@ class IreBot(commands.AutoBot):
         """
         match error:
             # MY CUSTOM ERRORS
-            case errors.SomethingWentWrongError():
-                return False
             case errors.BotError():
                 if error.silent:
                     return True
+                if error.something_went_wrong:
+                    return False
                 if error.respond:
                     await respond(error.msg)
                 if error.register:
@@ -376,7 +376,7 @@ class IreBot(commands.AutoBot):
 
     @override
     async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
-        """Called when error happens during command invoking."""
+        """Event called when an error happens during command invoking."""
         command = payload.context.command
         ctx: IreContext = payload.context  # ty: ignore[invalid-assignment] we do not use Channel Point commands.
         error = payload.exception
@@ -487,7 +487,7 @@ class IreBot(commands.AutoBot):
                 await original.respond(self.SOMETHING_WENT_WRONG_MESSAGE)
 
         # 2. All other errors;
-        embed = discord.Embed(title=f"Event Error: `{payload.listener.__qualname__}`")
+        embed = discord.Embed(title=f"Event Error: `{getattr(payload.listener, '__qualname__', 'unknown_event')}`")
         if broadcaster := getattr(original, "broadcaster", None):
             embed.set_footer(
                 text=f"Channel: {broadcaster.display_name}",
@@ -507,11 +507,6 @@ class IreBot(commands.AutoBot):
     def webhook_from_url(self, url: str) -> discord.Webhook:
         """Shortcut to discord.Webhook.from_url with some filled args."""
         return discord.Webhook.from_url(url=url, session=self.session)
-
-    @discord.utils.cached_property
-    def logger_webhook(self) -> discord.Webhook:
-        """Webhook in hideout's #logger channel."""
-        return self.webhook_from_url(env.WEBHOOK_LOGGER)
 
     @discord.utils.cached_property
     def error_webhook(self) -> discord.Webhook:

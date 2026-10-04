@@ -34,7 +34,7 @@ class MetaCommands(IrePublicComponent):
 
     @commands.command()
     async def about(self, ctx: IreContext) -> None:
-        """A bit bio information about the bot."""
+        """Get some information about about the bot."""
         await ctx.send(f"I'm a personal Irene's bot, made by Irene. {const.STV.AYAYA}")
 
     @guards.is_online()

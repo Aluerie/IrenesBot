@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import datetime
+import datetime as dt
 import logging
 import re
 from collections import Counter, defaultdict
@@ -31,7 +31,7 @@ from discord.utils import copy_doc
 from twitchio.ext import commands
 
 from core import IrePublicComponent, ireloop
-from shared import errors
+from shared import clock, errors
 from shared.concepts.logs import PrefixLoggerAdapter
 from shared.globs import DIGITS, Global7TV
 from shared.seven_tv_gql import exceptions as stv_errors
@@ -721,7 +721,7 @@ class SevenTVFeatures(IrePublicComponent):
     # DEVELOPER TESTING COMMANDS                                                                                            #
     #########################################################################################################################
 
-    BALLS: ClassVar = {
+    BALLS: ClassVar[dict[str, str]] = {
         # cSpell: disable
         "Blue": "01J8FC6EN0000DNWJ3ST67HH38",
         "Teal": "01J8FCA6RR0004HJ8DYSFE2PF2",
@@ -836,7 +836,7 @@ class SevenTVFeatures(IrePublicComponent):
             self._batch_total.clear()
             self._batch_last_year.clear()
 
-    @ireloop(time=datetime.time(hour=12, minute=11, second=45))
+    @ireloop(time=dt.time(hour=12, minute=11, second=45))
     async def clean_up_old_records(self) -> None:
         """Clean up "way too old" records from the Last Year emote usage database.
 
@@ -847,7 +847,7 @@ class SevenTVFeatures(IrePublicComponent):
         Note that this doesn't affect `emote_stats_total` in any way. Everything is correct there.
         """
         async with self._batch_lock:
-            clean_up_dt = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=365)
+            clean_up_dt = clock.utcnow() - dt.timedelta(days=365)
 
             query = """
                     DELETE FROM emote_stats_last_year
@@ -1037,14 +1037,14 @@ class SevenTVFeatures(IrePublicComponent):
         msg = f"Invalid emote or you are not allowed to manage this emote {self.EMOTE}"
         raise errors.RespondWithError(msg)
 
-    async def remove_helper(self, ctx: IreContext, emote: PartialEmote) -> None:
+    async def remove_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
         """Remove 7TV emote helper."""
         await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
         partial_emote_set = await self.select_emote_set(ctx.broadcaster.id)
         await partial_emote_set.remove_emote(emote_id=emote.id)
         await ctx.send("Removed")
 
-    async def rename_helper(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
+    async def rename_emote_worker(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
         """Rename 7TV emote helper."""
         emote, alias = emote_and_alias
         if alias is None:
@@ -1083,7 +1083,7 @@ class SevenTVFeatures(IrePublicComponent):
             The second one (<optional_emote_alias>) is optional and
             it can be an emote alias with which the emote will be added.
         """
-        await self.rename_helper(ctx, emote_and_alias)
+        await self.rename_emote_worker(ctx, emote_and_alias)
 
     @copy_doc(stv_rename)
     @is_emote_owner()
@@ -1098,7 +1098,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         @copy_doc(stv_rename)
         """
-        await self.rename_helper(ctx, emote_and_alias)
+        await self.rename_emote_worker(ctx, emote_and_alias)
 
     @is_emote_owner()
     @stv.command(name="remove")
@@ -1115,12 +1115,12 @@ class SevenTVFeatures(IrePublicComponent):
         Parameters
         ----------
         emote
-            ``<emote_name_link_or_id>`` which is supposed to be an emote identifier for the bot to find the emote:
+            Format: ``<emote_name_link_or_id>`` which is supposed to be an emote identifier for the bot to find the emote:
             emote link (any link containing its ID, e.g. emote link or its CDN-link),
-            emote ID (characters sequence in after the last "/" in the emote link) or emote name that the bot will use to
-            search for the desired emote in the broadcaster's emote set.
+            emote ID (characters sequence in after the last "/" in the emote link) or name that the bot will use to
+            search for desired emote in the broadcaster's emote set.
         """
-        await self.remove_helper(ctx, emote)
+        await self.remove_emote_worker(ctx, emote)
 
     @copy_doc(stv_remove)
     @is_emote_owner()
@@ -1135,7 +1135,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         @copy_doc(stv_remove)
         """
-        await self.remove_helper(ctx, emote)
+        await self.remove_emote_worker(ctx, emote)
 
     #########################################################################################################################
     # BLACKLIST                                                                                                             #
@@ -1302,14 +1302,24 @@ class SevenTVFeatures(IrePublicComponent):
     ) -> None:
         """Add an emote but also perform some validations."""
         # blacklist
-        query = "SELECT emote_id FROM ttv_stv_blacklist_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
-        is_blacklisted = bool(await self.bot.pool.fetchval(query, emote_id, broadcaster_id))
-        if is_blacklisted:
-            msg = f"This emote is blacklisted {self.EMOTE}"
+        query = "SELECT emote_id, blacklisted_at FROM ttv_stv_blacklist_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
+        row = await self.bot.pool.fetchrow(query, emote_id, broadcaster_id)
+        if row:
+            expire_dt = clock.round_to_next_hour(row["blacklisted_at"] + dt.timedelta(days=7))
+            msg = (
+                "The requested emote is blacklisted; "
+                f"{clock.human_timedelta(expire_dt, mode='short')} until it is allowed {self.EMOTE}"
+            )
             raise errors.RespondWithError(msg)
 
         allow_common_words = await self.select_cycle_allow_common_words(broadcaster_id)
         await emote_set.add_emote(emote_id, emote_alias=emote_alias, allow_common_words=allow_common_words)
+
+    @ireloop(time=[dt.time(hour=hour) for hour in range(23)])
+    async def expire_blacklisted_emotes(self) -> None:
+        """Task to expire blacklisted emotes."""
+        query = "DELETE FROM ttv_stv_blacklist_emotes WHERE blacklisted_at < $1;"
+        await self.bot.pool.execute(query, clock.utcnow() - dt.timedelta(days=7))
 
 
 async def setup(bot: IreBot) -> None:

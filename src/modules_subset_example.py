@@ -33,8 +33,9 @@ CATEGORY_MODULES_MAPPING: dict[str, list[str]] = {
         # "timers",
     ],
     "public": [
-        # "mmrbot",
         # "meta"
+        # "mmrbot",
+        "seven_tv"
     ],
 }
 

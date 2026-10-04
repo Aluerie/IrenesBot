@@ -121,7 +121,7 @@ class StreamInformation(IrePersonalComponent):
 
     @commands.group(name="title", invoke_fallback=True)
     async def title_group(self, ctx: IreContext, *, title: str = "") -> None:
-        """Callback for !title group commands.
+        """Title group commands.
 
         Can be used with subcommands. But when used on its - it either shows the title or updates it,
         whether the title argument was provided and user has moderator permissions.

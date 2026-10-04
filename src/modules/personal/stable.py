@@ -9,7 +9,6 @@ Notices
 from __future__ import annotations
 
 import asyncio
-import datetime
 import logging
 import random
 from typing import TYPE_CHECKING, NamedTuple, TypedDict
@@ -19,7 +18,7 @@ from twitchio.ext import commands
 
 from config import env
 from core import IrePersonalComponent
-from shared import errors, fmt, globs
+from shared import clock, errors, globs
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -112,7 +111,7 @@ class StableCommands(IrePersonalComponent):
 
     @commands.group(name="ads", aliases=["ad", "commercial"])
     async def ads_group(self, ctx: IreContext) -> None:
-        """A group command !ads."""
+        """Ads group command."""
 
     @ads_group.command(name="start", aliases=["run"])
     async def ads_start(self, ctx: IreContext, length: int = 180) -> None:
@@ -322,10 +321,10 @@ class StableCommands(IrePersonalComponent):
         await ctx.broadcaster.send_shoutout(to_broadcaster=user.id, moderator=const.UserID.Bot)
 
     async def check_youtube_music(self) -> None:
-        """Waits if StreamerBot responds to the message indicating that I'm probably listening to YT Music atm."""
+        """Wait if StreamerBot responds to the message indicating that I'm probably listening to YT Music atm."""
 
-        async def predicate(payload: twitchio.ChatMessage) -> bool:
-            """Checks whether the message is likely to be a response from StreamerBot !song request functionality.
+        async def predicate(payload: twitchio.ChatMessage) -> bool:  # ruff: ignore[unused-async]
+            """Check whether the message is likely to be a response from StreamerBot !song request functionality.
 
             * They are sent by @IrenesBot
             * All such messages should start with `dankJAM`.
@@ -340,7 +339,7 @@ class StableCommands(IrePersonalComponent):
             self.yt_music_on.set()
 
     async def check_spotify(self, ctx: IreContext) -> None:
-        """Checks my spotify status, if there is none - it tries to wait for YT Music status."""
+        """Check irene's spotify status, if there is none - it tries to wait for YT Music status."""
         url = f"https://spotify.aidenwallis.co.uk/u/{env.SPOTIFY_AIDENWALLIS}"
         async with self.bot.session.get(url) as resp:
             resp_text = await resp.text()
@@ -412,12 +411,12 @@ class StableCommands(IrePersonalComponent):
         if stream is None:
             await ctx.send(f"Stream is offline {const.BTTV.Offline}")
         else:
-            uptime = datetime.datetime.now(datetime.UTC) - stream.started_at
-            await ctx.send(f"{fmt.timedelta_to_words(uptime)} {const.STV.peepoDapper}")
+            uptime = clock.utcnow() - stream.started_at
+            await ctx.send(f"{clock.human_timedelta(uptime)} {const.STV.peepoDapper}")
 
     @commands.command(aliases=["seppuku"])
     async def vanish(self, ctx: IreContext) -> None:
-        """Allows for chatters to vanish from the chat by time-outing themselves."""
+        """Vanish from the chat by time-outing yourself."""
         if ctx.chatter.moderator:
             if "seppuku" in ctx.message.text:
                 msg = f"Emperor Kappa does not allow you this honour, {ctx.chatter.mention} (bcs you're a moderator)"

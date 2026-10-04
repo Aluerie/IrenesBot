@@ -8,7 +8,6 @@ Notices
 
 import pytest
 from src.shared import seven_tv_gql
-from src.shared.other import MISSING
 from src.utils import const
 
 pytest_plugins = ("pytest_asyncio",)
@@ -18,8 +17,7 @@ pytest_plugins = ("pytest_asyncio",)
 def stv() -> seven_tv_gql.GraphQL7TVClient:
     """7TV client fixture."""
     return seven_tv_gql.GraphQL7TVClient(
-        bot_7tv_user_id=const.SevenTV.BOT_ID,
-        pool=MISSING,
+        bot_7tv_user_id=const.SevenTV.BOT_ID
     )
 
 

@@ -179,7 +179,7 @@ def get_public_oauth_url(domain: str) -> str:
 
 
 def get_oauth_url(domain: str, scopes: list[str], prefix: str) -> str:
-    """Helper function for `get_bot_oauth_url`, `get_personal_oauth_url`, `get_public_oauth_url`.
+    """Get oauth url. Helper function for `get_bot_oauth_url`, `get_personal_oauth_url`, `get_public_oauth_url`.
 
     The authorization is required for proper work of Twitch Eventsub events and API requests.
     Currently, we separate bot features into two categories:
@@ -194,7 +194,7 @@ def get_oauth_url(domain: str, scopes: list[str], prefix: str) -> str:
 
 
 def get_all_oauth_urls(domain: str) -> str:
-    """Helper function to get all bot oauth urls at once."""
+    """Get all bot oauth urls at once."""
     return "\n".join([
         get_bot_oauth_url(domain),
         get_personal_oauth_url(domain),

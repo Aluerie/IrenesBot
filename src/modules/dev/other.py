@@ -8,7 +8,6 @@ Notices
 
 from __future__ import annotations
 
-import datetime
 import importlib.metadata
 import sys
 import unicodedata
@@ -17,7 +16,7 @@ from typing import TYPE_CHECKING, TypedDict
 from twitchio.ext import commands
 
 from core import IreDevComponent
-from shared import fmt, globs
+from shared import clock, globs
 
 if TYPE_CHECKING:
     from core import IreBot, IreContext
@@ -72,7 +71,7 @@ class OtherDevCommands(IreDevComponent):
         """
         await ctx.send(
             f"Last reboot {self.bot.launch_time.strftime('%H:%M %d/%b/%y')}; "
-            f"It's been {fmt.timedelta_to_words(datetime.datetime.now(datetime.UTC) - self.bot.launch_time)}."
+            f"It's been {clock.dm_human_timedelta(self.bot.launch_time)}."
         )
 
     @commands.command(aliases=["version", "packages", "libraries"])

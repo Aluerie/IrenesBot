@@ -65,7 +65,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
     @guards.is_broadcaster_or_dev()
     @commands.command()
     async def setup_first_reward(self, ctx: IreContext) -> None:
-        """Setup First Chatter Channel Reward in the broadcaster channel."""
+        """Set up First Chatter Channel Reward in the broadcaster channel."""
         query = """
             SELECT COUNT(1)
             FROM ttv_first_chatter_rewards
@@ -246,7 +246,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
         reward_id: str,
         original_title: str,
     ) -> None:
-        """Helper function to reset First Chatter Reward title's to normal.
+        """Reset First Chatter Reward title's to normal.
 
         Title gets replaces by "@User was first today!" during the streams.
         This replaces it back to the original.

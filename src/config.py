@@ -1,5 +1,4 @@
-"""
-Config.
+"""Config.
 
 Notices
 -------

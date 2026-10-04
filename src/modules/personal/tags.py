@@ -67,7 +67,7 @@ class Tags(IrePersonalComponent):
         * ``!tag add info Some cool info`` - will add a tag under ``<tag_name>`` "info" with
           ``<tag_content>`` being "Some cool info".
         """
-        if tag_name in ("delete", "remove", "del", "add", "list", "edit", "a", "d", "r", "e", "l"):
+        if tag_name in {"delete", "remove", "del", "add", "list", "edit", "a", "d", "r", "e", "l"}:
             msg = f"This tag_name is reserved {const.STV.uuhAcktshucally}"
             raise errors.RespondWithError(msg)
         try:

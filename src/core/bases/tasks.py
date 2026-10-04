@@ -1,3 +1,11 @@
+"""Tasks.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -45,12 +53,12 @@ class IreLoop(tasks.CustomLoop[LF]):
     """
 
     @override
-    async def _wait_for_ready(self, cog: HasBotAttribute) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def _wait_for_ready(self, cog: HasBotAttribute) -> None:  # ty: ignore[invalid-method-override]
         await cog.bot.wait_until_ready()
 
     @override
-    async def _error(self, cog: HasBotAttribute, exception: Exception) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Same `_error` as in parent class but with `exc_manager` integrated."""
+    async def _error(self, cog: HasBotAttribute, exception: Exception) -> None:  # ty: ignore[invalid-method-override]
+        """Error: same `_error` as in parent class but with `exc_manager` integrated."""
         embed = discord.Embed(title=f"Task Error `{self.coro.__qualname__}`", colour=0x1A7A8A)
         if debug_data := getattr(exception, "debug_data", None):
             embed = cog.bot.add_codeblock_field(embed, "Extra Debug Data", debug_data)
