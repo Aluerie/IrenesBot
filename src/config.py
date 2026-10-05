@@ -48,7 +48,7 @@ class Env(EnvConfig):
     WEBHOOK_HEARTBEAT: str
 
 
-env = Env()  # pyright: ignore[reportCallIssue]
+env = Env()
 
 secrets_list = list(map(str, env.model_dump().values()))
 DO_NOT_SPOIL_PATTERN = re.compile("|".join(map(re.escape, secrets_list)))

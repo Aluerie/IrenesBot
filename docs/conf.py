@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 project = "IrenesBot - Documentation"
-copyright = "Copyright &copy; 2020-present; Aluerie (Irene Adler)"  # noqa: A001
+copyright = "Copyright &copy; 2020-present; Aluerie (Irene Adler)"  # ruff: ignore[builtin-variable-shadowing]
 author = "Aluerie"
 
 release = "0.7"

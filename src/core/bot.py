@@ -173,7 +173,6 @@ class IreBot(commands.AutoBot):
 
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
-        self.friends_index_ready: asyncio.Event = asyncio.Event()
 
         self.stv: GraphQL7TVClient = GraphQL7TVClient(
             bearer_token=env.SEVEN_TV_BEARER,

@@ -35,7 +35,7 @@ _func = Callable[..., Coroutine[Any, Any, Any]]
 LF = TypeVar("LF", bound=_func)
 
 
-class IreLoop(tasks.CustomLoop[LF]):
+class IreLoop(tasks.Loop[LF]):
     """My subclass for discord.ext.tasks.Loop.
 
     Just extra boilerplate functionality.
@@ -65,7 +65,7 @@ class IreLoop(tasks.CustomLoop[LF]):
         await cog.bot.error_manager.register(exception, embed)
 
 
-@discord.utils.copy_doc(tasks.custom_loop)
+@discord.utils.copy_doc(tasks.loop)
 def ireloop(
     *,
     seconds: float = MISSING,
@@ -88,7 +88,7 @@ def ireloop(
 
     def decorator(func: LF) -> IreLoop[LF]:
         return IreLoop(
-            func,
+            coro=func,
             seconds=seconds,
             minutes=minutes,
             hours=hours,

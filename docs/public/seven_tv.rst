@@ -20,11 +20,11 @@ There is quite a few features, so let's get started.
       command to make the bot accept it
    5. The commands below might be of help.
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_editor_guide
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_editor_guide
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_editor_accept
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_editor_accept
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_editor_status
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_editor_status
 
 
 📐 Linking bot 7tv features to an emote set
@@ -37,9 +37,9 @@ As it was mentioned above - if the streamer uses ``!7tv editor accept`` command 
 If, in future, the streamer decides to mess around with their 7tv emote sets, e.g. make a new one or select some other emote set as their active - 
 the commands here will help to reattach the bot to a proper emote set that the streamer wants the bot to manage.
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_emoteset_status
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_emoteset_status
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_emoteset_attach
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_emoteset_attach
 
 🚲 Cycling Emotes Channel Reward
 ################################
@@ -71,31 +71,31 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
    We all know how 7TV can be laggy and annoying. 
    Well, it's quite the same when developing with it.
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_cycle_create
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_create
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_cycle_status
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_status
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_cycle_drop
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_drop
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_cycle_limit
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_limit
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_cycle_showemotes
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_showemotes
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_cycle_allowcommonwords
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_allowcommonwords
 
 🤹🏻 Emote Management
 #####################
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_add
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_add
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_rename
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_rename
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_remove
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_remove
 
 🐦‍⬛ Blacklisting
 ##################
 
-.. autochatcommand:: modules.public.stv.SevenTVFeatures.stv_blacklist_create
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_create
 
 
 🤣 Emote Stats

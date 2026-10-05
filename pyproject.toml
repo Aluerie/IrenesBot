@@ -108,6 +108,7 @@ ignore = [
     "too-many-arguments",
     "too-many-branches",
     "too-many-public-methods",
+    "too-many-return-statements",
     "too-many-statements-in-try-clause",
     # Todo
     "line-contains-todo", # I use TODO Tree VSCode extension for this
@@ -116,9 +117,9 @@ ignore = [
     # Other (uncategorized) Rules
     "ambiguous-unicode-character-string",
     "any-type",
-    "assert", # assert is fine for "casting" type checking and in tests
+    "assert", # assert is fine for "casting" type checks and in tests
     "commented-out-code",
-    "implicit-namespace-package", # Annoying rule, it doesn't understand what is NOT an implicit namespace-package
+    "implicit-namespace-package", # Annoying rule, it doesn't know what **I** want to be an implicit namespace-package
     "magic-value-comparison", # I hate this rule (quoting @AbstractUmbra)
     "no-self-use",
     "non-empty-init-module", # we do some stuff here
