@@ -20,7 +20,7 @@ import operator
 import pprint
 import re
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, override
 from urllib import parse as url_parse
 
@@ -35,8 +35,6 @@ from shared.dota_apis.steam_web_api import SteamWebAPIClient
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from enum import IntEnum
-
     import aiohttp
 
     from core import IreBot
