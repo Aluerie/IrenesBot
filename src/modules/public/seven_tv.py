@@ -1352,7 +1352,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2;"
         await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
-        await ctx.send(f"Changed duration to {dt.timedelta(days=days, hours=hours)} {self.EMOTE}")
+        await ctx.send(f"Changed duration to {clock.human_timedelta(dt.timedelta(days=days, hours=hours))} {self.EMOTE}")
 
 
 async def setup(bot: IreBot) -> None:
