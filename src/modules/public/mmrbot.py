@@ -150,7 +150,10 @@ class LocalAPI:
 
     async def _invoke(self, endpoint: str) -> Any:
         async with self.session.get(f"{self.BASE_URL}{endpoint}") as resp:
-            return await resp.json()
+            if resp.ok:
+                return await resp.json()
+            msg = "It seems Dota2Bot is down, please ask Irene to fix it"
+            raise errors.RespondWithError(msg)
 
     async def get_streamers(self) -> Streamers:
         return await self._invoke("/streamers")
@@ -725,8 +728,8 @@ class MMRBot(IrePublicComponent):
         query = """
             SELECT p.match_id, p.friend_id, p.hero_id
             FROM ttv_dota_matches m
-            JOIN ttv_dota_match_players p ON m.match_id = p.match_id
-            JOIN ttv_dota_accounts a ON a.friend_id = p.friend_id
+                    JOIN ttv_dota_match_players p ON m.match_id = p.match_id
+                    JOIN ttv_dota_accounts a ON a.friend_id = p.friend_id
             WHERE a.twitch_id = $1
             ORDER BY m.start_time DESC
             LIMIT 1;
@@ -990,9 +993,10 @@ class MMRBot(IrePublicComponent):
         query = f"""
             SELECT d.friend_id, m.start_time, m.lobby_type, m.game_mode, m.outcome, p.player_slot, p.abandon
             FROM ttv_dota_matches m
-            JOIN ttv_dota_match_players p ON m.match_id = p.match_id
-            JOIN ttv_dota_accounts d ON d.friend_id = p.friend_id
-            WHERE d.twitch_id = $1 AND m.live > $2 {clause}
+                    JOIN ttv_dota_match_players p ON m.match_id = p.match_id
+                    JOIN ttv_dota_accounts d ON d.friend_id = p.friend_id
+            WHERE d.twitch_id = $1
+            AND m.live > $2 {clause}
             ORDER BY m.start_time DESC;
         """  # ruff: ignore[hardcoded-sql-expression]
         rows: list[ScoreQueryRow] = (
