@@ -93,7 +93,7 @@ The commands below work exactly in the same fashion as :iconify:`logos:twitch` `
       - Show Dota 2 ProTracker page for the currently selected hero.
       - .. image:: /_static/images/dota2/d2pt.png
     * - Party Members
-      - !d2pt
+      - !party
       - Show known members from the current party.
       - .. image:: /_static/images/dota2/party.png
 

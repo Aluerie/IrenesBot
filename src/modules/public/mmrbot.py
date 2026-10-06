@@ -502,7 +502,7 @@ class MMRBot(IrePublicComponent):
         streamer = await self.get_streamer(broadcaster_id)
         live_match = streamer["live_match"]
         if live_match is None:
-            msg = f"No Active Game Found \N{BULLET} Streamer's status: {streamer['rich_presence']}"
+            msg = f"No Active Game Found \N{BULLET} Streamer's status: {streamer['status']}"
             raise errors.RespondWithError(msg)
         if live_match["tag"] == "unsupported":
             msg = live_match["message"]
