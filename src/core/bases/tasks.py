@@ -59,7 +59,7 @@ class IreLoop(tasks.Loop[LF]):
     @override
     async def _error(self, cog: HasBotAttribute, exception: Exception) -> None:  # ty: ignore[invalid-method-override]
         """Error: same `_error` as in parent class but with `exc_manager` integrated."""
-        embed = discord.Embed(title=f"Task Error `{self.coro.__qualname__}`", colour=0x1A7A8A)
+        embed = discord.Embed(title=f"Task Error `{getattr(self.coro, '__qualname__', 'unknown coro')}`", colour=0x1A7A8A)
         if debug_data := getattr(exception, "debug_data", None):
             embed = cog.bot.add_codeblock_field(embed, "Extra Debug Data", debug_data)
         await cog.bot.error_manager.register(exception, embed)
