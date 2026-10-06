@@ -1,9 +1,9 @@
 """Get modules to load.
 
-License
+Notices
 -------
-* This Source Code Form is subject to the terms of the [Mozilla Public License v2.0](<http://mozilla.org/MPL/2.0/>).
-* Copyright (C) 2020-present [@Aluerie](<https://github.com/Aluerie>).
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations
@@ -22,10 +22,6 @@ __all__ = ("get_modules",)
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-# named modules const
-PUBLIC_D9MMRBOT = "modules.public.mmrbot"
-DEV_REQUIRED = "modules.dev.required"
-
 
 def get_subset_modules(categories: dict[str, list[str]]) -> tuple[str, ...]:
     """Get a tuple of modules to load from a friendly formatted categories dictionary.
@@ -35,7 +31,7 @@ def get_subset_modules(categories: dict[str, list[str]]) -> tuple[str, ...]:
     tuple[str, ...]
         Tuple of modules to load. Modules are listed in a dot-format, i.e. `"modules.public.dota_rp_flow"`.
     """
-    modules_to_load: tuple[str, ...] = (
+    return (
         # Categorized modules
         *tuple(
             f"modules.{category}.{extension}"
@@ -46,17 +42,12 @@ def get_subset_modules(categories: dict[str, list[str]]) -> tuple[str, ...]:
         # Extras
         "modules.beta",
     )
-    # Component-based dependencies
-    if PUBLIC_D9MMRBOT in modules_to_load:
-        modules_to_load += (DEV_REQUIRED,)
-    return modules_to_load
 
 
 DISABLED_MODULES: tuple[str, ...] = (
     # modules that should not be loaded
     "modules.beta",
     # currently disabled
-    PUBLIC_D9MMRBOT,
 )
 
 
@@ -85,9 +76,6 @@ def get_modules(*, is_subset_mode: bool) -> tuple[str, ...]:
             for module in iter_modules([module_category.absolute()], prefix=f"{__package__}.{module_category.name}.")
             if module.name not in DISABLED_MODULES
         )
-
-    # Could just do, lol
-    # modules = tuple(module for module in MODULES if module not in DISABLED_MODULES)
 
     log.debug("The list of modules (%s total) to load: %s", len(modules), modules)
     return modules

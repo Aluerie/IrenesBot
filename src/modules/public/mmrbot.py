@@ -53,6 +53,7 @@ if TYPE_CHECKING:
         hero_names: list[str]
         started_at: dt.datetime
         average_mmr: str | None
+        unavailable: bool
 
     class Player(TypedDict):
         friend_id: int
@@ -406,6 +407,9 @@ class MMRBot(IrePublicComponent):
         if live_match is None:
             msg = f"No Active Game Found \N{BULLET} Streamer's status: {streamer['rich_presence']}"
             raise errors.RespondWithError(msg)
+        if live_match["unavailable"]:
+            msg = "I'm not able to fetch data for this match, sorry."
+            raise errors.RespondWithError(msg)
         return live_match
 
     async def send_with_tag(self, ctx: IreContext, match: LiveMatch, content: str) -> None:
@@ -417,12 +421,15 @@ class MMRBot(IrePublicComponent):
     async def game_medals(self, ctx: IreContext) -> None:
         """Fetch each player rank medals in the current game."""
         match = await self.get_live_match(ctx.broadcaster.id)
-        response_parts = [
-            f"{hero_name if hero_name != 'NONE' else player['color']} {player['medal'] or '?'}"
-            for player, hero_name in zip(match["players"], match["hero_names"], strict=True)
-        ]
-        prefix = f"[{avg_mmr}] " if (avg_mmr := match["average_mmr"]) else ""
-        content = prefix + " \N{BULLET} ".join(response_parts) if response_parts else "No player data yet"
+        if not match["players"]:
+            content = "No player data yet"
+        else:
+            response_parts = [
+                f"{hero_name if hero_name != 'NONE' else player['color']} {player['medal'] or '?'}"
+                for player, hero_name in zip(match["players"], match["hero_names"], strict=True)
+            ]
+            prefix = f"[{avg_mmr}] " if (avg_mmr := match["average_mmr"]) else ""
+            content = prefix + " \N{BULLET} ".join(response_parts)
         await self.send_with_tag(ctx, match, content)
 
     @commands.command()
@@ -470,7 +477,7 @@ class MMRBot(IrePublicComponent):
             player = match["players"][player_slot]
             hero_name = match["hero_names"][player_slot]
             content = f"{hero_name if hero_name != 'NONE' else player['color']} stratz.com/players/{player['friend_id']}"
-        await ctx.send(content)
+        await self.send_with_tag(ctx, match, content)
 
     @commands.command(aliases=["items", "kda"])
     async def stats(self, ctx: IreContext, *, player_slot_color_or_hero_name: str) -> None:
@@ -491,31 +498,17 @@ class MMRBot(IrePublicComponent):
 
         player_slot = extract_player_slot(player_slot_color_or_hero_name, match["hero_names"])
         # player = list(match["players"].values())[player_slot]
-        hero_id = match["heroes"][player_slot]
-        hero_name = match["heroes"][player_slot]
-
+        hero_name = match["hero_names"][player_slot]
         stats = await self.steam_web_api.get_real_time_stats(match["server_steam_id"])
 
         # We have to loop through teams in order to support Custom and Event Games
         # Since the amount of players in the team can be variable.
-        for team in stats["teams"]:
-            for p in team["players"]:
-                if p["heroid"] == hero_id:
-                    api_player = p
-                    break
-            else:
-                continue
-            break
-        else:
+        api_player = next(
+            iter(p for team in stats["teams"] for p in team["players"] if p["hero_id"] == match["heroes"][player_slot]), None
+        )
+        if api_player is None:
             msg = f"Somehow couldn't find the player {player_slot=} with {hero_name} in the game."
             raise errors.SomethingWentWrongError(msg)
-
-        prefix = (
-            f"{'[2m delay] ' if match['tag'] == 'playing' else ''}{api_player['name']} {hero_name} lvl {api_player['level']}"
-        )
-        net_worth = f"NW: {api_player['net_worth']}"
-        kda = f"{api_player['kill_count']}/{api_player['death_count']}/{api_player['assists_count']}"
-        cs = f"CS: {api_player['lh_count']}"
 
         try:
             api_player["items"]
@@ -535,8 +528,18 @@ class MMRBot(IrePublicComponent):
             items: str = ", ".join([
                 player_items_dict.get(item, "Unknown Item") for item in api_player["items"] if item != -1
             ])
-        response_parts = (prefix, net_worth, kda, cs, items)
-        await ctx.send(" \N{BULLET} ".join(response_parts))
+        response_parts = (
+            (  # Prefix
+                f"{'[2m delay] ' if match['tag'] == 'playing' else ''}"
+                f"{api_player['name']} {hero_name} lvl {api_player['level']}"
+            ),
+            f"NW: {api_player['net_worth']}",  # Net worth
+            f"{api_player['kill_count']}/{api_player['death_count']}/{api_player['assists_count']}",  # KDA
+            f"CS: {api_player['lh_count']}",  # Last Hits
+            items,  # Items
+        )
+        content = " \N{BULLET} ".join(response_parts)
+        await self.send_with_tag(ctx, match, content)
 
     @stats.error
     @profile.error
@@ -558,6 +561,13 @@ class MMRBot(IrePublicComponent):
         """
         match = await self.get_live_match(ctx.broadcaster.id)
         await ctx.send(content=str(match["server_steam_id"]))
+
+    @commands.command(aliases=["matchid"])
+    async def match_id(self, ctx: IreContext) -> None:
+        """Show match ID for the current match."""
+        match = await self.get_live_match(ctx.broadcaster.id)
+        content = str(match["match_id"])
+        await self.send_with_tag(ctx, match, content)
 
     #########################################################################################################################
     # LAST GAME
