@@ -206,15 +206,43 @@ class RemoveEmoteConverter(commands.Converter[PartialEmote]):
         return await parse_remove_input(ctx.bot.stv, user_input, ctx.broadcaster.id)
 
 
-def is_emote_owner() -> Any:
+async def _is_broadcaster_dev_or_editor_predicate(ctx: IreContext) -> bool:
+    if ctx.chatter.id in {ctx.broadcaster.id, ctx.bot.owner_id}:
+        return True
+
+    query = "SELECT editor_id FROM ttv_stv_mods WHERE broadcaster_id = $1 AND editor_id = $2"
+    editor_id: str | None = await ctx.bot.pool.fetchval(query, ctx.broadcaster.id, ctx.chatter.id)
+    if editor_id is None:
+        msg = "Only broadcaster and 7tv editors can use this command"
+        raise errors.NotAllowedError(msg)
+    return True
+
+
+def is_broadcaster_dev_or_editor() -> Any:
+    """Allow the command to be completed only by the following people.
+
+    * broadcaster
+    * developer
+    * editor
+    """
+
+    async def predicate(ctx: IreContext) -> bool:
+        return await _is_broadcaster_dev_or_editor_predicate(ctx)
+
+    return commands.guard(predicate)
+
+
+def is_broadcaster_dev_editor_or_adder() -> Any:
     """Allow the command to be completed only by emote owners.
 
     An emote is supposed to be managed by
     * broadcaster
     * developer
+    * 7tv emote editor
     * a person who added it in the first place.
 
-    PS. This is a fake guard as validation happens elsewhere because it needs command arguments.
+    PS. This is a fake guard as validation happens elsewhere because it needs command arguments
+    (twitchio sets ``ctx.args`` after command invocation).
     This guard is needed solely for documentation quirks purposes.
     """
 
@@ -489,7 +517,7 @@ class SevenTVFeatures(IrePublicComponent):
         )
         # await self.stv_ws_subscribe(partial_emote_set.id)
 
-    @guards.is_broadcaster_or_dev()
+    @is_broadcaster_dev_or_editor()
     @stv_cycle.command(name="drop")
     async def stv_cycle_drop(
         self,
@@ -556,7 +584,7 @@ class SevenTVFeatures(IrePublicComponent):
         )
         await ctx.send(content)
 
-    @guards.is_broadcaster_or_dev()
+    @is_broadcaster_dev_or_editor()
     @stv_cycle.command(name="limit")
     async def stv_cycle_limit(self, ctx: IreContext, new_limit: int) -> None:
         """Change 7TV Cycling emote channel points reward's limit.
@@ -587,8 +615,8 @@ class SevenTVFeatures(IrePublicComponent):
         content = f"Total: {len(cycle_emotes)}; " + " ".join(cycle_emotes)
         await ctx.send(content)
 
-    @guards.is_broadcaster_or_dev()
-    @stv_cycle.command(name="allow-common-words")
+    @is_broadcaster_dev_or_editor()
+    @stv_cycle.command(name="allow-common-words", aliases=["allowcommonwords"])  # cSpell: ignore: allowcommonwords
     async def stv_cycle_allowcommonwords(self, ctx: IreContext, *, new_state: bool | None = None) -> None:
         """Set whether common words are allowed to be emote aliases in this stream.
 
@@ -973,7 +1001,7 @@ class SevenTVFeatures(IrePublicComponent):
         await emote_set.add_emote(emote_id=emote.id, emote_alias=alias)
         await ctx.send("Added")
 
-    @guards.is_broadcaster_or_dev()
+    @is_broadcaster_dev_or_editor()
     @stv.command(name="add", extras={"usage": "!7tv add XDD XDD"})
     async def stv_add(
         self,
@@ -1026,15 +1054,21 @@ class SevenTVFeatures(IrePublicComponent):
         * developer
         * a person who added it in the first place.
         """
-        if user_id in {ctx.broadcaster.id, ctx.bot.owner_id}:
+        if await _is_broadcaster_dev_or_editor_predicate(ctx):
             return "broadcaster"
+
+        query = "SELECT COUNT(*) FROM ttv_stv_cycle_emotes WHERE emote_id = $2 AND broadcaster_id = $3"
+        count_exists: int = await self.bot.pool.fetchval(query, user_id, emote_id, ctx.broadcaster.id)
+        if not count_exists:
+            msg = f"Invalid emote (probably not temporary one) {self.EMOTE}"
+            raise errors.RespondWithError(msg)
 
         query = "SELECT COUNT(*) FROM ttv_stv_cycle_emotes WHERE requested_by = $1 AND emote_id = $2 AND broadcaster_id = $3"
         count: int = await self.bot.pool.fetchval(query, user_id, emote_id, ctx.broadcaster.id)
         if count:
             return "chatter"
 
-        msg = f"Invalid emote or you are not allowed to manage this emote {self.EMOTE}"
+        msg = f"You are not allowed to manage this emote {self.EMOTE}"
         raise errors.RespondWithError(msg)
 
     async def remove_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
@@ -1060,7 +1094,7 @@ class SevenTVFeatures(IrePublicComponent):
             await emote_set.rename_emote(emote_id=emote.id, new_emote_alias=alias, allow_common_words=allow_common_words)
         await ctx.send("Renamed")
 
-    @is_emote_owner()
+    @is_broadcaster_dev_editor_or_adder()
     @stv.command(name="rename")
     async def stv_rename(
         self,
@@ -1086,7 +1120,7 @@ class SevenTVFeatures(IrePublicComponent):
         await self.rename_emote_worker(ctx, emote_and_alias)
 
     @copy_doc(stv_rename)
-    @is_emote_owner()
+    @is_broadcaster_dev_editor_or_adder()
     @commands.command(name="rename")
     async def rename(
         self,
@@ -1100,7 +1134,7 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.rename_emote_worker(ctx, emote_and_alias)
 
-    @is_emote_owner()
+    @is_broadcaster_dev_editor_or_adder()
     @stv.command(name="remove")
     async def stv_remove(
         self,
@@ -1123,7 +1157,7 @@ class SevenTVFeatures(IrePublicComponent):
         await self.remove_emote_worker(ctx, emote)
 
     @copy_doc(stv_remove)
-    @is_emote_owner()
+    @is_broadcaster_dev_editor_or_adder()
     @commands.command(name="remove")
     async def remove(
         self,
@@ -1323,18 +1357,19 @@ class SevenTVFeatures(IrePublicComponent):
             query = "DELETE FROM ttv_stv_blacklist_emotes WHERE blacklisted_at < $1;"
             await self.bot.pool.execute(query, clock.utcnow() - dt.timedelta(hours=row["duration"]))
 
-    @guards.is_broadcaster_or_dev()
+    @is_broadcaster_dev_or_editor()
     @stv_blacklist.command(name="duration")
     async def stv_blacklist_duration(self, ctx: IreContext, days: int, hours: int = 0) -> None:
         """Set duration for which the emotes are going to be blacklisted.
 
         A few notes:
+
         * The bot removes blacklisted status from emotes every hour at X:00. So if current blacklist duration is 7 days,
           it's been 5 days since an emote was blacklisted and the broadcaster sets new duration to 3 days then the status
           for emotes will be updated at next X:00.
-        * I guess, it's pedantic to point out that the emotes are not being blacklisted for the input'ed duration, since
-          the bot does the blacklist-update task every hour at X:00. So an emote A blacklisted at 2:01AM will have its status
-          lifted at the same time as an emote B that got blacklisted at 2:59AM.
+        * I guess, it's pedantic to point out that the emotes are not being blacklisted `precisely` for the input'ed
+          duration, since the bot does the blacklist-expiry task every hour at X:00. So an emote AAA that was blacklisted
+          at 2:01AM will have its status lifted at the same time as an emote BBB that got blacklisted at 2:59AM.
 
         Parameters
         ----------
@@ -1358,9 +1393,8 @@ class SevenTVFeatures(IrePublicComponent):
     # SOME MODERATION RELATED
     #########################################################################################################################
 
-    @stv_cycle.command(name="whoadded")
-    async def stv_cycle_whoadded(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
-        """Get twitch user who added the emote via channel redemption."""
+    async def get_who_added(self, ctx: IreContext, emote: PartialEmote) -> None:
+        """Get username of who added the emote via channel redemption."""
         query = "SELECT requested_by FROM ttv_stv_cycle_emotes WHERE broadcaster_id = $1 AND emote_id = $2"
         user_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, emote.id)
         if user_id is None:
@@ -1372,6 +1406,51 @@ class SevenTVFeatures(IrePublicComponent):
             raise errors.RespondWithError(msg)
 
         await ctx.send(f"It was added by {user.display_name}")
+
+    @stv_cycle.command(name="who-added", aliases=["whoadded"])  # cSpell: words: whoadded
+    async def stv_cycle_who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
+        """Get twitch user who added the emote via channel redemption.
+
+        PS. This command also has a short version ``!remove`` (so no need to type ``!7tv``).
+
+        Parameters
+        ----------
+        emote
+            Format: ``<emote_name_link_or_id>`` which is supposed to be an emote identifier for the bot to find the emote:
+            emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            emote ID (characters sequence in after the last "/" in the emote link) or name that the bot will use to
+            search for desired emote in the broadcaster's emote set.
+        """
+        await self.get_who_added(ctx, emote)
+
+    @copy_doc(stv_cycle_who_added)
+    @commands.command(name="who-added", aliases=["whoadded"])
+    async def who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
+        """Get twitch user who added the emote via channel redemption.
+
+        @copy_doc(stv_cycle_who_added)
+        """
+        await self.get_who_added(ctx, emote)
+
+    #########################################################################################################################
+    # MODS
+    #########################################################################################################################
+
+    @stv.command(name="mods", aliases=["editors"])
+    async def stv_mods(self, ctx: IreContext) -> None:
+        """Get 7tv editors for this broadcaster.
+
+        This command also refreshes the list of 7tv list editors for the broadcaster in the database
+        (so these users can use some more elevated commands like ``!7tv add``).
+        I'm having troubles setting up automatic updates via 7tv's websocket so for now broadcasters need to use this command
+        after adding/removing 7tv editors.
+        """
+        partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
+        editors = await partial_user.get_stv_mods()
+        query = "INSERT INTO ttv_stv_mods (broadcaster_id, editor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;"
+        await self.bot.pool.executemany(query, [(ctx.broadcaster.id, editor["platformId"]) for editor in editors])
+        content = " \N{BULLET} ".join([editor["platformDisplayName"] or "unknown_user" for editor in editors])
+        await ctx.send(f"{content} {self.EMOTE}")
 
 
 async def setup(bot: IreBot) -> None:

@@ -103,3 +103,8 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 ##############
 
 Coming Soon
+
+🥸 7TV Editors 
+###############
+
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_mods

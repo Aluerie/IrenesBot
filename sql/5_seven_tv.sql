@@ -78,3 +78,11 @@ CREATE TABLE
         blacklisted_at TIMESTAMPTZ DEFAULT (NOW () AT TIME zone 'utc'),
         requested_by TEXT NOT NULL -- twitch_id string;
     );
+
+CREATE TABLE
+    /* 7TV mods */
+    IF NOT EXISTS ttv_stv_mods (
+        broadcaster_id TEXT NOT NULL,
+        editor_id TEXT NOT NULL,
+        PRIMARY KEY (broadcaster_id, editor_id)
+    );
