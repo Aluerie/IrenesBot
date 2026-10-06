@@ -97,6 +97,7 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_create
 
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_duration
 
 🤣 Emote Stats
 ##############

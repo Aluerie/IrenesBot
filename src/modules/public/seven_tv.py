@@ -1129,7 +1129,7 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote: Annotated[PartialEmote, RenameEmoteConverter],
+        emote: Annotated[PartialEmote, RemoveEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
@@ -1353,6 +1353,25 @@ class SevenTVFeatures(IrePublicComponent):
         query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2;"
         await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
         await ctx.send(f"Changed duration to {clock.human_timedelta(dt.timedelta(days=days, hours=hours))} {self.EMOTE}")
+
+    #########################################################################################################################
+    # SOME MODERATION RELATED
+    #########################################################################################################################
+
+    @stv_cycle.command(name="whoadded")
+    async def stv_cycle_whoadded(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
+        """Get twitch user who added the emote via channel redemption."""
+        query = "SELECT requested_by FROM ttv_stv_cycle_emotes WHERE broadcaster_id = $1 AND emote_id = $2"
+        user_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, emote.id)
+        if user_id is None:
+            msg = f"This is not a known temporary emote {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+        user = await self.bot.fetch_user(id=user_id)
+        if user is None:
+            msg = f"Could not find the user who added it (did they delete their account?) {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+
+        await ctx.send(f"It was added by {user.display_name}")
 
 
 async def setup(bot: IreBot) -> None:

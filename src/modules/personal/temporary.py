@@ -8,6 +8,7 @@ Notices
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import TYPE_CHECKING, TypedDict
 
 from twitchio.ext import commands
@@ -126,6 +127,15 @@ class TemporaryCommands(IrePersonalComponent):
             "I also load a save-state for Emma + Isshin + Inner Father to cover them too."
         )
         await ctx.send(msg)
+
+    @commands.cooldown(rate=1, per=dt.timedelta(seconds=60), key=commands.BucketType.channel)
+    @commands.command()
+    async def chat(self, ctx: IreContext, *, argument: str) -> None:
+        """Repeat chatter's request.
+
+        This is useful to bypass mod-only restriction of cyan-chat.
+        """
+        await ctx.send(f"!chat {argument}")
 
 
 async def setup(bot: IreBot) -> None:
