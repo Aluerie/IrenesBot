@@ -65,7 +65,8 @@ CREATE TABLE
     /* Blacklist Emote Rewards */
     IF NOT EXISTS ttv_stv_blacklist_rewards (
         broadcaster_id TEXT PRIMARY KEY REFERENCES ttv_stv_users (broadcaster_id) ON DELETE CASCADE,
-        reward_id TEXT NOT NULL
+        reward_id TEXT NOT NULL,
+        duration INTEGER NOT NULL DEFAULT (169)
     );
 
 CREATE TABLE

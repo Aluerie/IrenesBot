@@ -1318,8 +1318,41 @@ class SevenTVFeatures(IrePublicComponent):
     @ireloop(time=[dt.time(hour=hour) for hour in range(23)])
     async def expire_blacklisted_emotes(self) -> None:
         """Task to expire blacklisted emotes."""
-        query = "DELETE FROM ttv_stv_blacklist_emotes WHERE blacklisted_at < $1;"
-        await self.bot.pool.execute(query, clock.utcnow() - dt.timedelta(days=7))
+        query = "SELECT duration, broadcaster_id FROM ttv_stv_blacklist_emotes"
+        for row in await self.bot.pool.fetch(query):
+            query = "DELETE FROM ttv_stv_blacklist_emotes WHERE blacklisted_at < $1;"
+            await self.bot.pool.execute(query, clock.utcnow() - dt.timedelta(hours=row["duration"]))
+
+    @guards.is_broadcaster_or_dev()
+    @stv_blacklist.command(name="duration")
+    async def stv_blacklist_duration(self, ctx: IreContext, days: int, hours: int = 0) -> None:
+        """Set duration for which the emotes are going to be blacklisted.
+
+        A few notes:
+        * The bot removes blacklisted status from emotes every hour at X:00. So if current blacklist duration is 7 days,
+          it's been 5 days since an emote was blacklisted and the broadcaster sets new duration to 3 days then the status
+          for emotes will be updated at next X:00.
+        * I guess, it's pedantic to point out that the emotes are not being blacklisted for the input'ed duration, since
+          the bot does the blacklist-update task every hour at X:00. So an emote A blacklisted at 2:01AM will have its status
+          lifted at the same time as an emote B that got blacklisted at 2:59AM.
+
+        Parameters
+        ----------
+        days
+            Amount of days the emotes will be blacklisted.
+        hours
+            Additionally, amount of hours the emotes will be blacklisted.
+
+        Examples
+        --------
+        * ``7tv blacklist duration 10 13`` - 10 days, 13 hours.
+        * ``7tv blacklist duration 14`` - 2 weeks (14 days).
+        """
+        new_duration = days * 24 + hours
+
+        query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster = $2;"
+        await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
+        await ctx.send(f"Changed duration to {dt.timedelta(days=days, hours=hours)} {self.EMOTE}")
 
 
 async def setup(bot: IreBot) -> None:
