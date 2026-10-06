@@ -150,7 +150,7 @@ class LocalAPI:
         self.session = session
 
     async def _invoke(self, endpoint: str) -> Any:
-        async with self.session.get(endpoint) as resp:
+        async with self.session.get(f"{self.BASE_URL}{endpoint}") as resp:
             return await resp.json()
 
     async def get_streamers(self) -> Streamers:
@@ -162,6 +162,10 @@ class LocalAPI:
 
     async def get_user(self, user_id: int) -> User:
         return await self._invoke(f"/user/{user_id}")
+
+    async def get_profile_card(self, friend_id: int) -> ProfileCard:
+        """Get profile_card."""
+        return await self._invoke(f"/profile_card/{friend_id}")
 
 
 # /* cSpell:disable */
@@ -613,13 +617,15 @@ class MMRBot(IrePublicComponent):
     # LIVE GAME THAT REQUIRE REAL TIME STATS
     #########################################################################################################################
 
-    async def get_real_time_stats(self, broadcaster_id: str) -> tuple[LiveMatch, steam_web_api_schemas.RealTimeStats]:
+    async def get_real_time_stats(self, match: LiveMatch) -> steam_web_api_schemas.RealTimeStats:
         """Get Real time stats."""
-        match = await self.get_live_match(broadcaster_id)
         if not match["server_steam_id"]:
             msg = "This match doesn't support real time stats"
             raise errors.RespondWithError(msg)
-        return match, await self.steam_web_api.get_real_time_stats(match["server_steam_id"])
+        if match["lobby_type"] == LobbyType.NewPlayerMode:
+            msg = "New Player Mode matches do not support real time stats."
+            raise errors.RespondWithError(msg)
+        return await self.steam_web_api.get_real_time_stats(match["server_steam_id"])
 
     @commands.command(aliases=["items", "kda"])
     async def stats(self, ctx: IreContext, *, player_slot_color_or_hero_name: str) -> None:
@@ -628,20 +634,14 @@ class MMRBot(IrePublicComponent):
         `argument` can be a hero name, hero alias, player slot or colour.
         """
         match = await self.get_live_match(ctx.broadcaster.id)
-
         if not match["players"]:
             await ctx.send("No player data yet.")
-            return
-        if not match["server_steam_id"]:
-            await ctx.send("This match doesn't support real time stats")
-        if match["lobby_type"] == LobbyType.NewPlayerMode:
-            await ctx.send("New Player Mode matches do not support real time stats.")
             return
 
         hero_names = [player["hero_name"] for player in match["players"]]
         player_slot = extract_player_slot(player_slot_color_or_hero_name, hero_names)
         player = match["players"][player_slot]
-        stats = await self.steam_web_api.get_real_time_stats(match["server_steam_id"])
+        stats = await self.get_real_time_stats(match)
 
         api_player = next(
             iter(p for team in stats["teams"] for p in team["players"] if p["heroid"] == player["hero_id"]), None
@@ -696,7 +696,8 @@ class MMRBot(IrePublicComponent):
     @commands.command()
     async def lead(self, ctx: IreContext) -> None:
         """Show which team has a gold lead and by how much."""
-        match, stats = await self.get_real_time_stats(ctx.broadcaster.id)
+        match = await self.get_live_match(ctx.broadcaster.id)
+        stats = await self.get_real_time_stats(match)
         radiant = stats["teams"][0]
         dire = stats["teams"][1]
         lead = radiant["net_worth"] - dire["net_worth"]
@@ -892,10 +893,6 @@ class MMRBot(IrePublicComponent):
     #########################################################################################################################
     # MMR
     #########################################################################################################################
-    async def get_profile_card(self, friend_id: int) -> ProfileCard:
-        """Get minimal match."""
-        async with self.bot.session.get(f"http://127.0.0.1:8000/profile_card/{friend_id}") as resp:
-            return await resp.json()
 
     @commands.group(invoke_fallback=True)
     async def mmr(self, ctx: IreContext) -> None:
@@ -904,7 +901,7 @@ class MMRBot(IrePublicComponent):
         query = "SELECT estimated_mmr FROM ttv_dota_accounts WHERE friend_id = $1;"
         mmr: int = await self.bot.pool.fetchval(query, streamer["id"])
 
-        profile_card = await self.get_profile_card(streamer["id"])
+        profile_card = await self.local_api.get_profile_card(streamer["id"])
         response = f"Medal: {profile_card['medal']} \N{BULLET} Database tracked MMR: {mmr}"
         await ctx.send(response)
 

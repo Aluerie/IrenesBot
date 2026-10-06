@@ -108,6 +108,7 @@ ignore = [
     "too-many-arguments",
     "too-many-branches",
     "too-many-locals",
+    "too-many-positional-arguments",
     "too-many-public-methods",
     "too-many-return-statements",
     "too-many-statements-in-try-clause",
