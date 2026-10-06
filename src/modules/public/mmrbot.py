@@ -977,11 +977,11 @@ class MMRBot(IrePublicComponent):
         unknown_party_members = " \N{BULLET} ".join([
             f"{(await self.local_api.get_user(v[0]))['name']} ({k})" for k, v in members.items() if not v[1]
         ])
-        if response:
+        if unknown_party_members:
             response += f". And not notable to the bot: {unknown_party_members}"
-        else:
-            # zero known members
-            response = f"Party members IDs: {unknown_party_members}"
+        # else:
+        #     # zero known members
+        #     response = f"Party members IDs: {unknown_party_members}"
         await ctx.send(response)
 
     async def score_response_helper(self, broadcaster_id: str, stream_started_at: dt.datetime | None = None) -> str:
