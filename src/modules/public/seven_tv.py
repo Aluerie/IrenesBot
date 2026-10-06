@@ -1350,7 +1350,7 @@ class SevenTVFeatures(IrePublicComponent):
         """
         new_duration = days * 24 + hours
 
-        query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster = $2;"
+        query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2;"
         await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
         await ctx.send(f"Changed duration to {dt.timedelta(days=days, hours=hours)} {self.EMOTE}")
 
