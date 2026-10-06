@@ -385,9 +385,13 @@ class MMRBot(IrePublicComponent):
 
         async with self.bot.session.get("http://127.0.0.1:8000/streamers") as resp:
             data: IndexResponse = await resp.json()
+            if not data:
+                msg = "Dota2Bot is restarting, please, wait a bit"
+                raise errors.RespondWithError(msg)
+
             streamer = data.get(str(row["friend_id"]))
 
-        if streamer:
+        if streamer is not None:
             if is_green_online_required and not streamer["is_playing_dota"]:
                 msg = "Inactive command \N{BULLET} it requires streamer to be green-online \N{LARGE GREEN CIRCLE} in Dota 2"
                 raise errors.RespondWithError(msg)
@@ -504,7 +508,7 @@ class MMRBot(IrePublicComponent):
         # We have to loop through teams in order to support Custom and Event Games
         # Since the amount of players in the team can be variable.
         api_player = next(
-            iter(p for team in stats["teams"] for p in team["players"] if p["hero_id"] == match["heroes"][player_slot]), None
+            iter(p for team in stats["teams"] for p in team["players"] if p["heroid"] == match["heroes"][player_slot]), None
         )
         if api_player is None:
             msg = f"Somehow couldn't find the player {player_slot=} with {hero_name} in the game."
