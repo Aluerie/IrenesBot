@@ -25,7 +25,7 @@ personal multipurpose :iconify:`logos:twitch` `twitch.tv <https://www.twitch.tv>
    :hidden:
 
    starting/invite
-   starting/preparation
+   starting/faq
 
 .. toctree::
    :maxdepth: 1

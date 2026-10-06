@@ -1,13 +1,17 @@
-🤩 Further Preparations
+🤩 F.A.Q.
 =======================
 
-🤯 Initial settings
-###################
+🤯 What is the bot's prefix?
+############################
 
 * The bot's command prefixes are ``!``, ``?``, ``$``. 
   Which means that the bot will respond to all of these commands: ``!hi``, ``?hi``, ``$hi`` with the same response.
   Maybe in future the bot will support custom per channel command prefixes.
 * To be short, this documentation will just write one command prefix (``!``) when mentioning a command.
+
+🤔 Should streamers give the bot moderator role?
+#################################################
+
 * The bot should give itself a moderator role upon joining your channel. If it doesn't for some reason - please, mod it yourself.
   As it was said in the :ref:`how_to_invite` section -
   :iconify:`logos:twitch` twitch is silly and they rate-limit small bots quite a lot, 
@@ -18,14 +22,14 @@
 
     You can mod the bot by typing ``/mod @IrenesBot`` in your twitch channel's chat.
 
-🦤 Extra actions
-################
+🦤 Do streamers need to do something beyond inviting the bot?
+#############################################################
 
-If a feature requires you to do extra action (e.g. add the bot account to 7tv editors) 
-then the corresponding page in this documentation will instruct about it.
+* If a feature requires you to do extra action (e.g. add the bot account to 7tv editors) 
+  then the corresponding page in this documentation will instruct about it.
 
-💡 Random Tips
-##############
+💡 More random tips?
+####################
 
 .. _channel_points_reward_tips:
 
