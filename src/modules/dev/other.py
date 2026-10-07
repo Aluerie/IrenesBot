@@ -48,7 +48,7 @@ class OtherDevCommands(IreDevComponent):
 
         def to_string(c: str) -> str:
             name = unicodedata.name(c, None)
-            return f"\\N{{{name}}}" if name else "Name not found."
+            return f"\\N{{{name}}}" if name is not None else "Name not found."
 
         names = " ".join(to_string(c) for c in characters[:10])
         if len(characters) > 10:

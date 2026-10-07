@@ -79,7 +79,7 @@ class StreamInformation(IrePersonalComponent):
     @commands.command(name="game", aliases=["category"])
     async def game_command(self, ctx: IreContext, *, game_name: str | None = None) -> None:
         """Either get current channel game or update it."""
-        if not game_name:
+        if game_name is None:
             # 1. No argument
             # respond with current game name the channel is playing
             channel_info = await ctx.broadcaster.fetch_channel_info()

@@ -210,7 +210,7 @@ class StableCommands(IrePersonalComponent):
 
         Better than ChatGPT.
         """
-        if not text:
+        if text is None:
             await ctx.send(f"Wrong command usage! You need to ask the bot yes/no question with it {const.FFZ.peepoWTF}")
             return
 
