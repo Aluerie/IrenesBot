@@ -111,7 +111,7 @@ async def parse_or_search_emote(
         return regex_to_emote(stv_gql, emote_id_link_or_name)
     except errors.BadUserInputError:
         # `emote_name` was provided to search
-        if broadcaster_id:
+        if broadcaster_id is not None:
             # search within the broadcaster
             user = stv_gql.create_partial_user(broadcaster_id)
             return await user.search_emote(emote_id_link_or_name)
@@ -358,7 +358,7 @@ class SevenTVFeatures(IrePublicComponent):
                 DO UPDATE SET stv_user_id  = $2,
                             emote_set_id = $3;
         """
-        if emote_set_id and emote_set_id != user_info.active_emote_set_id:
+        if emote_set_id is not None and emote_set_id != user_info.active_emote_set_id:
             # we need to fetch its name
             emote_set_info = await self.bot.stv.create_partial_emote_set(emote_set_id).fetch_info()
             emote_set_name = emote_set_info.name
@@ -896,7 +896,7 @@ class SevenTVFeatures(IrePublicComponent):
         if not message.text:
             return
 
-        if message.chatter.display_name and message.chatter.display_name.lower() in const.BotsLowerName:
+        if message.chatter.display_name is not None and message.chatter.display_name.lower() in const.BotsLowerName:
             # Not counting known bots
             return
 

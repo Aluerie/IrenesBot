@@ -546,7 +546,7 @@ class MMRBot(IrePublicComponent):
             response_parts = [
                 f"{player['hero_name'] or player['color']} {player['medal'] or '?'}" for player in match["players"]
             ]
-            prefix = f"[{avg_mmr}] " if (avg_mmr := match["average_mmr"]) else ""
+            prefix = f"[{avg_mmr} avg mmr] " if bool(avg_mmr := match["average_mmr"]) else ""
             content = prefix + " \N{BULLET} ".join(response_parts)
         await self.send_with_tag(ctx, match, content)
 
@@ -594,7 +594,7 @@ class MMRBot(IrePublicComponent):
                 response_parts = [
                     f"{nick} as {player['hero_name'] or player['color']}"
                     for player in match["players"]
-                    if (nick := nickname_mapping.get(player["id"]))
+                    if (nick := nickname_mapping.get(player["id"])) is not None
                 ]
                 content = " \N{BULLET} ".join(response_parts)
         await self.send_with_tag(ctx, match, content)
@@ -758,7 +758,7 @@ class MMRBot(IrePublicComponent):
             response_parts = [
                 f"{player['hero_name'] or player['color']} played as {last_game_played_as}"
                 for player in match["players"]
-                if (last_game_played_as := last_game_hero_player_index.get(player["id"]))
+                if (last_game_played_as := last_game_hero_player_index.get(player["id"])) is not None
             ]
             content = (
                 " \N{BULLET} ".join(response_parts)
@@ -925,7 +925,7 @@ class MMRBot(IrePublicComponent):
     async def dotabuff(self, ctx: IreContext) -> None:
         """Show stats service profile link for the streamer, i.e. dotabuff / stratz / opendota."""
         streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
-        if not (invoked := ctx.invoked_with):
+        if (invoked := ctx.invoked_with) is None:
             invoked = "stratz"
         await ctx.send(content=f"{invoked}.com/players/{streamer['id']}")
 
@@ -954,7 +954,7 @@ class MMRBot(IrePublicComponent):
         if party is None:
             msg = "Streamer is not in a party."
             raise errors.RespondWithError(msg)
-        if party2 := streamer["raw_rich_presence"].get("party2"):
+        if (party2 := streamer["raw_rich_presence"].get("party2")) is not None:
             # Apparently if a party is too big, valve just slice the string into party2
             party += party2
 
@@ -1091,7 +1091,7 @@ class MMRBot(IrePublicComponent):
         """Show Dota 2 Pro Tracker page for the currently played hero."""
         streamer = await self.get_streamer(ctx.broadcaster.id)
         npc_hero_name = streamer["raw_rich_presence"].get("param2")
-        if npc_hero_name:
+        if npc_hero_name is not None:
             hero = Hero.create_from_npc_dota_hero_name(npc_hero_name.removeprefix("#"))
             response = url_parse.quote(f"dota2protracker.com/hero/{hero.display_name}")
         else:

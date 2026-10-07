@@ -232,7 +232,7 @@ class IreBot(BotBase, commands.AutoBot):
         """
         await self.add_token(payload.access_token, payload.refresh_token)
 
-        if not payload.user_id:
+        if payload.user_id is None:
             return
 
         if payload.user_id == self.bot_id:
