@@ -533,10 +533,11 @@ class SevenTVFeatures(IrePublicComponent):
         Parameters
         ----------
         emote
-            ``<emote_name_link_or_id>`` which is supposed to be an emote identifier for the bot to find the emote:
-            emote link (any link containing its ID, e.g. emote link or its CDN-link),
-            emote ID (characters sequence in after the last "/" in the emote link) or emote name that the bot will use to
-            search for the desired emote in the broadcaster's emote set.
+            ``<emote_name_link_or_id>`` which is supposed to be an emote identifier:
+
+            * emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            * emote ID (characters sequence in after the last "/" in the emote link)
+            * or emote name that the bot will use to search the desired emote globally across 7TV.
 
         Examples
         --------
@@ -1016,14 +1017,25 @@ class SevenTVFeatures(IrePublicComponent):
         Parameters
         ----------
         emote_and_alias
-            ``<emote_name_link_or_id> <optional_emote_alias>``, separated by space, 1 or 2 "words".
-            The first one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
-            emote link (any link containing its ID, e.g. emote link or its CDN-link),
-            emote ID (characters sequence in after the last "/" in the emote link) or emote name that the bot will use to
-            search the desired emote globally across 7TV.
-            The second one (<optional_emote_alias>) is optional and
+            In the following format: ``<emote_name_link_or_id> <optional_emote_alias>``,
+            separated by space, 1 or 2 "words":
+
+            The 1st one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
+
+            * emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            * emote ID (characters sequence in after the last "/" in the emote link)
+            * or emote name that the bot will use to search the desired emote globally across 7TV.
+
+            The 2nd one (``<optional_emote_alias>``) is optional and
             it can be an emote alias with which the emote will be added.
 
+        Examples
+        --------
+        All these examples below add same "smh" emote
+
+        * ``!7tv add 01FP8TR8G8000EJT2EVEY3JQTF``
+        * ``!7tv add https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH`` - adds it under "SMH" emote alias.
+        * ``!7tv add smh`` - but it might add some other "smh" emote, if it's more popular.
         """
         await self.add_helper(ctx, emote_and_alias)
 
@@ -1109,13 +1121,25 @@ class SevenTVFeatures(IrePublicComponent):
         Parameters
         ----------
         emote_and_alias
-            ``<emote_name_link_or_id> <optional_emote_alias>``, separated by space, 1 or 2 "words".
-            The first one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
-            emote link (any link containing its ID, e.g. emote link or its CDN-link),
-            emote ID (characters sequence in after the last "/" in the emote link) or emote name that the bot will use to
-            search the desired emote globally across 7TV.
-            The second one (<optional_emote_alias>) is optional and
+            In the following format: ``<emote_name_link_or_id> <optional_emote_alias>``,
+            separated by space, 1 or 2 "words":
+
+            The 1st one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
+
+            * emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            * emote ID (characters sequence in after the last "/" in the emote link)
+            * or emote name that the bot will use to search the desired emote globally across 7TV.
+
+            The 2nd one (``<optional_emote_alias>``) is optional and
             it can be an emote alias with which the emote will be added.
+
+        Examples
+        --------
+        All these examples below rename "smh" emote into "SMH"
+
+        * ``!7tv rename 01FP8TR8G8000EJT2EVEY3JQTF SMH``
+        * ``!7tv rename https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH``
+        * ``!7tv rename smh SMH``
         """
         await self.rename_emote_worker(ctx, emote_and_alias)
 
@@ -1149,10 +1173,11 @@ class SevenTVFeatures(IrePublicComponent):
         Parameters
         ----------
         emote
-            Format: ``<emote_name_link_or_id>`` which is supposed to be an emote identifier for the bot to find the emote:
-            emote link (any link containing its ID, e.g. emote link or its CDN-link),
-            emote ID (characters sequence in after the last "/" in the emote link) or name that the bot will use to
-            search for desired emote in the broadcaster's emote set.
+            In the following format: ``<emote_name_link_or_id>`` which is supposed to be an emote identifiere:
+
+            * emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            * emote ID (characters sequence in after the last "/" in the emote link)
+            * or emote name that the bot will use to search the desired emote globally across 7TV.
         """
         await self.remove_emote_worker(ctx, emote)
 
@@ -1440,10 +1465,15 @@ class SevenTVFeatures(IrePublicComponent):
     async def stv_mods(self, ctx: IreContext) -> None:
         """Get 7tv editors for this broadcaster.
 
-        This command also refreshes the list of 7tv list editors for the broadcaster in the database
-        (so these users can use some more elevated commands like ``!7tv add``).
-        I'm having troubles setting up automatic updates via 7tv's websocket so for now broadcasters need to use this command
-        after adding/removing 7tv editors.
+        Important lazy quirk! I'm having troubles setting up receiving automatic updates from 7tv for emote / editor updates.
+        Currently the bot does NOT automatically fetch 7tv editors information for the streamers.
+        So it does NOT automatically update the list of users who can use elevated 7tv commands (such as ``!7tv add``).
+
+        However, this command does - it refreshes the list of 7tv list editors for the broadcaster in the database.
+        So if a broadcaster adds/removes a 7tv editor - they should use this command.
+
+        Hopefully, I solve this quirk in future (stop being lazy and at least make an hourly task or better yet solve my
+        problems with 7tv websockets)
         """
         partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
         editors = await partial_user.get_stv_mods()

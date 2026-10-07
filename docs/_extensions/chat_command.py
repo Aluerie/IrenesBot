@@ -108,7 +108,11 @@ class ChatCommandDocumenter(MethodDocumenter):
             self.add_line("   :class: tip", sourcename)
             self.add_line("", sourcename)
             for param in doc["Parameters"]:
-                self.add_line(f"   * ``<{param.name}>`` - {' '.join(param.desc)}", sourcename)
+                for line_count, param_line in enumerate(param.desc):
+                    if line_count == 0:
+                        self.add_line(f"   * ``<{param.name}>`` -", sourcename)
+                    self.add_line(f"     {param_line}", sourcename)
+                self.add_line("", sourcename)
             self.add_line("", sourcename)
         if doc["Examples"]:
             # self.add_line(".. rubric:: Examples", sourcename)
