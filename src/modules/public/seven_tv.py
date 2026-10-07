@@ -623,7 +623,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         Parameters
         ----------
-        new_state:
+        new_state
             Optional, boolean-like value, e.g. "yes", "no", "true", "false".
             If omitted, then the command will show current state of ``allow-common-words`` setting in the stream.
         """
@@ -1422,18 +1422,21 @@ class SevenTVFeatures(IrePublicComponent):
         """Get username of who added the emote via channel redemption."""
         query = "SELECT requested_by FROM ttv_stv_cycle_emotes WHERE broadcaster_id = $1 AND emote_id = $2"
         user_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, emote.id)
-        if user_id is None:
-            msg = f"This is not a known temporary emote {self.EMOTE}"
-            raise errors.RespondWithError(msg)
-        user = await self.bot.fetch_user(id=user_id)
-        if user is None:
-            msg = f"Could not find the user who added it (did they delete their account?) {self.EMOTE}"
-            raise errors.RespondWithError(msg)
+        if user_id is not None:
+            user = await self.bot.fetch_user(id=user_id)
+            if user is None:
+                msg = f"Could not find the user who added it (did they delete their account?) {self.EMOTE}"
+                raise errors.RespondWithError(msg)
+            await ctx.send(f"Temp emote: it was added by {user.display_name} {self.EMOTE}")
+            return
 
-        await ctx.send(f"It was added by {user.display_name}")
+        emote_set = await self.select_emote_set(ctx.broadcaster.id)
+        added_by = await emote_set.get_emote_added_by(emote.id)
+        display_name = await self.bot.stv.get_display_name_by_stv_id(added_by)
+        await ctx.send(f"Permanent emote: it was added by {display_name} {self.EMOTE}")
 
-    @stv_cycle.command(name="who-added", aliases=["whoadded"])  # cSpell: words: whoadded
-    async def stv_cycle_who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
+    @stv.command(name="who-added", aliases=["whoadded"])  # cSpell: words: whoadded
+    async def stv_who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
         """Get twitch user who added the emote via channel redemption.
 
         PS. This command also has a short version ``!remove`` (so no need to type ``!7tv``).
@@ -1448,7 +1451,7 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.get_who_added(ctx, emote)
 
-    @copy_doc(stv_cycle_who_added)
+    @copy_doc(stv_who_added)
     @commands.command(name="who-added", aliases=["whoadded"])
     async def who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
         """Get twitch user who added the emote via channel redemption.

@@ -82,6 +82,7 @@ extensions = [
     "sphinx_iconify",
     "chat_command",
     "sphinx_copybutton",
+    "sphinx_togglebutton",
 ]
 
 intersphinx_mapping = {

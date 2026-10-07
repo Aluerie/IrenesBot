@@ -25,6 +25,7 @@ from twitchio.web import StarletteAdapter
 from config import env
 from modules import get_modules
 from shared import errors, fmt, globs
+from shared.concepts import BotBase
 from shared.seven_tv_gql import GraphQL7TVClient, exceptions as stv_errors
 from utils import const
 
@@ -75,7 +76,7 @@ class AdapterEnum(enum.Enum):
     remote = enum.auto()
 
 
-class IreBot(commands.AutoBot):
+class IreBot(BotBase, commands.AutoBot):
     """Main class for IreBot.
 
     Essentially subclass over TwitchIO's Client.
@@ -148,7 +149,8 @@ class IreBot(commands.AutoBot):
             self.prefixes = ("!", "?", "$")
             self.error_ping = "<@&1116171071528374394>"
 
-        super().__init__(
+        super().__init__(session, env.WEBHOOK_ERROR, self.error_ping)
+        super(commands.AutoBot, self).__init__(
             client_id=client_id,
             client_secret=client_secret,
             bot_id=bot_id,
@@ -503,25 +505,25 @@ class IreBot(commands.AutoBot):
 
     # SHORTCUTS AND UTILITIES
 
-    def webhook_from_url(self, url: str) -> discord.Webhook:
-        """Shortcut to discord.Webhook.from_url with some filled args."""
-        return discord.Webhook.from_url(url=url, session=self.session)
+    # def webhook_from_url(self, url: str) -> discord.Webhook:
+    #     """Shortcut to discord.Webhook.from_url with some filled args."""
+    #     return discord.Webhook.from_url(url=url, session=self.session)
 
-    @discord.utils.cached_property
-    def error_webhook(self) -> discord.Webhook:
-        """Webhook in hideout server to send errors/notifications to the developer(-s)."""
-        return self.webhook_from_url(env.WEBHOOK_ERROR)
+    # @discord.utils.cached_property
+    # def error_webhook(self) -> discord.Webhook:
+    #     """Webhook in hideout server to send errors/notifications to the developer(-s)."""
+    #     return self.webhook_from_url(env.WEBHOOK_ERROR)
 
-    async def ping_developers(self, **send_kwargs: Any) -> None:
-        """Ping developers.
+    # async def ping_developers(self, **send_kwargs: Any) -> None:
+    #     """Ping developers.
 
-        Parameters
-        ----------
-        send_kwargs
-            Kwargs for `webhook.send` method.
-        """
-        content = f"{self.error_ping}\n{send_kwargs.get('content') or ''}"
-        await self.error_webhook.send(content, **send_kwargs)
+    #     Parameters
+    #     ----------
+    #     send_kwargs
+    #         Kwargs for `webhook.send` method.
+    #     """
+    #     content = f"{self.error_ping}\n{send_kwargs.get('content') or ''}"
+    #     await self.error_webhook.send(content, **send_kwargs)
 
     @discord.utils.cached_property
     def heartbeat_webhook(self) -> discord.Webhook:

@@ -49,6 +49,7 @@ docs = [
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx-iconify",
+    "sphinx-togglebutton",
 ]
 
 [project.optional-dependencies]

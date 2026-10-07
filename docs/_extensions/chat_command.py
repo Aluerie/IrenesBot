@@ -35,7 +35,7 @@ GUARD_NOTE_MAPPING = {
     "is_broadcaster_or_dev": "Only broadcaster is allowed to use this command.",
     "is_broadcaster_dev_or_editor": "Only broadcaster and 7tv editors can use this command.",
     "is_broadcaster_dev_editor_or_adder": (
-        "Only broadcaster, 7tv editors and a person who added this emote can use this command."
+        "Only broadcaster, 7tv editors and a person who added the emote can use this command."
     ),
 }
 
@@ -66,9 +66,9 @@ class ChatCommandDocumenter(MethodDocumenter):
         self.add_line(f"   {command_name}{params}\n", sourcename)
         if cmd.aliases:
             parent = f"{cmd.full_parent_name} " if cmd.full_parent_name else ""
-            aliases = ", ".join(f"{PREFIX}{parent}{alias}" for alias in cmd.aliases)
-            self.add_line(".. code-block::", sourcename)
-            self.add_line("   :caption: Aliases", sourcename)
+            aliases = ", ".join(f"``{PREFIX}{parent}{alias}``" for alias in cmd.aliases)
+            self.add_line(".. admonition:: Aliases", sourcename)
+            self.add_line("   :class: dropdown", sourcename)
             self.add_line("", sourcename)
             self.add_line(f"   {aliases}", sourcename)
         self.add_line("", sourcename)

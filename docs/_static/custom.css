@@ -40,3 +40,11 @@ h3 {
 #auto-chat-command>dl>dt>span>span {
     color: white;
 }
+
+/* #tv-editor-accept > div.hint.admonition > p:nth-child(2) {
+    display: none;
+} */
+
+/* div.hint.admonition > p.admonition-title {
+    display: none;
+} */
