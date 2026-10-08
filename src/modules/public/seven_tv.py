@@ -1083,13 +1083,6 @@ class SevenTVFeatures(IrePublicComponent):
         msg = f"You are not allowed to manage this emote {self.EMOTE}"
         raise errors.RespondWithError(msg)
 
-    async def remove_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
-        """Remove 7TV emote helper."""
-        await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
-        partial_emote_set = await self.select_emote_set(ctx.broadcaster.id)
-        await partial_emote_set.remove_emote(emote_id=emote.id)
-        await ctx.send("Removed")
-
     async def rename_emote_worker(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
         """Rename 7TV emote helper."""
         emote, alias = emote_and_alias
@@ -1104,7 +1097,7 @@ class SevenTVFeatures(IrePublicComponent):
         else:
             allow_common_words = await self.select_cycle_allow_common_words(ctx.broadcaster.id)
             await emote_set.rename_emote(emote_id=emote.id, new_emote_alias=alias, allow_common_words=allow_common_words)
-        await ctx.send("Renamed")
+        await ctx.send(f"Renamed {self.EMOTE}")
 
     @is_broadcaster_dev_editor_or_adder()
     @stv.command(name="rename")
@@ -1158,6 +1151,13 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.rename_emote_worker(ctx, emote_and_alias)
 
+    async def remove_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
+        """Remove 7TV emote helper."""
+        await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
+        partial_emote_set = await self.select_emote_set(ctx.broadcaster.id)
+        await partial_emote_set.remove_emote(emote_id=emote.id)
+        await ctx.send(f"Removed {self.EMOTE}")
+
     @is_broadcaster_dev_editor_or_adder()
     @stv.command(name="remove")
     async def stv_remove(
@@ -1195,6 +1195,100 @@ class SevenTVFeatures(IrePublicComponent):
         @copy_doc(stv_remove)
         """
         await self.remove_emote_worker(ctx, emote)
+
+    async def replace_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
+        """Replace 7TV emote helper."""
+        # await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
+
+        # Validate it's been 10 minutes
+        query = """
+            SELECT emote_id, added_at
+            FROM ttv_stv_cycle_emotes
+            WHERE broadcaster_id = $1 AND requested_by = $2
+            ORDER BY added_at DESC
+            LIMIT 1
+        """
+        row = await self.bot.pool.fetchrow(query, ctx.broadcaster.id, ctx.chatter.id)
+
+        if row is None:
+            msg = f"It seems you have not added any emotes yet {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+
+        # print(clock.utcnow())
+        # print(row["added_at"])
+        # print(clock.utcnow() - row["added_at"])
+        # print(row["emote_id"])
+        if clock.utcnow() - row["added_at"] > dt.timedelta(minutes=10):
+            msg = f"It's been more than 10 minutes, I don't allow replacing after so long {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+
+        partial_emote_set = await self.select_emote_set(ctx.broadcaster.id)
+        await partial_emote_set.remove_emote(emote_id=row["emote_id"])
+        await partial_emote_set.add_emote(emote_id=emote.id)
+
+        query = """
+            UPDATE ttv_stv_cycle_emotes
+            SET emote_id = $1
+            WHERE broadcaster_id = $2 AND emote_id = $3 AND requested_by = $4;
+        """
+        await self.bot.pool.execute(query, emote.id, ctx.broadcaster.id, row["emote_id"], ctx.chatter.id)
+        await ctx.send(f"Replaced {self.EMOTE}")
+
+    @is_broadcaster_dev_editor_or_adder()
+    @stv.command(name="replace")
+    async def stv_replace(
+        self,
+        ctx: IreContext,
+        *,
+        emote: Annotated[PartialEmote, AddEmoteConverter],
+    ) -> None:
+        """Replace 7TV emote.
+
+        If a user who added the emote decides that they want to add a different emote -
+        they can replace it with this command.
+        For example, if in their redemption they typed "smh", but the bot added some uninteresting version of "smh" -
+        they can use ``!replace <some-cool-emote-id>`` without spending any points.
+        To prevent abuse, this command only allows replacing your most recent emote request if it was done within 10 minutes
+        of it.
+
+        PS. This command also has a short version ``!replace`` (so no need to type ``!7tv``).
+
+        Parameters
+        ----------
+        emote
+            In the following format: ``<emote_name_link_or_id>`` which is supposed to be an emote identifiere:
+
+            * emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            * emote ID (characters sequence in after the last "/" in the emote link)
+            * or emote name that the bot will use to search the desired emote globally across 7TV.
+
+        Examples
+        --------
+        All these examples below replace the most recent requested emote with a new one. Note that the user does not need to
+        type an identifier for the emote that they want to replace - the bot fetches their most recent emote addition
+        redemption.
+
+        * ``!7tv replace 01F6R50PYR0004V0XPDH2CKXCH``
+        * ``!7tv replace https://7tv.app/emotes/01F6R50PYR0004V0XPDH2CKXCH``
+        * ``!7tv replace smh DuckSmh`` - the bot will search 7tv for "smh", note that the bot will still add the most popular
+        one, so doing ``!replace smh`` after adding ``smh`` via redemption is pointless.
+        """
+        await self.replace_emote_worker(ctx, emote)
+
+    @copy_doc(stv_replace)
+    @is_broadcaster_dev_editor_or_adder()
+    @commands.command(name="replace")
+    async def replace(
+        self,
+        ctx: IreContext,
+        *,
+        emote: Annotated[PartialEmote, AddEmoteConverter],
+    ) -> None:
+        """Replace 7TV emote.
+
+        @copy_doc(stv_remove)
+        """
+        await self.replace_emote_worker(ctx, emote)
 
     #########################################################################################################################
     # BLACKLIST                                                                                                             #

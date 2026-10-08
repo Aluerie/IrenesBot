@@ -29,13 +29,13 @@ if TYPE_CHECKING:
 PREFIX = "!"
 
 GUARD_NOTE_MAPPING = {
-    "is_moderator": "Only channel moderators are allowed to use this command.",
-    "is_owner": "Only Irene_Adler__ is allowed to use this command.",
-    "is_broadcaster": "Only broadcaster is allowed to use this command.",
-    "is_broadcaster_or_dev": "Only broadcaster is allowed to use this command.",
-    "is_broadcaster_dev_or_editor": "Only broadcaster and 7tv editors can use this command.",
+    "is_moderator": "Only broadcaster and moderators.",
+    "is_owner": "Only Irene_Adler__.",
+    "is_broadcaster": "Only broadcaster.",
+    "is_broadcaster_or_dev": "Only broadcaster.",
+    "is_broadcaster_dev_or_editor": "Only broadcaster and 7tv editors.",
     "is_broadcaster_dev_editor_or_adder": (
-        "Only broadcaster, 7tv editors and a person who added the emote can use this command."
+        "Only broadcaster, 7tv editors and a person who added the emote."
     ),
 }
 
@@ -75,7 +75,7 @@ class ChatCommandDocumenter(MethodDocumenter):
 
         # Permissions
         if cmd.guards:
-            self.add_line(".. admonition:: Permissions", sourcename)
+            self.add_line(".. admonition:: Who has permissions to use this command?", sourcename)
             self.add_line("   :class: hint", sourcename)
             self.add_line("", sourcename)
             note_description = "\n".join(

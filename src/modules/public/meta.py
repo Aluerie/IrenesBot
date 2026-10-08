@@ -46,7 +46,7 @@ class MetaCommands(IrePublicComponent):
         # TODO: try to experiment with edit_url
         clip = await ctx.broadcaster.create_clip(token_for=const.UserID.Bot, title=title)
         await ctx.send(f"clips.twitch.tv/{clip.id}")
-        await ctx.send(f"Editing Link: {clip.edit_url}")
+        # await ctx.send(f"Editing Link: {clip.edit_url}")
 
     @clip.error
     async def clip_error(self, payload: commands.CommandErrorPayload) -> None:

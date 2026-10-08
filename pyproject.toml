@@ -114,9 +114,7 @@ ignore = [
     "too-many-return-statements",
     "too-many-statements-in-try-clause",
     # Todo
-    "line-contains-todo", # I use TODO Tree VSCode extension for this
-    "missing-todo-author",
-    "missing-todo-link",
+    "TD",  # I use TODO Tree VSCode extension for this
     # Other (uncategorized) Rules
     "ambiguous-unicode-character-string",
     "any-type",
