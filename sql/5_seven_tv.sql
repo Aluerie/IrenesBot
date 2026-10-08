@@ -22,7 +22,7 @@ CREATE TABLE
         emote_id TEXT NOT NULL,
         broadcaster_id TEXT NOT NULL REFERENCES ttv_stv_cycle_rewards (broadcaster_id) ON DELETE CASCADE,
         emote_set_id TEXT NOT NULL,
-        added_at TIMESTAMPTZ DEFAULT (now() AT TIME ZONE 'utc'::text),
+        added_at TIMESTAMP DEFAULT (now() AT TIME ZONE 'utc'::text),
         requested_by TEXT NOT NULL -- twitch_id string;
     );
 
@@ -75,7 +75,7 @@ CREATE TABLE
         id SERIAL PRIMARY KEY,
         emote_id TEXT NOT NULL,
         broadcaster_id TEXT NOT NULL REFERENCES ttv_stv_cycle_rewards (broadcaster_id) ON DELETE CASCADE,
-        blacklisted_at TIMESTAMPTZ DEFAULT (NOW () AT TIME zone 'utc'),
+        blacklisted_at TIMESTAMP DEFAULT (NOW () AT TIME zone 'utc'),
         requested_by TEXT NOT NULL -- twitch_id string;
     );
 

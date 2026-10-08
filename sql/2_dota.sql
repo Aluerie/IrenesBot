@@ -3,13 +3,13 @@ CREATE TABLE
         friend_id BIGINT PRIMARY KEY, -- steam32id (friend id) format;
         twitch_id TEXT NOT NULL REFERENCES ttv_tokens (user_id) ON DELETE CASCADE,
         estimated_mmr INT DEFAULT (0),
-        last_seen TIMESTAMPTZ DEFAULT (NOW () AT TIME zone 'utc'),
+        last_seen TIMESTAMP DEFAULT (NOW () AT TIME zone 'utc'),
     );
 
 CREATE TABLE
     IF NOT EXISTS ttv_dota_matches (
         match_id BIGINT PRIMARY KEY,
-        start_time TIMESTAMPTZ DEFAULT (NOW () AT TIME zone 'utc'),
+        start_time TIMESTAMP DEFAULT (NOW () AT TIME zone 'utc'),
         lobby_type INT NOT NULL,
         game_mode INT NOT NULL,
         outcome INT DEFAULT (NULL),

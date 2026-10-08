@@ -115,6 +115,7 @@ ignore = [
     "too-many-statements-in-try-clause",
     # Todo
     "TD",  # I use TODO Tree VSCode extension for this
+    "FIX",
     # Other (uncategorized) Rules
     "ambiguous-unicode-character-string",
     "any-type",

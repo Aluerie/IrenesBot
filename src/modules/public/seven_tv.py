@@ -1462,10 +1462,13 @@ class SevenTVFeatures(IrePublicComponent):
     ) -> None:
         """Add an emote but also perform some validations."""
         # blacklist
+        query = "SELECT duration FROM ttv_stv_blacklist_rewards WHERE broadcaster_id = $1"
+        hours = await self.bot.pool.fetchval(query, broadcaster_id)
+
         query = "SELECT emote_id, blacklisted_at FROM ttv_stv_blacklist_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
         row = await self.bot.pool.fetchrow(query, emote_id, broadcaster_id)
         if row:
-            expire_dt = clock.round_to_next_hour(row["blacklisted_at"] + dt.timedelta(days=7))
+            expire_dt = clock.round_to_next_hour(row["blacklisted_at"] + dt.timedelta(hours=hours))
             msg = (
                 "The requested emote is blacklisted; "
                 f"{clock.human_timedelta(expire_dt, mode='short')} until it is allowed {self.EMOTE}"
