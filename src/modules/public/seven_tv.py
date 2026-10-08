@@ -1164,7 +1164,7 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote: Annotated[PartialEmote, AddEmoteConverter],
+        emote: Annotated[PartialEmote, RemoveEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
@@ -1196,8 +1196,9 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.remove_emote_worker(ctx, emote)
 
-    async def replace_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
+    async def replace_emote_worker(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
         """Replace 7TV emote helper."""
+        emote, alias = emote_and_alias
         # await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
 
         # Validate it's been 10 minutes
@@ -1224,7 +1225,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         partial_emote_set = await self.select_emote_set(ctx.broadcaster.id)
         await partial_emote_set.remove_emote(emote_id=row["emote_id"])
-        await partial_emote_set.add_emote(emote_id=emote.id)
+        await partial_emote_set.add_emote(emote_id=emote.id, emote_alias=alias)
 
         query = """
             UPDATE ttv_stv_cycle_emotes
@@ -1240,7 +1241,7 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote: Annotated[PartialEmote, AddEmoteConverter],
+        emote_and_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
     ) -> None:
         """Replace 7TV emote.
 
@@ -1255,12 +1256,18 @@ class SevenTVFeatures(IrePublicComponent):
 
         Parameters
         ----------
-        emote
-            In the following format: ``<emote_name_link_or_id>`` which is supposed to be an emote identifiere:
+        emote_and_alias
+            In the following format: ``<emote_name_link_or_id> <optional_emote_alias>``,
+            separated by space, 1 or 2 "words":
+
+            The 1st one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
 
             * emote link (any link containing its ID, e.g. emote link or its CDN-link),
             * emote ID (characters sequence in after the last "/" in the emote link)
             * or emote name that the bot will use to search the desired emote globally across 7TV.
+
+            The 2nd one (``<optional_emote_alias>``) is optional and
+            it can be an emote alias with which the emote will be added.
 
         Examples
         --------
@@ -1273,7 +1280,7 @@ class SevenTVFeatures(IrePublicComponent):
         * ``!7tv replace smh DuckSmh`` - the bot will search 7tv for "smh", note that the bot will still add the most popular
         one, so doing ``!replace smh`` after adding ``smh`` via redemption is pointless.
         """
-        await self.replace_emote_worker(ctx, emote)
+        await self.replace_emote_worker(ctx, emote_and_alias)
 
     @copy_doc(stv_replace)
     @is_broadcaster_dev_editor_or_adder()
@@ -1282,13 +1289,13 @@ class SevenTVFeatures(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote: Annotated[PartialEmote, AddEmoteConverter],
+        emote_and_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
     ) -> None:
         """Replace 7TV emote.
 
         @copy_doc(stv_remove)
         """
-        await self.replace_emote_worker(ctx, emote)
+        await self.replace_emote_worker(ctx, emote_and_alias)
 
     #########################################################################################################################
     # BLACKLIST                                                                                                             #
