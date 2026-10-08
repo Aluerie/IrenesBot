@@ -76,7 +76,6 @@ if TYPE_CHECKING:
     class LiveMatch(TypedDict):
         tag: Literal["playing", "spectating", "unsupported"]
         message: str
-        ready: bool
         match_id: int
         lobby_type: int | None
         lobby_type_name: str
@@ -86,7 +85,7 @@ if TYPE_CHECKING:
         players: list[Player]
         started_at: dt.datetime
         average_mmr: str | None
-        unavailable: bool
+        state: MatchState
 
     class Player(TypedDict):
         id: int
@@ -120,18 +119,20 @@ if TYPE_CHECKING:
     class User(TypedDict):
         name: str
 
+
 #########################################################################################################################
 # FROM DOTA2BOT
 #########################################################################################################################
 
 
-class PlayingMatchState(IntEnum):
+class MatchState(IntEnum):
     """Indicates current state for matches."""
 
     Starting = 1
     Live = 2
     Pending = 3
     Completed = 4
+    ApiError = 91
 
 
 __all__ = ("MMRBot",)
@@ -510,7 +511,7 @@ class MMRBot(IrePublicComponent):
         if live_match["tag"] == "unsupported":
             msg = live_match["message"]
             raise errors.RespondWithError(msg)
-        if live_match["unavailable"]:
+        if live_match["state"] == MatchState.ApiError:
             msg = "I'm not able to fetch data for this match, sorry."
             raise errors.RespondWithError(msg)
         return live_match
@@ -1000,9 +1001,9 @@ class MMRBot(IrePublicComponent):
             ORDER BY m.start_time DESC;
         """  # ruff: ignore[hardcoded-sql-expression]
         rows: list[ScoreQueryRow] = (
-            await self.bot.pool.fetch(query, broadcaster_id, PlayingMatchState.Live, stream_started_at)
+            await self.bot.pool.fetch(query, broadcaster_id, MatchState.Live, stream_started_at)
             if stream_started_at
-            else await self.bot.pool.fetch(query, broadcaster_id, PlayingMatchState.Live)
+            else await self.bot.pool.fetch(query, broadcaster_id, MatchState.Live)
         )
 
         if not rows:
