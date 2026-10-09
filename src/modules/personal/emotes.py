@@ -59,7 +59,7 @@ class EmoteChecker(IrePersonalComponent):
             ),
             colour=colour,
         ).set_footer(text="but it was previously used for @IrenesBot emotes")
-        await self.bot.error_webhook.send(content=content, embed=embed)
+        await self.bot.notification_webhook.send(content=content, embed=embed)
 
     async def cross_check_emotes(self, api_emotes: list[str], bot_emotes: type[StrEnum], color: int) -> None:
         """Cross check between emote list in `utils.const` and list from 3rd party emote service API."""

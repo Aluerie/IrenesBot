@@ -25,12 +25,13 @@ from twitchio.web import StarletteAdapter
 from config import env
 from modules import get_modules
 from shared import errors, fmt, globs
-from shared.concepts import BotBase
+from shared.concepts import BotBase, ErrorNotificationManager
 from shared.seven_tv_gql import GraphQL7TVClient, exceptions as stv_errors
 from utils import const
 
 from .bases import IreContext
-from .error_manager import ErrorManager
+
+# from .error_manager import ErrorManager
 from .subscriptions import get_all_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
@@ -171,7 +172,7 @@ class IreBot(BotBase, commands.AutoBot):
         """
 
         self.modules_to_load: tuple[str, ...] = get_modules(is_subset_mode=self.subset_mode)
-        self.error_manager = ErrorManager(self)
+        self.error_manager = ErrorNotificationManager(self, env.WEBHOOK_ERROR, self.error_ping)
 
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
@@ -328,27 +329,32 @@ class IreBot(BotBase, commands.AutoBot):
         match error:
             # MY CUSTOM ERRORS
             case errors.BotError():
-                if error.silent:
+                if error.behavior == "silent":
                     return True
-                if error.something_went_wrong:
+                if error.behavior == "sww+notify":
                     return False
-                if error.respond:
-                    await respond(error.msg)
-                if error.register:
-                    return False
+                if error.behavior == "respond":
+                    # Default
+                    await respond(error.response_message)
+                    return True
+                assert error.behavior == "respond+notify"
+                await respond(error.response_message)
+                return False
             # 7TV
             case stv_errors.UnauthorizedError():
-                await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
-                await self.ping_developers(
-                    content=f"The bot's 7TV Bearer Token is expired.\n{fmt.codeblock(repr(error.debug_data))}",
+                await respond(
+                    "Ooups, 7TV logged me out; Irene needs to fix it "
+                    f"(surely permanently this time) {globs.Global7TV.FeelsDankMan}"
                 )
+                return False
             case stv_errors.InvokeQueryError():
                 await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
-                await self.ping_developers(content=str(error))
+                return False
             case stv_errors.SomethingWentWrongError():
                 return False
-            case stv_errors.SevenTVError():
+            case stv_errors.UnsatisfyingResultError():
                 await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
+                return True
 
             # TWITCHIO ERRORS
             # I don't think we should be sending those in chat?
@@ -360,10 +366,10 @@ class IreBot(BotBase, commands.AutoBot):
             #         f"{error.extra.get('message') or 'Unknown'} {const.STV.dankFix} "
             #         f"(Irene will surely fix it)"
             #     )
-            case twitchio.MessageRejectedError():
-                # This one is a annoying because it stops code execution
-                # let's at least send the response back
-                await respond(error.content + chr(32) + chr(917504))
+            # case twitchio.MessageRejectedError():
+            #     # This one is a annoying because it stops code execution
+            #     # let's at least send the response back
+            #     await respond(error.content + chr(32) + chr(917504))
 
             case _:
                 return False
@@ -509,10 +515,10 @@ class IreBot(BotBase, commands.AutoBot):
     #     """Shortcut to discord.Webhook.from_url with some filled args."""
     #     return discord.Webhook.from_url(url=url, session=self.session)
 
-    # @discord.utils.cached_property
-    # def error_webhook(self) -> discord.Webhook:
-    #     """Webhook in hideout server to send errors/notifications to the developer(-s)."""
-    #     return self.webhook_from_url(env.WEBHOOK_ERROR)
+    @discord.utils.cached_property
+    def notification_webhook(self) -> discord.Webhook:
+        """Webhook in hideout server to send notifications to the developer(-s)."""
+        return self.webhook_from_url(env.WEBHOOK_NOTIFICATION)
 
     # async def ping_developers(self, **send_kwargs: Any) -> None:
     #     """Ping developers.

@@ -321,7 +321,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
                     ),
                     colour=0x345245,
                 )
-                await self.bot.error_webhook.send(content=content, embed=embed)
+                await self.bot.notification_webhook.send(content=content, embed=embed)
 
     # USER COMMANDS
 

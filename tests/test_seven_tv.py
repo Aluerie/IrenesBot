@@ -16,9 +16,7 @@ pytest_plugins = ("pytest_asyncio",)
 @pytest.fixture
 async def stv() -> seven_tv_gql.GraphQL7TVClient:  # ruff: ignore[unused-async]
     """7TV client fixture."""
-    return seven_tv_gql.GraphQL7TVClient(
-        bot_7tv_user_id=const.SevenTV.BOT_ID
-    )
+    return seven_tv_gql.GraphQL7TVClient(bot_7tv_user_id=const.SevenTV.BOT_ID)
 
 
 @pytest.mark.asyncio

@@ -1105,7 +1105,7 @@ class MMRBot(IrePublicComponent):
         """Send current rich presence state to @irene for debugging reasons."""
         friend = await self.get_streamer(ctx.broadcaster.id)
         to_send = fmt.codeblock(pprint.pformat(friend["raw_rich_presence"]), "json")
-        await self.bot.error_webhook.send(content=to_send)
+        await self.bot.notification_webhook.send(content=to_send)
         await ctx.send(content="Done")
 
     #########################################################################################################################

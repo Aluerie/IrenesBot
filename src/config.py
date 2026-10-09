@@ -31,8 +31,6 @@ class Env(EnvConfig):
     TEST_TWITCH_CLIENT_SECRET: str
     POSTGRES_VPS: str
     POSTGRES_HOME: str
-    STEAM_FRIEND_IRENE_ID64: int
-    STEAM_FRIEND_IRENE_ID32: int
     STEAM_IRENESTEST_USERNAME: str
     STEAM_IRENESTEST_PASSWORD: str
     STEAM_IRENESBOT_USERNAME: str
@@ -44,11 +42,13 @@ class Env(EnvConfig):
     EVENTSUB: str
     WEBHOOK_LOGGER: str
     WEBHOOK_ERROR: str
-    WEBHOOK_STREAM_NOTIFS: str
+    WEBHOOK_NOTIFICATION: str
+    WEBHOOK_STREAM_NOTIF: str
     WEBHOOK_HEARTBEAT: str
 
 
 env = Env()
+
 
 secrets_list = list(map(str, env.model_dump().values()))
 DO_NOT_SPOIL_PATTERN = re.compile("|".join(map(re.escape, secrets_list)))

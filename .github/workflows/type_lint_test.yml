@@ -44,8 +44,6 @@ jobs:
           TEST_TWITCH_CLIENT_SECRET: str
           POSTGRES_VPS: str
           POSTGRES_HOME: str
-          STEAM_FRIEND_IRENE_ID64: 0
-          STEAM_FRIEND_IRENE_ID32: 0
           STEAM_IRENESTEST_USERNAME: str
           STEAM_IRENESTEST_PASSWORD: str
           STEAM_IRENESBOT_USERNAME: str
@@ -58,4 +56,5 @@ jobs:
           WEBHOOK_LOGGER: str
           WEBHOOK_ERROR: str
           WEBHOOK_HEARTBEAT: str
-          WEBHOOK_STREAM_NOTIFS: str
+          WEBHOOK_STREAM_NOTIF: str
+          WEBHOOK_NOTIFICATION: str

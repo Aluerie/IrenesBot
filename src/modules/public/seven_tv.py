@@ -1215,10 +1215,6 @@ class SevenTVFeatures(IrePublicComponent):
             msg = f"It seems you have not added any emotes yet {self.EMOTE}"
             raise errors.RespondWithError(msg)
 
-        # print(clock.utcnow())
-        # print(row["added_at"])
-        # print(clock.utcnow() - row["added_at"])
-        # print(row["emote_id"])
         if clock.utcnow() - row["added_at"] > dt.timedelta(minutes=10):
             msg = f"It's been more than 10 minutes, I don't allow replacing after so long {self.EMOTE}"
             raise errors.RespondWithError(msg)
@@ -1278,7 +1274,7 @@ class SevenTVFeatures(IrePublicComponent):
         * ``!7tv replace 01F6R50PYR0004V0XPDH2CKXCH``
         * ``!7tv replace https://7tv.app/emotes/01F6R50PYR0004V0XPDH2CKXCH``
         * ``!7tv replace smh DuckSmh`` - the bot will search 7tv for "smh", note that the bot will still add the most popular
-        one, so doing ``!replace smh`` after adding ``smh`` via redemption is pointless.
+          one, so doing ``!replace smh`` after adding ``smh`` via redemption is pointless.
         """
         await self.replace_emote_worker(ctx, emote_and_alias)
 

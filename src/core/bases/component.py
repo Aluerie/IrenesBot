@@ -47,7 +47,7 @@ class IrePersonalComponent(IreComponent):
     async def component_before_invoke(self, ctx: IreContext) -> None:  # ty: ignore[invalid-method-override]
         if not self.is_dev(ctx.broadcaster.id):
             msg = "Command is not allowed anywhere except Irene's channel"
-            raise errors.NotAllowedError(msg, silent=True)
+            raise errors.NotAllowedError(msg, behavior="silent")
 
 
 class IreDevComponent(IreComponent):
@@ -62,4 +62,4 @@ class IreDevComponent(IreComponent):
             msg = f"Command is not allowed by anybody else except Irene {const.FFZ.peepoPolice}"
             if ctx.broadcaster.id == ctx.bot.owner_id:
                 raise errors.NotAllowedError(msg)
-            raise errors.NotAllowedError(msg, silent=True)
+            raise errors.NotAllowedError(msg, behavior="silent")

@@ -8,8 +8,12 @@ else
 endif
 .SHELLFLAGS := -NoProfile -Command 
 
+# Removes `make[1]: Entering directory 'D:/CODE/IreBot' messages` https://stackoverflow.com/a/71371359/19217368
+# Allowing for nested makes without annoyance of that message.
+MAKEFLAGS += --no-print-directory
+
 # Sources to run type-checkers / linters against
-sources = src tests examples
+sources = src tests templates
 # Default commit message with `make commit`
 m = fix(lazy): Various fixes & updates
 
@@ -31,11 +35,11 @@ Running the bot:
 	scopes				Run the bot in the scopes-only mode
 
 Linters, Type-checkers, formatters and tests:
-	lint                Run the Ruff's linter
-	ruff 			    Run the Ruff's linter (same as "make lint", just an alias)
+	ruff 			    Run the Ruff's linter
+	lint                Run the Ruff's linter (same as "make ruff", just an alias)
 	format              Format the code
 	ty                  Run typechecker (ty)
-	check               Run both typechecker and linter
+	check               Run both typechecker and linter (simply calls "make ruff" and "make ty")
 	tests               Run the tests with pytest
 
 Documentation:
@@ -95,18 +99,17 @@ scopes:  # Run the bot in the scopes-only mode
 	uv run --no-dev src/main.py --subset-mode --adapter=local --test-account --scopes-only
 
 
-.PHONY: lint
-.SILENT: lint
-lint:  # Run the Ruff's linter
-	uv run ruff check $(sources)
-	uv run ruff format --check $(sources)
-
-
 .PHONY: ruff
 .SILENT: ruff
-ruff:  # Run the Ruff's linter (same as "make lint", just an alias)
+ruff:  # Run the Ruff's linter 
 	uv run ruff check $(sources)
 	uv run ruff format --check $(sources)
+
+
+.PHONY: lint
+.SILENT: lint
+lint:  # Run the Ruff's linter (same as "make ruff", just an alias)
+	make ruff
 
 
 .PHONY: format
@@ -124,8 +127,10 @@ ty:  # Run typechecker (ty)
 
 .PHONY: check
 .SILENT: check
-check:  # Run both typechecker and linter
-	make lint
+check:  # Run both typechecker and linter (simply calls "make ruff" and "make ty")
+	Write-Host 'Running "make ruff"' -ForegroundColor Magenta
+	make ruff
+	Write-Host 'Running "make ty"' -ForegroundColor Magenta
 	make ty
 
 
@@ -144,6 +149,7 @@ pages:  # [Deprecated] Locally run the github pages website
 .PHONY: docs
 .SILENT: docs
 docs:  # Build the docs with Sphinx
+	cp .env.example docs/.env
 	-cd docs && rm -Recurse _build
 	cd docs && uv run sphinx-build . _build
 # It's recommended to clear `_build` folder before running the docs
