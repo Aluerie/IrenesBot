@@ -23,7 +23,7 @@ jobs:
         script: |
           set -e
           cd ./IrenesBot
-          git pull
+          git pull --ff-only
           git submodule update --recursive
           ~/.local/bin/uv sync --no-dev
           sudo systemctl restart irebot.service

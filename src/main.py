@@ -57,15 +57,13 @@ async def start_the_bot(
         log.exception(msg)
         return
 
-    subscriptions = await get_eventsub_subscriptions(pool, test_account=test_account)
-
     async with (
         aiohttp.ClientSession() as session,
         pool as pool,
         IreBot(
             session=session,
             pool=pool,
-            subscriptions=subscriptions,
+            subscriptions=await get_eventsub_subscriptions(pool, test_account=test_account),
             scopes_only=scopes_only,
             force_subscribe=force_subscribe,
             adapter_enum=adapter_enum,

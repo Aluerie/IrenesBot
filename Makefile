@@ -152,6 +152,7 @@ docs:  # Build the docs with Sphinx
 	cp .env.example docs/.env
 	-cd docs && rm -Recurse _build
 	cd docs && uv run sphinx-build . _build
+# I'm copying .env.example to doc/.env because Pydantic doesn't shut the fuck up and idk any other sane solutions to it.
 # It's recommended to clear `_build` folder before running the docs
 # to avoid random unobvious issues, like left sidebar not properly updating for "old" pages.
 
@@ -164,9 +165,11 @@ docs:  # Build the docs with Sphinx
 # https://stackoverflow.com/a/2670143/19217368) 
 # This kinda makes this command unsafe against me being dumb.
 commit: 
+	Write-Host 'Committing "src/shared" submodule' -ForegroundColor Magenta
 	-cd src/shared && git add .
 	-cd src/shared && git commit -a -m "$(m)"
 	-cd src/shared && git push
+	Write-Host 'Committing IrenesBot' -ForegroundColor Magenta
 	-git add .
 	-git commit -a -m "$(m)"
 	-git push

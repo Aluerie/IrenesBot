@@ -32,7 +32,7 @@ from utils import const
 from .bases import IreContext
 
 # from .error_manager import ErrorManager
-from .subscriptions import get_all_oauth_urls, get_user_subscriptions
+from .subscriptions import get_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -206,7 +206,7 @@ class IreBot(BotBase, commands.AutoBot):
         if self.scopes_only:
             msg = (
                 "Scopes Only Mode: print oauth urls and start the bot in adapter-only mode (no modules enabled).\n"
-                f"{get_all_oauth_urls(self.domain)}"
+                f"{get_oauth_urls(self.domain)}"
             )
             log.warning(msg)
             return

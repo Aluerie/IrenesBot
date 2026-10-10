@@ -30,6 +30,7 @@ Notices
 
 from __future__ import annotations
 
+import copy
 import logging
 from typing import TYPE_CHECKING, TypedDict
 
@@ -46,8 +47,8 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    "get_all_oauth_urls",
     "get_eventsub_subscriptions",
+    "get_oauth_urls",
     "get_user_subscriptions",
 )
 
@@ -133,70 +134,63 @@ async def get_eventsub_subscriptions(
     return subscriptions
 
 
-def get_bot_oauth_url(domain: str) -> str:
-    """Print a link for me (developer) to click and authorize the bot scopes for the bot account.
+def get_oauth_urls(domain: str) -> str:
+    """Get all oauth urls.
 
-    Note, that we need to login with the bot account (do not use this link for personal accounts).
-    Required for proper work of Twitch Eventsub events and API requests (such as helix).
+    In order to add the bot to their channels - users need to authorize the bot via twitch oauth link with proper scopes.
+    This is required for Twitch Eventsub events and API requests (such as helix) to work an overall a standard permissions
+    kinda system.
+
+    Currently, I divide the bot's feature set into 2 categories:
+    * Public - for general public, features ready and useful for general public.
+    * Personal - that are only used by me, and they need some extra scopes.
+    So public features need a set of scopes for broadcasters to allow. Personal features extend that so Irene needs to
+    allow extra scopes so that's a 2nd set of scopes.
+
+    The way twitch bot development works is that the developers also need to authorize the bot's account with
+    bot-user-related scopes. That's a 3rd set of scopes.
+
+    This functions prints authorization links for all these 3 sets of scopes:
+    * public - for public broadcasters to use;
+    * personal - for irene only;
+    * bot - for irene to authorize the bot account with;
+
+    Parameters
+    ----------
+    domain
+        Callback domain to use for the oauth. Either localhost or a public domain where a web-app is running.
     """
-    scopes = [
-        "user:read:chat",
-        "user:write:chat",
-        "user:bot",
-        "moderator:read:followers",
-        "moderator:manage:shoutouts",
-        "moderator:manage:announcements",
-        "moderator:manage:banned_users",
-        "clips:edit",
-    ]
-    return get_oauth_url(domain, scopes, "🤖🤖🤖 BOT OAUTH LINK: 🤖🤖🤖")
+    # BOT SCOPES - developers should authorize the bot's account with these.
+    bot_scopes = twitchio.Scopes(
+        user_read_chat=True,
+        user_write_chat=True,
+        user_bot=True,
+        moderator_read_followers=True,
+        moderator_manage_shoutouts=True,
+        moderator_manage_announcements=True,
+        moderator_manage_banned_users=True,
+        clips_edit=True,
+    )
+    # PUBLIC SCOPES - general public should authorize with these.
+    public_scopes = twitchio.Scopes(
+        channel_bot=True,
+        channel_read_redemptions=True,
+        channel_manage_redemptions=True,
+        channel_manage_moderators=True,
+    )
+    # PERSONAL SCOPES - Irene should authorize with these because of extra personal features.
+    personal_scopes = copy.deepcopy(public_scopes)
+    personal_scopes.channel_edit_commercial = True
+    personal_scopes.channel_edit_commercial = True
+    personal_scopes.channel_moderate = True
+    personal_scopes.channel_manage_broadcast = True
+    personal_scopes.channel_read_subscriptions = True
 
-
-PUBLIC_SCOPES = [
-    "channel:bot",
-    "channel:read:redemptions",
-    "channel:manage:redemptions",
-    "channel:manage:moderators",
-]
-
-PERSONAL_SCOPES = [
-    *PUBLIC_SCOPES,
-    "channel:edit:commercial",
-    "channel:moderate",
-    "channel:manage:broadcast",
-    "channel:read:subscriptions",
-]
-
-
-def get_personal_oauth_url(domain: str) -> str:
-    """Print a link for me (personal bot user with all the features) to click and authorize the scopes for the bot."""
-    return get_oauth_url(domain, PERSONAL_SCOPES, "🎬🎬🎬 PERSONAL OAUTH LINK: 🎬🎬🎬")
-
-
-def get_public_oauth_url(domain: str) -> str:
-    """Print a link for public streamers to click and authorize the scopes for the bot."""
-    return get_oauth_url(domain, PUBLIC_SCOPES, "🌈🌈🌈 PUBLIC OAUTH LINK: 🌈🌈🌈")
-
-
-def get_oauth_url(domain: str, scopes: list[str], prefix: str) -> str:
-    """Get oauth url. Helper function for `get_bot_oauth_url`, `get_personal_oauth_url`, `get_public_oauth_url`.
-
-    The authorization is required for proper work of Twitch Eventsub events and API requests.
-    Currently, we separate bot features into two categories:
-    * Personal - that are only used by me;
-    * Public - that I allow to be used by everybody;
-    They require different sets of scopes. And also, we need a separate oauth for the bot account.
-    Therefore, we have 3 distinct links depending on which account should click on it.
-
-    """
-    link = f"{domain}/oauth?scopes={'+'.join(scopes)}&force_verify=true"
-    return f"{prefix}\n{link}"
-
-
-def get_all_oauth_urls(domain: str) -> str:
-    """Get all bot oauth urls at once."""
-    return "\n".join([
-        get_bot_oauth_url(domain),
-        get_personal_oauth_url(domain),
-        get_public_oauth_url(domain),
-    ])
+    return "\n".join(
+        f"{title}\n{domain}/oauth?scopes={scopes.urlsafe(unquote=True)}&force_verify=true"
+        for scopes, title in (
+            (bot_scopes, "🤖🤖🤖 BOT OAUTH LINK: 🤖🤖🤖"),
+            (public_scopes, "🌈🌈🌈 PUBLIC OAUTH LINK: 🌈🌈🌈"),
+            (personal_scopes, "🎬🎬🎬 PERSONAL OAUTH LINK: 🎬🎬🎬"),
+        )
+    )
