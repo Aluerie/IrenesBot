@@ -8,14 +8,15 @@ Notices
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 import twitchio  # ruff: ignore[typing-only-third-party-import]
 from twitchio.ext import commands
 
 from core import IrePublicComponent
-from shared import globs
+from shared import errors, globs, translate
 from utils import const, guards
+from utils.converters import TranslateArgs, TranslateConverter
 
 if TYPE_CHECKING:
     from core import IreBot, IreContext
@@ -95,6 +96,42 @@ class MetaCommands(IrePublicComponent):
         """Get mentioned @user numeric twitch_id."""
         who = user or ctx.author
         await ctx.send(f"Twitch ID for {who.mention}: {who.id} {const.STV.donkDetective}")
+
+    TRANSLATE_ARGUMENT_DEFAULT = TranslateArgs("")
+
+    @commands.command()
+    async def translate(
+        self,
+        ctx: IreContext,
+        *,
+        translate_arguments: Annotated[TranslateArgs, TranslateConverter] = TRANSLATE_ARGUMENT_DEFAULT,
+    ) -> None:
+        """Translate given text to English.
+
+        Uses Google Translate. Autodetects source language.
+        """
+        text = ctx.message.reply.parent_message_body if ctx.message.reply else translate_arguments.text
+        if not text:
+            msg = "You need to provide text to translate"
+            raise errors.RespondWithError(msg)
+
+        result = await translate.translate(
+            text,
+            source_language=translate_arguments.from_,
+            target_language=translate_arguments.to,
+            session=self.bot.session,
+        )
+        answer = f"{const.STV.ApuBritish} [{result.source_language} to {result.target_language}] {result.translated}"
+        await ctx.send(answer)
+
+    @commands.command()
+    async def languages(self, ctx: IreContext) -> None:
+        """Translate given text to English.
+
+        Uses Google Translate. Autodetects source language.
+        """
+        answer = f"{const.STV.ApuBritish} Supported languages: {' '.join(translate.LANGUAGES)}"
+        await ctx.send(answer)
 
 
 async def setup(bot: IreBot) -> None:

@@ -436,11 +436,13 @@ class IreBot(BotBase, commands.AutoBot):
             case commands.MissingRequiredArgument():
                 await ctx.send(f'You need to provide "{error.param.name}" argument for this command {const.FFZ.peepoPolice}')
             case commands.BadArgument():
-                if await self.handle_common_errors(error.__cause__, ctx.send):
+                cause = error.__cause__
+                if await self.handle_common_errors(cause, ctx.send):
                     # Converters raise `BadArgument` Failed to convert "this" to <class 'typing._ProtocolMeta'>, which is not
                     # exactly telling much. We are more interested in the original `__cause__`.
                     return
                 log.error("%s: %s | error.name=%s | error.value=%s", type(error), error, error.name, error.value)
+                log.error("%s: %s", type(cause), cause, exc_info=cause)
                 await ctx.send(
                     content=(
                         f"Couldn't convert value `{error.value}` for argument `{error.name}` "

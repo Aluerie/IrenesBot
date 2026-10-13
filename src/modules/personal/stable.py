@@ -11,87 +11,22 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from typing import TYPE_CHECKING, NamedTuple, TypedDict
+from typing import TYPE_CHECKING
 
 import twitchio  # ruff: ignore[typing-only-third-party-import]
 from twitchio.ext import commands
 
 from config import env
 from core import IrePersonalComponent
-from shared import clock, errors, globs
+from shared import clock, globs
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from aiohttp import ClientSession
-
     from core import IreBot, IreContext
 
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-
-
-class TranslatedSentence(TypedDict):
-    """TranslatedSentence."""
-
-    trans: str
-    orig: str
-
-
-class TranslateResult(NamedTuple):
-    """TranslatedResult."""
-
-    original: str
-    translated: str
-    source_lang: str
-    target_lang: str
-
-
-class TranslateError(errors.CustomError):
-    """Raised when there is an error in translate functionality."""
-
-    def __init__(self, status_code: int, text: str) -> None:
-        self.status_code: int = status_code
-        self.text: str = text
-        super().__init__(f"Google Translate responded with HTTP Status Code {status_code}")
-
-
-async def translate(
-    text: str, *, source_lang: str = "auto", target_lang: str = "en", session: ClientSession
-) -> TranslateResult:
-    """Google Translate."""
-    query = {
-        "dj": "1",
-        "dt": ["sp", "t", "ld", "bd"],
-        "client": "dict-chrome-ex",  # Needs to be dict-chrome-ex or else you'll get a 403 error.
-        "sl": source_lang,
-        "tl": target_lang,
-        "q": text,
-    }
-
-    headers = {
-        "User-Agent": (  # cSpell: ignore KHTML
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36"
-        )
-    }
-
-    async with session.get("https://clients5.google.com/translate_a/single", params=query, headers=headers) as resp:
-        if resp.status != 200:
-            raise TranslateError(resp.status, text=await resp.text())
-
-        data = await resp.json()
-        src = data.get("src", "Unknown")
-        sentences: list[TranslatedSentence] = data.get("sentences", [])
-        if not sentences:
-            msg = "Google translate returned no information"
-            raise RuntimeError(msg)
-
-        return TranslateResult(
-            original="".join(sentence.get("orig", "") for sentence in sentences),
-            translated="".join(sentence.get("trans", "") for sentence in sentences),
-            source_lang=src.upper(),
-            target_lang=target_lang.upper(),
-        )
 
 
 class StableCommands(IrePersonalComponent):
@@ -388,21 +323,6 @@ class StableCommands(IrePersonalComponent):
             self.check_spotify(ctx),
             self.check_youtube_music(),
         )
-
-    @commands.command()
-    async def translate(self, ctx: IreContext, *, text: str) -> None:
-        """Translate given text to English.
-
-        Uses Google Translate. Autodetects source language.
-
-        Sources
-        -------
-        * My own discord bot (but the code there is also taken from other places)
-            https://github.com/Aluerie/AluBot/blob/main/ext/educational/language/translation.py
-        """
-        result = await translate(text, session=self.bot.session)
-        answer = f"{const.STV.ApuBritish} [{result.source_lang} to {result.target_lang}] {result.translated}"
-        await ctx.send(answer)
 
     @commands.command()
     async def uptime(self, ctx: IreContext) -> None:
