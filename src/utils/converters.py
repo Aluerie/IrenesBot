@@ -18,6 +18,11 @@ from shared import errors
 if TYPE_CHECKING:
     from core import IreContext
 
+__all__ = (
+    "TranslateArguments",
+    "TranslateConverter",
+)
+
 
 def flag_parser(
     user_input: str,
@@ -29,7 +34,7 @@ def flag_parser(
 ) -> dict[str, str | None]:
     """Flag-parser: a converter that allows for a user-friendly flag syntax.
 
-    TwitchIO doesn't have its own version of ``commands.FlagConverter`` from discord.py so this is a temporary
+    TwitchIO doesn't have its own version of ``commands.FlagConverter`` from ``discord.py`` so this is a temporary
     replacement until they implement it or I PR it.
 
     Source
@@ -107,7 +112,7 @@ def flag_parser(
     return result
 
 
-class TranslateArgs(NamedTuple):
+class TranslateArguments(NamedTuple):
     """The output of TranslateConverter."""
 
     text: str
@@ -115,18 +120,18 @@ class TranslateArgs(NamedTuple):
     from_: str = "auto"
 
 
-class TranslateConverter(commands.Converter[TranslateArgs]):
+class TranslateConverter(commands.Converter[TranslateArguments]):
     """Translate Converter."""
 
     @override
-    async def convert(self, _: IreContext, user_input: str) -> TranslateArgs:  # ty: ignore[invalid-method-override]
+    async def convert(self, _: IreContext, user_input: str) -> TranslateArguments:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
         flags = flag_parser(user_input, flags=["to", "from"])
         if "_positional" not in flags or flags["_positional"] is None:
             msg = "This command requires positional text, e.g. !translate Je vous aime to: de from: fr"
             raise errors.RespondWithError(msg)
 
-        return TranslateArgs(
+        return TranslateArguments(
             text=flags["_positional"],
             to=flags["to"] or "en",
             from_=flags["from"] or "auto",

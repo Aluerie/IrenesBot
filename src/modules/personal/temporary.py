@@ -9,11 +9,13 @@ Notices
 from __future__ import annotations
 
 import datetime as dt
+import re
 from typing import TYPE_CHECKING, TypedDict
 
 from twitchio.ext import commands
 
 from core import IrePersonalComponent
+from shared import errors
 from utils import const
 
 if TYPE_CHECKING:
@@ -135,6 +137,17 @@ class TemporaryCommands(IrePersonalComponent):
 
         This is useful to bypass mod-only restriction of cyan-chat.
         """
+        if self.is_dev(ctx.chatter.id):
+            return
+
+        match = re.search(r"-d\s+(?P<duration>\d+)", argument)
+        if match is not None:
+            # Check duration
+            duration = match.group("duration")
+            if int(duration) > 30:
+                msg = f"Not allowed to put duration more than 30 {const.FFZ.peepoPolice}"
+                raise errors.RespondWithError(msg)
+
         await ctx.send(f"!chat {argument}")
 
 

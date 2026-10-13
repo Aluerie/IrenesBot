@@ -17,7 +17,7 @@ from twitchio.ext import commands
 from core import IrePublicComponent
 from shared import errors, globs, translate
 from utils import const, guards
-from utils.converters import TranslateArgs, TranslateConverter
+from utils.converters import TranslateArguments, TranslateConverter
 
 if TYPE_CHECKING:
     from core import IreBot, IreContext
@@ -98,31 +98,43 @@ class MetaCommands(IrePublicComponent):
         who = user or ctx.author
         await ctx.send(f"Twitch ID for {who.mention}: {who.id} {const.STV.donkDetective}")
 
-    TRANSLATE_ARGUMENT_DEFAULT = TranslateArgs("")
+    TRANSLATE_ARGUMENT_DEFAULT = TranslateArguments("")
 
-    @commands.cooldown(rate=1, per=dt.timedelta(seconds=20), key=commands.BucketType.channel)
+    @commands.cooldown(rate=1, per=dt.timedelta(seconds=5), key=commands.BucketType.channel)
     @commands.command()
     async def translate(
         self,
         ctx: IreContext,
         *,
-        translate_arguments: Annotated[TranslateArgs, TranslateConverter] = TRANSLATE_ARGUMENT_DEFAULT,
+        translate_arguments: Annotated[TranslateArguments, TranslateConverter] = TRANSLATE_ARGUMENT_DEFAULT,
     ) -> None:
-        """Translate given text to English.
+        """Translate given text.
 
         Uses Google Translate.
+
+        Nice tip: you can reply to somebody's else message with ``!translate`` and the bot will translate their message.
+        E.g. some chatter comes and says "Hola te amo" - you can reply to it with ``!translate`` and the bot will use the
+        text of that message to translate it into "Hello I love you".
 
         Parameters
         ----------
         translate_arguments
-            The format: ``<text_to_translate> to: <target_language> from: <source_language>``.
+            The formatting for this argument: ``<text_to_translate> to: <target_language> from: <source_language>``.
             Both flag arguments (``to:`` and ``from:``) are optional.
-            By default, ``to: <target_language>`` is assumed to be ``en`` (English).
-            If ``from: <source_language>`` is not provided then the bot autodetect the used language.
+
+            * By default, ``to: <target_language>`` is assumed to be ``en`` (English).
+            * If ``from: <source_language>`` is not provided then the bot autodetect the used language.
 
             The languages needs to be passed as a 2-letters code (some languages use 3 letters though),
             e.g. ``fr`` for French, ``de`` for German.
             You can see the list of supported languages with ``!languages`` command.
+
+        Examples
+        --------
+        * ``!translate Je t'aime``
+        * ``!translate Ich liebe dich to: fr``
+        * ``!translate  i love you to: fr from: en``
+        * ``!translate`` (but as a reply to somebody's message "Hola te amo")
         """
         text = ctx.message.reply.parent_message_body if ctx.message.reply else translate_arguments.text
         if not text:
