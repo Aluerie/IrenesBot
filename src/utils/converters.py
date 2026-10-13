@@ -27,6 +27,30 @@ def flag_parser(
     prefix: str = "",
     delimiter: str = ":",
 ) -> dict[str, str | None]:
+    """Flag-parser: a converter that allows for a user-friendly flag syntax.
+
+    TwitchIO doesn't have its own version of ``commands.FlagConverter`` from discord.py so this is a temporary
+    replacement until they implement it or I PR it.
+
+    Source
+    ------
+    * Discord.py -> ``discord.ext.commands.flags.FlagConverter.parse_flags()`` (MIT License)
+
+    Parameters
+    ----------
+    user_input
+        User Input.
+    flags
+        The list of flags. User will be able to use them in their user input, e.g. "!translate Je t'aime to: en from: fr"
+        has two flags: ``to`` and ``from``
+    positional
+        Whether the user input includes positional argument in the beginning of the string.
+    prefix
+        Flag prefix.
+    delimiter
+        Flag delimiter. Together with prefix it can customize the flag "look", e.g. ``delimiter=' ', prefix='--'``
+        for POSIX-like flags: "--hello world".
+    """
     result: dict[str, str | None] = dict.fromkeys(flags)
     joined = "|".join(flags)
     pattern = re.compile(f"(({re.escape(prefix)})(?P<flag>{joined}){re.escape(delimiter)})", re.IGNORECASE)
@@ -52,7 +76,7 @@ def flag_parser(
         if last_position and last_flag is not None:
             value = user_input[last_position : begin - 1].lstrip()
             if not value:
-                msg = f"This command requires flag `{last_flag}:`"
+                msg = f"The flag `{last_flag}:` is missing its value"
                 raise errors.RespondWithError(msg)  # raise MissingFlagArgument(last_flag)
 
             name = last_flag
@@ -67,7 +91,7 @@ def flag_parser(
     # Add the remaining string to the last available flag
     if last_flag is not None:
         if not value:
-            msg = f"This command requires flag `{last_flag}:`"
+            msg = f"The flag `{last_flag}:` is missing its value"
             raise errors.RespondWithError(msg)  # raise MissingFlagArgument(last_flag)
 
         name = last_flag
@@ -84,6 +108,8 @@ def flag_parser(
 
 
 class TranslateArgs(NamedTuple):
+    """The output of TranslateConverter."""
+
     text: str
     to: str = "en"
     from_: str = "auto"
@@ -93,11 +119,11 @@ class TranslateConverter(commands.Converter[TranslateArgs]):
     """Translate Converter."""
 
     @override
-    async def convert(self, ctx: IreContext, user_input: str) -> TranslateArgs:  # ty: ignore[invalid-method-override]
+    async def convert(self, _: IreContext, user_input: str) -> TranslateArgs:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
         flags = flag_parser(user_input, flags=["to", "from"])
         if "_positional" not in flags or flags["_positional"] is None:
-            msg = "This command requires positional text, e.g. !translate You are an idiot to: fr from: en"
+            msg = "This command requires positional text, e.g. !translate Je vous aime to: de from: fr"
             raise errors.RespondWithError(msg)
 
         return TranslateArgs(

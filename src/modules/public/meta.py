@@ -8,6 +8,7 @@ Notices
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import TYPE_CHECKING, Annotated, TypedDict
 
 import twitchio  # ruff: ignore[typing-only-third-party-import]
@@ -99,6 +100,7 @@ class MetaCommands(IrePublicComponent):
 
     TRANSLATE_ARGUMENT_DEFAULT = TranslateArgs("")
 
+    @commands.cooldown(rate=1, per=dt.timedelta(seconds=20), key=commands.BucketType.channel)
     @commands.command()
     async def translate(
         self,
@@ -108,7 +110,19 @@ class MetaCommands(IrePublicComponent):
     ) -> None:
         """Translate given text to English.
 
-        Uses Google Translate. Autodetects source language.
+        Uses Google Translate.
+
+        Parameters
+        ----------
+        translate_arguments
+            The format: ``<text_to_translate> to: <target_language> from: <source_language>``.
+            Both flag arguments (``to:`` and ``from:``) are optional.
+            By default, ``to: <target_language>`` is assumed to be ``en`` (English).
+            If ``from: <source_language>`` is not provided then the bot autodetect the used language.
+
+            The languages needs to be passed as a 2-letters code (some languages use 3 letters though),
+            e.g. ``fr`` for French, ``de`` for German.
+            You can see the list of supported languages with ``!languages`` command.
         """
         text = ctx.message.reply.parent_message_body if ctx.message.reply else translate_arguments.text
         if not text:
@@ -126,9 +140,10 @@ class MetaCommands(IrePublicComponent):
 
     @commands.command()
     async def languages(self, ctx: IreContext) -> None:
-        """Translate given text to English.
+        """Get list of supported languages for the ``!translate`` command.
 
-        Uses Google Translate. Autodetects source language.
+        The language codes from this command are supposed to be used in ``to:``, ``from:`` argument flags of the said
+        command.
         """
         answer = f"{const.STV.ApuBritish} Supported languages: {' '.join(translate.LANGUAGES)}"
         await ctx.send(answer)
