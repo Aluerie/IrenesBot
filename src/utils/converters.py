@@ -34,7 +34,7 @@ def flag_parser(
 ) -> dict[str, str | None]:
     """Flag-parser: a converter that allows for a user-friendly flag syntax.
 
-    TwitchIO doesn't have its own version of ``commands.FlagConverter`` from ``discord.py`` so this is a temporary
+    TwitchIO doesn't have its own version of ``commands.FlagConverter`` like ``discord.py`` does so this is a temporary
     replacement until they implement it or I PR it.
 
     Source

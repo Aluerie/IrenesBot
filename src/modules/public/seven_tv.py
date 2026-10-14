@@ -1489,12 +1489,13 @@ class SevenTVFeatures(IrePublicComponent):
 
         A few notes:
 
-        * The bot removes blacklisted status from emotes every hour at X:00. So if current blacklist duration is 7 days,
-          it's been 5 days since an emote was blacklisted and the broadcaster sets new duration to 3 days then the status
-          for emotes will be updated at next X:00.
+        * The bot removes blacklisted status from emotes every hour at X:00. This means, for example,
+          if current blacklist duration is set to 7 days,
+          it's been 5 days since a certain emote was blacklisted and now the broadcaster sets new duration to 3 days then
+          that emote (and other emotes) will be released at next X:00.
         * I guess, it's pedantic to point out that the emotes are not being blacklisted `precisely` for the input'ed
-          duration, since the bot does the blacklist-expiry task every hour at X:00. So an emote AAA that was blacklisted
-          at 2:01AM will have its status lifted at the same time as an emote BBB that got blacklisted at 2:59AM.
+          duration, since the bot does the blacklist-expiry task every hour at X:00. So an emote "AAA" that was blacklisted
+          at 2:01AM will have its status lifted at the same time as an emote "BBB" that got blacklisted at 2:59AM.
 
         Parameters
         ----------
@@ -1564,8 +1565,8 @@ class SevenTVFeatures(IrePublicComponent):
     # MODS
     #########################################################################################################################
 
-    @stv.command(name="mods", aliases=["editors"])
-    async def stv_mods(self, ctx: IreContext) -> None:
+    @stv.command(name="editors", aliases=["mods"])
+    async def stv_editors(self, ctx: IreContext) -> None:
         """Get 7tv editors for this broadcaster.
 
         Important lazy quirk! I'm having troubles setting up receiving automatic updates from 7tv for emote / editor updates.

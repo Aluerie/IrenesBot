@@ -112,7 +112,7 @@ class MetaCommands(IrePublicComponent):
 
         Uses Google Translate.
 
-        Nice tip: you can reply to somebody's else message with ``!translate`` and the bot will translate their message.
+        Nice tip: you can reply to a person's message with ``!translate`` and the bot will translate their message.
         E.g. some chatter comes and says "Hola te amo" - you can reply to it with ``!translate`` and the bot will use the
         text of that message to translate it into "Hello I love you".
 
@@ -127,7 +127,244 @@ class MetaCommands(IrePublicComponent):
 
             The languages needs to be passed as a 2-letters code (some languages use 3 letters though),
             e.g. ``fr`` for French, ``de`` for German.
-            You can see the list of supported languages with ``!languages`` command.
+            You can see the list of supported languages with ``!languages`` command or in the table below.
+
+            .. list-table::
+                :widths: 1, 1, 1, 1, 1, 1, 1, 1
+                :header-rows: 1
+
+                * - Code
+                  - Language
+                  - Code
+                  - Language
+                  - Code
+                  - Language
+                  - Code
+                  - Language
+                * - af
+                  - Afrikaans
+                  - gl
+                  - Galician
+                  - lv
+                  - Latvian
+                  - si
+                  - Sinhala
+                * - sq
+                  - Albanian
+                  - ka
+                  - Georgian
+                  - lt
+                  - Lithuanian
+                  - sk
+                  - Slovak
+                * - am
+                  - Amharic
+                  - de
+                  - German
+                  - lb
+                  - Luxembourgish
+                  - sl
+                  - Slovenian
+                * - ar
+                  - Arabic
+                  - el
+                  - Greek
+                  - mk
+                  - Macedonian
+                  - so
+                  - Somali
+                * - hy
+                  - Armenian
+                  - gu
+                  - Gujarati
+                  - mg
+                  - Malagasy
+                  - es
+                  - Spanish
+                * - az
+                  - Azerbaijani
+                  - ht
+                  - Haitian creole
+                  - ms
+                  - Malay
+                  - su
+                  - Sundanese
+                * - eu
+                  - Basque
+                  - ha
+                  - Hausa
+                  - ml
+                  - Malayalam
+                  - sw
+                  - Swahili
+                * - be
+                  - Belarusian
+                  - haw
+                  - Hawaiian
+                  - mt
+                  - Maltese
+                  - sv
+                  - Swedish
+                * - bn
+                  - Bengali
+                  - iw
+                  - Hebrew
+                  - mi
+                  - Maori
+                  - tg
+                  - Tajik
+                * - bs
+                  - Bosnian
+                  - he
+                  - Hebrew
+                  - mr
+                  - Marathi
+                  - ta
+                  - Tamil
+                * - bg
+                  - Bulgarian
+                  - hi
+                  - Hindi
+                  - mn
+                  - Mongolian
+                  - tt
+                  - Tatar
+                * - ca
+                  - Catalan
+                  - hmn
+                  - Hmong
+                  - my
+                  - Myanmar (burmese)
+                  - te
+                  - Telugu
+                * - ceb
+                  - Cebuano
+                  - hu
+                  - Hungarian
+                  - ne
+                  - Nepali
+                  - th
+                  - Thai
+                * - ny
+                  - Chichewa
+                  - is
+                  - Icelandic
+                  - no
+                  - Norwegian
+                  - tr
+                  - Turkish
+                * - zh-cn
+                  - Chinese (simplified)
+                  - ig
+                  - Igbo
+                  - or
+                  - Odia
+                  - tk
+                  - Turkmen
+                * - zh-tw
+                  - Chinese (traditional)
+                  - id
+                  - Indonesian
+                  - ps
+                  - Pashto
+                  - uk
+                  - Ukrainian
+                * - co
+                  - Corsican
+                  - ga
+                  - Irish
+                  - fa
+                  - Persian
+                  - ur
+                  - Urdu
+                * - hr
+                  - Croatian
+                  - it
+                  - Italian
+                  - pl
+                  - Polish
+                  - ug
+                  - Uyghur
+                * - cs
+                  - Czech
+                  - ja
+                  - Japanese
+                  - pt
+                  - Portuguese
+                  - uz
+                  - Uzbek
+                * - da
+                  - Danish
+                  - jw
+                  - Javanese
+                  - pa
+                  - Punjabi
+                  - vi
+                  - Vietnamese
+                * - nl
+                  - Dutch
+                  - kn
+                  - Kannada
+                  - ro
+                  - Romanian
+                  - cy
+                  - Welsh
+                * - en
+                  - English
+                  - kk
+                  - Kazakh
+                  - ru
+                  - Russian
+                  - xh
+                  - Xhosa
+                * - eo
+                  - Esperanto
+                  - km
+                  - Khmer
+                  - sm
+                  - Samoan
+                  - yi
+                  - Yiddish
+                * - et
+                  - Estonian
+                  - ko
+                  - Korean
+                  - gd
+                  - Scots gaelic
+                  - yo
+                  - Yoruba
+                * - tl
+                  - Filipino
+                  - ku
+                  - Kurdish (kurmanji)
+                  - sr
+                  - Serbian
+                  - zu
+                  - Zulu
+                * - fi
+                  - Finnish
+                  - ky
+                  - Kyrgyz
+                  - st
+                  - Sesotho
+                  -
+                  -
+                * - fr
+                  - French
+                  - lo
+                  - Lao
+                  - sn
+                  - Shona
+                  -
+                  -
+                * - fy
+                  - Frisian
+                  - la
+                  - Latin
+                  - sd
+                  - Sindhi
+                  -
+                  -
 
         Examples
         --------

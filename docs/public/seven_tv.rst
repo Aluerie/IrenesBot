@@ -41,8 +41,8 @@ the commands here will help to reattach the bot to a proper emote set that the s
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_emoteset_attach
 
-🚲 Cycling Emotes Channel Reward
-################################
+🚲 Add Cycle Emotes Channel Reward
+#####################################
 
 These commands are about managing 7tv cycling emotes.
 
@@ -83,6 +83,13 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_allowcommonwords
 
+🐦‍⬛ Remove and Blacklist Channel Reward
+##########################################
+
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_create
+
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_duration
+
 🤹🏻 Emote Management
 #####################
 
@@ -94,12 +101,6 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_replace
 
-🐦‍⬛ Blacklisting
-##################
-
-.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_create
-
-.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_duration
 
 🤣 Emote Stats
 ##############
@@ -109,4 +110,4 @@ Coming Soon
 🥸 7TV Editors 
 ###############
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_mods
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_editors

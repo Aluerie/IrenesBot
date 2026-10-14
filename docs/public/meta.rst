@@ -1,5 +1,5 @@
-🦜 Meta
-=======
+🦜 Common commands
+===================
 
 Available commands (docs in detail coming soon)
 
@@ -14,7 +14,7 @@ Available commands (docs in detail coming soon)
 
 .. autochatcommand:: modules.public.meta.MetaCommands.ping
 
-.. autochatcommand:: modules.public.meta.MetaCommands.help
+.. autochatcommand:: modules.public.meta.MetaCommands.command_list
 
 .. autochatcommand:: modules.public.meta.MetaCommands.irene
 

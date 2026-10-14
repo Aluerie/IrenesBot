@@ -17,14 +17,14 @@ Use this link:
     
     https://parrot-thankful-trivially.ngrok-free.app/oauth?scopes=channel:bot+channel:read:redemptions+channel:manage:redemptions+channel:manage:moderators&force_verify=true
 
-Yes, I'm sorry. I know the link looks ugly and the host ``parrot-thankful-trivially.ngrok-free.app`` looks suspicious as hell, 
-but I don't really care to pay money to get a proper domain name.
-Unfortunately, :iconify:`logos:twitch` twitch is dumb and they don't provide any convenient for everybody way to do this. 
+Yes, I'm sorry - I know the link looks ugly and the host ``parrot-thankful-trivially.ngrok-free.app`` looks suspicious as hell, 
+but I don't really care to pay money to get a proper domain name (see how it says "free").
+Unfortunately, :iconify:`logos:twitch` twitch is dumb and they don't provide any way to do this that is convenient for everybody. 
 
 From the developer side, it's quite a headache to set up the authorization process. 
-But without much explanations - 
+But without much explanation - 
 even pleb developers like me need to have a running web-app with a public facing URL that :iconify:`logos:twitch` twitch will use to callback after authorization.
-A normal looking domain costs some money, but as I said -  I'm a bit stingy.
+A fancy looking domain costs some money, but as I said -  I'm a bit stingy.
 However, I assure you, it's safe to click. Me and a few people have already authorized the bot this way.
 
 So, the link will redirect you to a normal `twitch.tv <https://www.twitch.tv>`_ authorization page like a screenshot below. 
@@ -56,6 +56,7 @@ In most cases - just contact me (:iconify:`logos:twitch` `@Irene_Adler__ <https:
 * If the page loads but it is showing some error (e.g. recently I stumbled upon ``ERR_NGROK_8012``) then also contact me.
 * If your browser shows something like "Secure Connection Failed", "PR_END_OF_FILE_ERROR" then you can try visiting the website with some VPN. 
   Probably, your provider blocks my suspiciously looking web-app.
+* If there is any problem with the bot after inviting it - also contact me.
 
 🚩 Postscript
 #############
