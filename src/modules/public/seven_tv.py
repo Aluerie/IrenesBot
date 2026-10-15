@@ -14,11 +14,11 @@ import datetime
 import logging
 import re
 from collections import defaultdict
+from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, TypedDict, get_args, override
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, TypedDict, override
 
 import twitchio
-from discord.utils import copy_doc
 
 # from stv_event_api import SevenTVWebSocket
 # from stv_event_api.models import (
@@ -39,6 +39,8 @@ from shared.seven_tv_gql.models import PartialEmote, PartialEmoteSet
 from utils import const, guards
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from core import IreBot, IreContext
     from shared.seven_tv_gql import GraphQL7TVClient
 
@@ -63,23 +65,30 @@ if TYPE_CHECKING:
         emote_count: int
         emote_set_id: str
 
-    class PermanentStatusQueryRow(TypedDict):
-        reward_id: str
-        emote_set_id: str
-
-
-type RewardTableLiteral = Literal["ttv_stv_permanent_rewards", "ttv_stv_cycle_rewards", "ttv_stv_blacklist_rewards"]
 
 __all__ = ("SevenTVFeatures",)
 
 log = PrefixLoggerAdapter(logging.getLogger(__name__), "🤯")
 log.setLevel(logging.DEBUG)
 
-type PartialEmoteAndAlias = tuple[PartialEmote, str | None]
 
 #############################################################################################################################
 # CONSTANTS AND ENUMS
 #############################################################################################################################
+
+
+@dataclass
+class Reward:
+    code: str
+    name: str
+    table: str
+    processor: Callable[[twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption], Awaitable[Any]]
+    cache: set[str] = field(default_factory=set)
+
+
+type PartialEmoteAndAlias = tuple[PartialEmote, str | None]
+
+type RewardLiteral = Literal["blacklist", "permanent", "cycle"]
 
 
 class OwnershipEnum(StrEnum):
@@ -405,11 +414,25 @@ class SevenTVFeatures(IrePublicComponent):
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
 
-        self.cache: dict[RewardTableLiteral, set[str]] = {
-            "ttv_stv_permanent_rewards": set(),
-            "ttv_stv_cycle_rewards": set(),
-            "ttv_stv_blacklist_rewards": set(),
-        }
+        self.permanent = Reward(
+            code="permanent",
+            name="'Add Permanent Emote'",
+            table="ttv_stv_permanent_rewards",
+            processor=self.process_permanent_redemption,
+        )
+        self.cycle = Reward(
+            code="cycle",
+            name="'Add Cycle Emote'",
+            table="ttv_stv_cycle_rewards",
+            processor=self.process_cycle_redemption,
+        )
+        self.blacklist = Reward(
+            code="blacklist",
+            name="'Blacklist/Remove Emote'",
+            table="ttv_stv_blacklist_rewards",
+            processor=self.process_blacklist_redemption,
+        )
+        self.rewards = (self.permanent, self.cycle, self.blacklist)
         self.caches_ready: asyncio.Event = asyncio.Event()
 
         # stats
@@ -482,20 +505,25 @@ class SevenTVFeatures(IrePublicComponent):
     # COMMON TASKS
     #########################################################################################################################
 
-    async def fill_cache(self, table: RewardTableLiteral) -> None:
+    async def fill_cache(self, reward: Reward) -> None:
         """Fill cache.
 
         Just a convenience so we don't query database each redemption.
         """
-        query = f"SELECT reward_id FROM {table}"  # ruff: ignore[hardcoded-sql-expression]
-        self.cache[table] = {r for (r,) in await self.bot.pool.fetch(query)}
+        query = f"SELECT reward_id FROM {reward.table}"  # ruff: ignore[hardcoded-sql-expression]
+        reward.cache = {r for (r,) in await self.bot.pool.fetch(query)}
 
-    @ireloop(count=1)
+    @ireloop(seconds=10)
     async def fill_all_caches(self) -> None:
         """Task to fill caches on startup."""
-        for table in get_args(RewardTableLiteral):
-            await self.fill_cache(table)
-        self.caches_ready.set()
+        try:
+            for literal in self.rewards:
+                await self.fill_cache(literal)
+        except Exception:  # ruff: ignore[blind-except]
+            return
+        else:
+            self.caches_ready.set()
+            self.fill_all_caches.stop()
 
     @ireloop(hours=8)
     async def double_check_reward_redemptions_queues(self) -> None:
@@ -506,24 +534,20 @@ class SevenTVFeatures(IrePublicComponent):
         * "Remove + blacklist emote"
         * "Add permanent emote"
         """
-        for table, method in [
-            ("ttv_stv_cycle_rewards", self.process_cycle_redemption),
-            ("ttv_stv_blacklist_rewards", self.process_blacklist_redemption),
-            ("ttv_stv_permanent_rewards", self.process_permanent_redemption),
-        ]:
-            query = f"SELECT reward_id, broadcaster_id FROM {table}"  # ruff: ignore[hardcoded-sql-expression]
+        for reward in self.rewards:
+            query = f"SELECT reward_id, broadcaster_id FROM {reward.table}"  # ruff: ignore[hardcoded-sql-expression]
             for row in await self.bot.pool.fetch(query):
-                reward = ut.ni(
+                custom_reward = ut.ni(
                     await self.bot.create_partialuser(row["broadcaster_id"]).fetch_custom_rewards(
                         ids=[row["reward_id"]], manageable=True
                     )
                 )
-                if reward is None:
+                if custom_reward is None:
                     continue
 
-                async for redemption in reward.fetch_redemptions(status="UNFULFILLED", sort="OLDEST"):
+                async for redemption in custom_reward.fetch_redemptions(status="UNFULFILLED", sort="OLDEST"):
                     try:
-                        await method(redemption)
+                        await reward.processor(redemption)
                     except Exception as error:
                         await self.redemption_refund(redemption)
                         if isinstance(
@@ -652,17 +676,35 @@ class SevenTVFeatures(IrePublicComponent):
     # VALIDATIONS
     #########################################################################################################################
 
+    async def validate_editor_status(self, ctx: IreContext) -> None:
+        """Validate whether the bot is currently a 7TV editor for the ctx.broadcaster."""
+        partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
+        editor_for = await partial_user.check_bot_editor()
+
+        if not editor_for.is_enough_permissions:
+            msg = (
+                "7tv editor invite was sent but it does not have required permissions "
+                f"(it needs 'Emote Sets > Manage') {self.EMOTE}"
+            )
+            raise errors.RespondWithError(msg)
+        if editor_for.state != "ACCEPTED":
+            msg = (
+                f"7tv editor invite was sent, permissions are okay, invite state={editor_for.state}, "
+                f"please use '{ctx.prefix}7tv editor accept' command to make the bot accept it {self.EMOTE}"
+            )
+            raise errors.RespondWithError(msg)
+
     async def validate_reward_id(
         self,
         redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption,
-        table: RewardTableLiteral,
+        reward: Reward,
     ) -> bool:
         """Validate reward id.
 
         Also refunds points to Irene because you know, testing costs :D
         """
         await self.caches_ready.wait()  # need cache to be filled.
-        if redemption.reward.id not in self.cache[table]:
+        if redemption.reward.id not in reward.cache:
             return False
 
         if self.is_dev(redemption.user.id):
@@ -737,65 +779,62 @@ class SevenTVFeatures(IrePublicComponent):
         await self.validate_is_emote_blacklisted(broadcaster_id, emote_id)
         await self.validate_is_emote_alias_a_common_word(broadcaster_id, emote_id, emote_alias)
 
-    def validate_cycle_emote_limit(self, new_limit: int) -> None:
-        """Validate whether emote_limit is above 0."""
-        if new_limit < 1:
-            msg = "Not allowed to have emote limit below 1"
-            raise errors.RespondWithError(msg)
-        if new_limit > 999:
-            msg = "Not allowed to have emote limit above 999"
-            raise errors.RespondWithError(msg)
-
     #########################################################################################################################
-    # CREATE REWARD HELPER
+    # HELPERS
     #########################################################################################################################
 
     async def create_custom_reward_helper(
         self,
         ctx: IreContext,
         *,
+        reward: Reward,
         reward_title: str,
-        reward_type: str,
         reward_prompt: str,
-        table: RewardTableLiteral,
-        recreate_flag: bool,
+        recreate: str,
     ) -> str:
         """Create reward helper."""
+        await self.validate_editor_status(ctx)
         # Validate arguments
-        if len(reward_title) > 45:
-            msg = "Custom reward title needs to be less than 45 characters"
-            raise ValueError(msg)
-        if len(reward_prompt) > 200:
-            msg = "Custom reward prompt need to be less than 200 characters"
-            raise ValueError(msg)
-
-        # Validate same title
-        streamer_rewards = await ctx.broadcaster.fetch_custom_rewards()
-        same_title_reward = next((r for r in streamer_rewards if r.title == reward_title), None)
-        if same_title_reward:
-            msg = (
-                f"This channel already has a channel points reward with a title '{reward_title}'? "
-                "is it intentional that you call this command?"
-            )
+        recreate_flag = recreate == "--recreate"
+        if recreate and not recreate_flag:
+            # TODO: wait for twitchio flag converters
+            msg = "Only '--recreate' flag is currently supported; did you make a typo?"
             raise errors.RespondWithError(msg)
 
-        # Validate database data
+        if len(reward_title) > 45:
+            msg = "Custom reward title is not allowed to be more than 45 characters"
+            raise ValueError(msg)
+        if len(reward_prompt) > 200:
+            msg = "Custom reward prompt is not allowed to be more than 200 characters"
+            raise ValueError(msg)
 
-        query = f"SELECT reward_id FROM {table} WHERE broadcaster_id = $1"  # ruff: ignore[hardcoded-sql-expression]
+        query = f"SELECT reward_id FROM {reward.table} WHERE broadcaster_id = $1"  # ruff: ignore[hardcoded-sql-expression]
         old_reward_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id)
+
+        # Validate database data
         if old_reward_id is not None:
             if not recreate_flag:
                 msg = (
-                    f"The bot's database already has information about {reward_type} channel points reward for this channel;"
+                    f"The bot's database already has information about {reward.name} channel points reward "
+                    "for this channel;"
                     " if it's not a mistake and you really want to delete old reward record, create a new reward and "
                     "override old information then use '--recreate' command flag "
                     f"{self.EMOTE}"
                 )
                 raise errors.RespondWithError(msg)
             # Recreate: I guess we are deleting the old reward
-            if next((x for x in streamer_rewards if x.id == old_reward_id), None):
-                with contextlib.suppress(twitchio.HTTPException):
-                    await ctx.broadcaster.delete_custom_reward(old_reward_id)
+            with contextlib.suppress(twitchio.HTTPException):
+                await ctx.broadcaster.delete_custom_reward(old_reward_id)
+
+        # Validate same title
+        streamer_rewards = await ctx.broadcaster.fetch_custom_rewards()
+        same_title_reward = next((r for r in streamer_rewards if r.title == reward_title and r.id != old_reward_id), None)
+        if same_title_reward is not None:
+            msg = (
+                f"This channel already has a channel points reward with a title '{reward_title}'? "
+                "is it intentional that you call this command? If yes then rename/delete that reward then."
+            )
+            raise errors.RespondWithError(msg)
 
         custom_reward = await ctx.broadcaster.create_custom_reward(
             title=reward_title,
@@ -803,7 +842,7 @@ class SevenTVFeatures(IrePublicComponent):
             prompt=reward_prompt,
         )
         query = f"""
-            INSERT INTO {table}
+            INSERT INTO {reward.table}
             (broadcaster_id, reward_id)
             VALUES ($1, $2)
             ON CONFLICT (broadcaster_id)
@@ -811,14 +850,32 @@ class SevenTVFeatures(IrePublicComponent):
         """  # ruff: ignore[hardcoded-sql-expression], table is developer-given.
         await self.bot.pool.execute(query, ctx.broadcaster.id, custom_reward.id)
 
-        await self.fill_cache(table)
+        await self.fill_cache(reward)
         await ctx.send(
-            f"Created '{reward_type}' channel points reward; "
+            f"Created {reward.name} channel points reward; "
             "PS. if you want to edit it (e.g. text or color) - visit your creator dashboard "
             f"(dashboard.twitch.tv/u/{ctx.broadcaster.name}/viewer-rewards/channel-points/rewards). "
             f"Just don't remove `Require Viewer to Enter Text`, please {self.EMOTE}",
         )
         return custom_reward.id
+
+    async def get_custom_reward(self, reward: Reward, broadcaster: twitchio.PartialUser) -> twitchio.CustomReward:
+        """Get custom reward helper."""
+        query = f"SELECT reward_id FROM {reward.table} WHERE broadcaster_id = $1"  # ruff: ignore[hardcoded-sql-expression]
+        reward_id: str | None = await self.bot.pool.fetchval(query, broadcaster.id)
+        if reward_id is None:
+            msg = f"Broadcaster does not have {reward.name} channel points reward set up {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+
+        custom_reward = ut.ni(await broadcaster.fetch_custom_rewards(ids=[reward_id]))
+        if custom_reward is None:
+            msg = (
+                f"It seems the {reward.name} reward was deleted? "
+                f"Please, recreate it using `!7tv {reward.code} create --recreate`"
+            )
+            raise errors.RespondWithError(msg)
+
+        return custom_reward
 
     #########################################################################################################################
     # MAIN COMMAND
@@ -846,6 +903,7 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await ctx.group_default_response()
 
+    # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_permanent.command(name="create")
     async def stv_permanent_create(self, ctx: IreContext, *, recreate: str = "") -> None:
@@ -865,44 +923,25 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.create_custom_reward_helper(
             ctx,
+            reward=self.permanent,
             reward_title="Add 7TV emote",
-            reward_type="Add Permanent Emote",
             reward_prompt=(
                 "Give me a 7TV emote link or emote ID. Optionally, type an emote alias. "
                 'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH"'
             ),
-            table="ttv_stv_permanent_rewards",
-            recreate_flag=bool(recreate == "--recreate"),
+            recreate=recreate,
         )
 
     @stv_permanent.command(name="status")
     async def stv_permanent_status(self, ctx: IreContext) -> None:
         """Get some information about 'Add Permanent Emote' channel points reward's status."""
-        query = """
-            SELECT r.reward_id, u.emote_set_id
-            FROM ttv_stv_permanent_rewards r
-                JOIN ttv_stv_users u ON u.broadcaster_id = r.broadcaster_id
-            WHERE u.broadcaster_id = $1;
-        """
-        row: PermanentStatusQueryRow | None = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
-
-        if row is None:
-            msg = f"The streamer doesn't have 'Add Permanent Emote' channel points reward set up {self.EMOTE}"
-            raise errors.RespondWithError(msg)
-
-        reward = ut.ni(await ctx.broadcaster.fetch_custom_rewards(ids=[row["reward_id"]]))
-        if reward is None:
-            msg = (
-                "Somehow my database has wrong information about the current streamer's 'Add Permanent Emote' reward - "
-                f"please, use '!7tv permanent create' to recreate the reward {self.EMOTE}"
-            )
-            raise errors.RespondWithError(msg)
-
-        content = (
-            f"title={reward.title} cost={reward.cost} reward_id={row['reward_id']} "
-            f"emote_set_id={row['emote_set_id']} {self.EMOTE}"
-        )
-        await ctx.send(content)
+        custom_reward = await self.get_custom_reward(self.permanent, ctx.broadcaster)
+        status = " \N{BULLET} ".join([
+            f"title={custom_reward.title}",
+            f"cost={custom_reward.cost}",
+            f"reward_id={custom_reward.id}",
+        ])
+        await ctx.send(f"{status} {self.EMOTE}")
 
     async def process_permanent_redemption(
         self,
@@ -912,7 +951,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         Errors are handled by global error handler and it refunds the points.
         """
-        if not await self.validate_reward_id(redemption, "ttv_stv_permanent_rewards"):
+        if not await self.validate_reward_id(redemption, self.permanent):
             return
 
         log.debug(
@@ -990,9 +1029,10 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await ctx.group_default_response()
 
+    # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="create")
-    async def stv_cycle_create(self, ctx: IreContext, emote_limit: int = 10, *, recreate: str = "") -> None:
+    async def stv_cycle_create(self, ctx: IreContext, *, recreate: str = "") -> None:
         """Create 'Add Cycle Emote' channel points reward, redeems for which will be and process to add/remove emotes.
 
         A few notes about the created channel points reward:
@@ -1003,30 +1043,83 @@ class SevenTVFeatures(IrePublicComponent):
         * If ``<emote_alias>`` is also provided then the specified emote will be added with an alias.
 
           Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF smh" will add the "MinaSmh" emote as "smh".
-
-        Parameters
-        ----------
-        emote_limit
-            Optional, 10 by default. Upper limit for total amount of cycling emotes.
-            When total amount of cycle emote becomes more than this number,
-            the bot will have to start deleting the oldest cycle emotes.
         """
-        self.validate_cycle_emote_limit(emote_limit)
-        reward_id = await self.create_custom_reward_helper(
+        await self.create_custom_reward_helper(
             ctx,
-            reward_title=f"Add 7TV emote ({emote_limit} slots, oldest cycle out)",
-            reward_type="Add Cycle Emote",
+            reward=self.cycle,
+            reward_title="Add 7TV emote (limited slots, old cycle out)",
             reward_prompt=(
                 "Give me a 7TV emote link or emote ID. Optionally, type an emote alias. "
                 'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH"'
             ),
-            table="ttv_stv_cycle_rewards",
-            recreate_flag=bool(recreate == "--recreate"),
+            recreate=recreate,
         )
-        # Update `emote_limit`
-        query = "UPDATE ttv_stv_cycle_rewards SET emote_limit = $1 WHERE reward_id = $2"
-        await self.bot.pool.execute(query, emote_limit, reward_id)
         # await self.stv_ws_subscribe(partial_emote_set.id)
+
+    @stv_cycle.command(name="status")
+    async def stv_cycle_status(self, ctx: IreContext) -> None:
+        """Get some information about 'Add Cycle Emote' channel points reward's status."""
+        custom_reward = await self.get_custom_reward(self.cycle, ctx.broadcaster)
+        query = """
+            SELECT r.reward_id,
+                r.emote_limit,
+                (SELECT COUNT(*)
+                    FROM ttv_stv_cycle_emotes e
+                    WHERE e.broadcaster_id = r.broadcaster_id) AS emote_count,
+                u.emote_set_id
+            FROM ttv_stv_cycle_rewards r
+                JOIN ttv_stv_users u ON u.broadcaster_id = r.broadcaster_id
+            WHERE u.broadcaster_id = $1;
+        """
+        row: CycleStatusQueryRow = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
+        status = " \N{BULLET} ".join([
+            f"title={custom_reward.title}",
+            f"cost={custom_reward.cost}",
+            f"reward_id={custom_reward.id}",
+            f"emote_limit={row['emote_limit']}",
+            f"emote_count={row['emote_count']}",
+            f"emote_set_id={row['emote_set_id']}",
+        ])
+        await ctx.send(f"{status} {self.EMOTE}")
+
+    # TODO: Wait for FlagConverter
+    @is_broadcaster_dev_or_editor()
+    @stv_cycle.command(name="settings")
+    async def stv_cycle_settings(self, ctx: IreContext, emote_limit: int | None = None) -> None:
+        """Change 'Add Cycle Emote' channel points reward's settings.
+
+        Parameters
+        ----------
+        emote_limit
+            Integer, emote limit setting. When total amount of cycle emote becomes more than this number,
+            the bot will have to start deleting the oldest cycle emotes.
+            When reward is initially created - this equals 10).
+            Lowering the limit doesn't trim current 'Add Cycle Emote' emotes pool until the next redemption due
+            implementation specifics.
+        """
+        if all(arg is None for arg in (emote_limit,)):
+            msg = "You need to input at least one of the settings"
+            raise errors.RespondWithError(msg)
+
+        # Validate reward exists
+        query = "SELECT COUNT(1) FROM ttv_stv_cycle_rewards WHERE broadcaster_id = $1"
+        count: int = await self.bot.pool.fetchval(query, ctx.broadcaster.id)
+        if count == 0:
+            msg = f"This broadcaster does not have 'Add Cycle Emote' channel points reward set up {self.EMOTE}"
+            raise errors.RespondWithError(msg)
+
+        # Validate new_limit
+        if emote_limit is not None:
+            if emote_limit < 1:
+                msg = f"Not allowed to have emote limit below 1 {self.EMOTE}"
+                raise errors.RespondWithError(msg)
+            if emote_limit > 999:
+                msg = f"Not allowed to have emote limit above 999 {self.EMOTE}"
+                raise errors.RespondWithError(msg)
+
+        query = "UPDATE ttv_stv_cycle_rewards SET emote_limit = $1 WHERE broadcaster_id = $2;"
+        await self.bot.pool.execute(query, emote_limit, ctx.broadcaster.id)
+        await ctx.send(f"Updated {self.EMOTE}")
 
     @is_broadcaster_dev_or_editor()
     @stv_cycle.command(name="drop")
@@ -1065,63 +1158,6 @@ class SevenTVFeatures(IrePublicComponent):
             raise errors.RespondWithError(msg)
         await ctx.send(f"'{emote.id}' was removed from the cycling emote list {self.EMOTE}")
 
-    @stv_cycle.command(name="status")
-    async def stv_cycle_status(self, ctx: IreContext) -> None:
-        """Get some information about 'Add Cycle Emote' channel points reward's status."""
-        query = """
-            SELECT r.reward_id,
-                r.emote_limit,
-                (SELECT COUNT(*)
-                    FROM ttv_stv_cycle_emotes e
-                    WHERE e.broadcaster_id = r.broadcaster_id) AS emote_count,
-                u.emote_set_id
-            FROM ttv_stv_cycle_rewards r
-                JOIN ttv_stv_users u ON u.broadcaster_id = r.broadcaster_id
-            WHERE u.broadcaster_id = $1;
-        """
-        row: CycleStatusQueryRow | None = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
-
-        if row is None:
-            msg = f"The streamer doesn't have 7tv emotes cycle channel points reward set up {self.EMOTE}"
-            raise errors.RespondWithError(msg)
-
-        reward = ut.ni(await ctx.broadcaster.fetch_custom_rewards(ids=[row["reward_id"]]))
-        if reward is None:
-            msg = (
-                "Somehow my database has wrong information about the current streamer's 7tv cycle reward - "
-                f"please, use '!7tv cycle create' to recreate the reward {self.EMOTE}"
-            )
-            raise errors.RespondWithError(msg)
-
-        content = (
-            f"title={reward.title} cost={reward.cost} reward_id={row['reward_id']} emote_limit={row['emote_limit']} "
-            f"emote_count={row['emote_count']} emote_set_id={row['emote_set_id']} {self.EMOTE}"
-        )
-        await ctx.send(content)
-
-    @is_broadcaster_dev_or_editor()
-    @stv_cycle.command(name="limit")
-    async def stv_cycle_limit(self, ctx: IreContext, new_limit: int) -> None:
-        """Change 'Add Cycle Emote' channel points reward's limit.
-
-        Lowering the limit doesn't trim current 'Add Cycle Emote' emotes pool until the next redemption.
-
-        Parameters
-        ----------
-        new_limit
-            Integer, new limit setting for cycle emote reward.
-        """
-        self.validate_cycle_emote_limit(new_limit)
-        query = """
-            UPDATE ttv_stv_cycle_rewards
-            SET emote_limit = $1
-            WHERE broadcaster_id = $2
-            RETURNING (SELECT emote_limit FROM ttv_stv_cycle_rewards WHERE broadcaster_id = $2);
-        """
-        # TODO: after upgrading to PostgresQL 18 https://stackoverflow.com/a/7927957/19217368
-        old_emote_limit = await self.bot.pool.fetchval(query, new_limit, ctx.broadcaster.id)
-        await ctx.send(f"Changed emote_limit from {old_emote_limit} to {new_limit} {self.EMOTE}")
-
     @stv_cycle.command(name="show-emotes", aliases=["all-emotes"])
     async def stv_cycle_showemotes(self, ctx: IreContext) -> None:
         """Show all emotes that were added with 'Add Cycle Emote' channel points reward redemptions."""
@@ -1133,32 +1169,6 @@ class SevenTVFeatures(IrePublicComponent):
         content = f"Total: {len(cycle_emotes)}; " + " ".join(cycle_emotes)
         await ctx.chunk_send(content)
 
-    @is_broadcaster_dev_or_editor()
-    @stv_cycle.command(name="allow-common-words", aliases=["allowcommonwords"])  # cSpell: ignore: allowcommonwords
-    async def stv_cycle_allowcommonwords(self, ctx: IreContext, *, new_state: bool | None = None) -> None:
-        """Set whether common words are allowed to be emote aliases in this stream.
-
-        Parameters
-        ----------
-        new_state
-            Optional, boolean-like value, e.g. "yes", "no", "true", "false".
-            If omitted, then the command will show current state of ``allow-common-words`` setting in the stream.
-        """
-        if new_state is None:
-            # show status
-            allow_common_words: bool = await self.select_allow_common_words(ctx.broadcaster.id)
-            content = (
-                f"Common words are {'allowed' if allow_common_words else 'not allowed'} "
-                f"for 7tv emote aliases in this stream {self.EMOTE}"
-            )
-            await ctx.send(content)
-            return
-
-        # Set new_state
-        query = "UPDATE ttv_stv_users SET allow_common_words = $1 WHERE broadcaster_id = $2;"
-        await self.bot.pool.execute(query, new_state, ctx.broadcaster.id)
-        await ctx.send(f"Changed allow-common-words setting to '{new_state!s}' {self.EMOTE}")
-
     async def process_cycle_redemption(
         self,
         redemption: twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption,
@@ -1167,18 +1177,15 @@ class SevenTVFeatures(IrePublicComponent):
 
         Errors are handled by global error handler and it refunds the points.
         """
-        if not await self.validate_reward_id(redemption, "ttv_stv_cycle_rewards"):
+        if not await self.validate_reward_id(redemption, self.cycle):
             return
-
-        # shortcuts
-        broadcaster_id = redemption.broadcaster.id
 
         log.debug(
             "User @%s (%s) requested cycle-emote at broadcaster @%s (%s) with input: '%s'",
             redemption.user.display_name,
             redemption.user.id,
             redemption.broadcaster.display_name,
-            broadcaster_id,
+            redemption.broadcaster.id,
             redemption.user_input,
         )
 
@@ -1187,7 +1194,7 @@ class SevenTVFeatures(IrePublicComponent):
         log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
 
         # Step 2. Get Emote Set
-        emote_set = await self.select_emote_set(broadcaster_id)
+        emote_set = await self.select_emote_set(redemption.broadcaster.id)
         log.debug("Operating on emote_set #%s", emote_set.id)
 
         # Step 3. Need to validate the emote before attempting to remove
@@ -1206,7 +1213,9 @@ class SevenTVFeatures(IrePublicComponent):
                 WHERE r.broadcaster_id = $1
             )
         """
-        emote_ids_to_remove: list[str] = [r for (r,) in await self.bot.pool.fetch(query, broadcaster_id, emote_set.id)]
+        emote_ids_to_remove: list[str] = [
+            r for (r,) in await self.bot.pool.fetch(query, redemption.broadcaster.id, emote_set.id)
+        ]
         log.debug("Removing emotes #%s", emote_ids_to_remove)
 
         for emote_id_to_remove in emote_ids_to_remove:
@@ -1297,18 +1306,8 @@ class SevenTVFeatures(IrePublicComponent):
     @stv_editor.command(name="status", aliases=["check"])
     async def stv_editor_status(self, ctx: IreContext) -> None:
         """Show some debug information about state of 7TV editor request for the streamer."""
-        partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
-        editor_for = await partial_user.check_bot_editor()
-
-        if not editor_for.is_enough_permissions:
-            content = f"7tv editor invite doesn't have required permissions (it needs 'Emote Sets > Manage') {self.EMOTE}"
-        elif editor_for.state != "ACCEPTED":
-            content = (
-                f"7tv editor invite permissions are okay, invite state={editor_for.state}, "
-                f"please use '{ctx.prefix}7tv editor accept' command to make the bot accept it {self.EMOTE}"
-            )
-        else:
-            content = f"7tv editor invite is accepted and permissions are good {self.EMOTE}"
+        await self.validate_editor_status(ctx)
+        content = f"7tv editor invite is accepted and permissions are good {self.EMOTE}"
         await ctx.send(content)
 
     @stv_editor.command(name="guide")
@@ -1420,7 +1419,6 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.add_helper(ctx, emote_and_alias)
 
-    @copy_doc(stv_add)
     @is_broadcaster_dev_or_editor()
     @commands.command(name="add")
     async def add(
@@ -1429,7 +1427,10 @@ class SevenTVFeatures(IrePublicComponent):
         *,
         emote_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
     ) -> None:
-        """Add 7TV emote."""
+        """Add 7TV emote.
+
+        Shortcut for ``!7tv add``. Consult the documentation for that command.
+        """
         await self.add_helper(ctx, emote_alias)
 
     #########################################################################################################################
@@ -1514,7 +1515,6 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.rename_emote_worker(ctx, emote_and_alias)
 
-    @copy_doc(stv_rename)
     @is_broadcaster_dev_editor_or_adder()
     @commands.command(name="rename")
     async def rename(
@@ -1523,7 +1523,10 @@ class SevenTVFeatures(IrePublicComponent):
         *,
         emote_and_alias: Annotated[PartialEmoteAndAlias, RenameEmoteConverter],
     ) -> None:
-        """Rename 7TV emote."""
+        """Rename 7TV emote.
+
+        Shortcut for ``!7tv rename``. Consult the documentation for that command.
+        """
         await self.rename_emote_worker(ctx, emote_and_alias)
 
     async def remove_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
@@ -1557,7 +1560,6 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.remove_emote_worker(ctx, emote)
 
-    @copy_doc(stv_remove)
     @is_broadcaster_dev_editor_or_adder()
     @commands.command(name="remove")
     async def remove(
@@ -1566,7 +1568,10 @@ class SevenTVFeatures(IrePublicComponent):
         *,
         emote: Annotated[PartialEmote, RemoveEmoteConverter],
     ) -> None:
-        """Remove 7TV emote."""
+        """Remove 7TV emote.
+
+        Shortcut for ``!7tv remove``. Consult the documentation for that command.
+        """
         await self.remove_emote_worker(ctx, emote)
 
     async def replace_emote_worker(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
@@ -1650,7 +1655,6 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.replace_emote_worker(ctx, emote_and_alias)
 
-    @copy_doc(stv_replace)
     @is_broadcaster_dev_editor_or_adder()
     @commands.command(name="replace")
     async def replace(
@@ -1659,7 +1663,10 @@ class SevenTVFeatures(IrePublicComponent):
         *,
         emote_and_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
     ) -> None:
-        """Replace 7TV emote."""
+        """Replace 7TV emote.
+
+        Shortcut for ``!7tv replace``. Consult the documentation for that command.
+        """
         await self.replace_emote_worker(ctx, emote_and_alias)
 
     #########################################################################################################################
@@ -1676,6 +1683,7 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await ctx.group_default_response()
 
+    # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_blacklist.command(name="create")
     async def stv_blacklist_create(self, ctx: IreContext, *, recreate: str = "") -> None:
@@ -1691,16 +1699,28 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.create_custom_reward_helper(
             ctx,
+            reward=self.blacklist,
             reward_title="Remove and blacklist 7TV emote",
-            reward_type="Blacklist/Remove Emote",
             reward_prompt=(
                 "This only works for emotes that were added via 'Add 7TV emote' redeem. "
                 "Give me a 7TV emote name, link or emote ID. "
                 'Example: "https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF"'
             ),
-            table="ttv_stv_blacklist_rewards",
-            recreate_flag=bool(recreate == "--recreate"),
+            recreate=recreate,
         )
+
+    @stv_blacklist.command(name="status")
+    async def stv_blacklist_status(self, ctx: IreContext) -> None:
+        """Get some information about 'Blacklist/Remove Emote' channel points reward's status."""
+        custom_reward = await self.get_custom_reward(self.permanent, ctx.broadcaster)
+        status = " \N{BULLET} ".join([
+            f"title={custom_reward.title}",
+            f"cost={custom_reward.cost}",
+            f"reward_id={custom_reward.id}",
+        ])
+        await ctx.send(f"{status} {self.EMOTE}")
+
+    # TODO: Wait for FlagConverter
 
     async def process_blacklist_redemption(
         self,
@@ -1710,7 +1730,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         Errors are handled by global error handler and it refunds the points.
         """
-        if not await self.validate_reward_id(redemption, "ttv_stv_blacklist_rewards"):
+        if not await self.validate_reward_id(redemption, self.blacklist):
             return
 
         log.debug(
@@ -1722,8 +1742,8 @@ class SevenTVFeatures(IrePublicComponent):
             redemption.user_input,
         )
 
-        emote, alias = await parse_add_rename_input(self.bot.stv, redemption.user_input, redemption.broadcaster.id)
-        log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
+        emote = await parse_remove_input(self.bot.stv, redemption.user_input, redemption.broadcaster.id)
+        log.debug("Parsed user input: emote_id=%s", emote.id)
 
         emote_set = await self.select_emote_set(redemption.broadcaster.id)
         log.debug("Operating on emote_set #%s", emote_set.id)
@@ -1733,8 +1753,8 @@ class SevenTVFeatures(IrePublicComponent):
         if selected_emote_id is None:
             msg = f"This is not a known temporary emote {self.EMOTE}"
             raise errors.RespondWithError(msg)
-
-        await emote_set.remove_emote(emote_id=selected_emote_id)
+        with contextlib.suppress(stv_errors.EmoteNotFoundError):
+            await emote_set.remove_emote(emote_id=selected_emote_id)
         await self.delete_from_cycle_emotes(selected_emote_id, emote_set.id)
         query = """
             INSERT INTO ttv_stv_blacklist_emotes
@@ -1745,7 +1765,7 @@ class SevenTVFeatures(IrePublicComponent):
 
         await self.redemption_respond(redemption, f"Done {self.EMOTE}")
         await self.fulfil_redemption(redemption)
-        log.info("Done with blacklist redemption for '%s' (%s)", alias, emote.id)
+        log.info("Done with blacklist redemption for (%s)", emote.id)
 
     @commands.Component.listener(name="custom_redemption_add")
     async def channel_points_blacklist_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
@@ -1795,21 +1815,33 @@ class SevenTVFeatures(IrePublicComponent):
             msg = "Negative blacklist duration is not allowed"
             raise errors.RespondWithError(msg)
 
-        query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2;"
-        await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
+        query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2"
+        status: str = await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
+        if status == "UPDATE 0":
+            msg = f"This broadcaster does not have 'Blacklist/Remove Emote' channel points reward set up {self.EMOTE}"
+            raise errors.RespondWithError(msg)
         await ctx.send(
             f"Changed duration to {clock.dm_human_timedelta(datetime.timedelta(days=days, hours=hours))} {self.EMOTE}"
         )
 
     @is_broadcaster_dev_or_editor()
     @stv_blacklist.command(name="remove-only")
-    async def stv_blacklist_removeonly(self, ctx: IreContext) -> None:
+    async def stv_blacklist_removeonly(self, ctx: IreContext, *, new_value: bool | None = None) -> None:
         """Change 'Blacklist/Remove Emote' channel points reward to remove-only behavior.
 
         So the emotes don't get blacklisted at all.
         """
-        query = "UPDATE ttv_stv_blacklist_rewards SET duration = NULL WHERE broadcaster_id = $1;"
-        await self.bot.pool.execute(query, ctx.broadcaster.id)
+        if new_value is None:
+            query = "SELECT remove_only FROM ttv_stv_blacklist_rewards WHERE broadcaster_id = $1;"
+            remove_only = await self.bot.pool.fetchval(query, ctx.broadcaster.id)
+            await ctx.send(f"Current value for `remove_only` flag within 'Blacklist/Remove Emote' is {remove_only}")
+            return
+
+        query = "UPDATE ttv_stv_blacklist_rewards SET remove_only = $2 WHERE broadcaster_id = $1;"
+        status: str = await self.bot.pool.execute(query, ctx.broadcaster.id)
+        if status == "UPDATE 0":
+            msg = f"This broadcaster does not have 'Blacklist/Remove Emote' channel points reward set up {self.EMOTE}"
+            raise errors.RespondWithError(msg)
         await ctx.send(f"Changed 'Blacklist/Remove Emote' channel points reward behavior to remove-only {self.EMOTE}")
 
     #########################################################################################################################
@@ -1849,10 +1881,12 @@ class SevenTVFeatures(IrePublicComponent):
         """
         await self.get_who_added(ctx, emote)
 
-    @copy_doc(stv_who_added)
     @commands.command(name="who-added", aliases=["whoadded"])
     async def who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
-        """Get twitch user who added the emote via channel redemption."""
+        """Get twitch user who added the emote via channel redemption.
+
+        Shortcut for ``!7tv who-added``. Consult the documentation for that command.
+        """
         await self.get_who_added(ctx, emote)
 
     #########################################################################################################################
@@ -1892,6 +1926,46 @@ class SevenTVFeatures(IrePublicComponent):
         # Delete old editors
         query = "DELETE FROM ttv_stv_mods WHERE broadcaster_id = $1 AND editor_id <> ALL($2::text[])"
         await self.bot.pool.execute(query, ctx.broadcaster.id, editor_ids)
+
+    #########################################################################################################################
+    # 7TV USER SETTINGS
+    #########################################################################################################################
+
+    @stv.group(name="settings", invoke_fallback=True)
+    async def stv_settings(self, ctx: IreContext) -> None:
+        """Group command for `!7tv settings`.
+
+        These commands manage 7tv settings channel points reward and related emotes.
+
+        Without a subcommand this lists subcommands.
+        """
+        await ctx.group_default_response()
+
+    @is_broadcaster_dev_or_editor()
+    @stv_settings.command(name="allow-common-words", aliases=["allowcommonwords"])  # cSpell: ignore: allowcommonwords
+    async def stv_settings_allowcommonwords(self, ctx: IreContext, *, new_state: bool | None = None) -> None:
+        """Set whether common words are allowed to be emote aliases in this stream.
+
+        Parameters
+        ----------
+        new_state
+            Optional, boolean-like value, e.g. "yes", "no", "true", "false".
+            If omitted, then the command will show current state of ``allow-common-words`` setting in the stream.
+        """
+        if new_state is None:
+            # show status
+            allow_common_words: bool = await self.select_allow_common_words(ctx.broadcaster.id)
+            content = (
+                f"Common words are {'allowed' if allow_common_words else 'not allowed'} "
+                f"for 7tv emote aliases in this stream {self.EMOTE}"
+            )
+            await ctx.send(content)
+            return
+
+        # Set new_state
+        query = "UPDATE ttv_stv_users SET allow_common_words = $1 WHERE broadcaster_id = $2;"
+        await self.bot.pool.execute(query, new_state, ctx.broadcaster.id)
+        await ctx.send(f"Changed allow-common-words setting to '{new_state!s}' {self.EMOTE}")
 
     #########################################################################################################################
     # 7TV EMOTE STATS                                                                                                       #

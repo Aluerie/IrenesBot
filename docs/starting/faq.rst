@@ -36,10 +36,13 @@
 🥎 Features related to channel point rewards
 ---------------------------------------------
 
-
 * After creating a channel points reward with bot commands -
   streamers are able to edit the resulting channel points reward in their :iconify:`logos:twitch` `streamer dashboard
   <https://dashboard.twitch.tv/viewer-rewards/channel-points/rewards>`_.
+* After creating a channel points reward - the bot does not ever edit its title, description, cost, etc. because it 
+  would possibly result in overriding streamer's manual edits. 
+  So if you want to include information about some dynamic settings (e.g. ``<emote_limit>`` in 'Add Cycle Emote' feature) -
+  you have to include it yourself into the reward's details.
 * However, please, don't disable ``Require Viewer to Enter Text`` for rewards that require user input as 
   the bot won't be able to get anything, obviously.
 * If the bot sets a max amount of redeems per stream or cooldown for channel points redeem - then it's probably needed 
@@ -47,7 +50,14 @@
 * The bot is not able to attach to previously created channel point rewards that were created by other accounts 
   (e.g. by broadcaster or other bots). 
   It's a twitch restriction - the bots can manage only those channel point rewards that were created by the bot itself.
+  This is why every such feature has ``!feature create`` command.
 * If, for some reason, the channel points redemption can't be satisfied - the bot will try to refund the points to the user.
 * if the bot goes down for some reason - it will still process redemptions queue as soon as it goes online. 
   Hence if you see the bot not responding - you don't need to refund the points to users yourself just yet - 
   the bot will try to fix everything on its own.
+
+✏️ Parse User Input specifics
+------------------------------
+* If a command supports command flags, e.g. ``!translate Bonne Soiree --to en --from fr``, then if the said command accepts
+  positional text - it can only be in the beginning before non-positional command flags. This is to avoid ambiguity, e.g.
+  ``!translate --to en --from fr Bonne Soiree`` is technically ambiguous in vacuum. 

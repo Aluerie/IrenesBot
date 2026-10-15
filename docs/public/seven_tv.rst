@@ -102,8 +102,6 @@ Similarly to "Add Permanent Emote", the emotes added this way can be managed wit
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_showemotes
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_allowcommonwords
-
 🐦‍⬛ "Remove and Blacklist Emote" Channel Reward
 #################################################
 
@@ -124,6 +122,10 @@ Similarly to "Add Permanent Emote", the emotes added this way can be managed wit
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_replace
 
+⚙️ Settings
+#####################
+
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_settings_allowcommonwords
 
 🤣 Emote Stats
 ##############

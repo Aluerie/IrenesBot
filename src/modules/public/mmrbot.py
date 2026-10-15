@@ -119,6 +119,16 @@ if TYPE_CHECKING:
     class User(TypedDict):
         name: str
 
+    class PreviousMatch(TypedDict):
+        match_id: int
+        hero_id: int
+        hero_name: str
+        win: bool
+        abandon: bool
+        game_mode: int
+        lobby_type: int
+        start_time: str
+        duration: int
 
 #########################################################################################################################
 # FROM DOTA2BOT
@@ -152,7 +162,12 @@ class LocalAPI:
     async def _invoke(self, endpoint: str) -> Any:
         async with self.session.get(f"{self.BASE_URL}{endpoint}") as resp:
             if resp.ok:
-                return await resp.json()
+                data = await resp.json()
+                match data:
+                    case {"error": error}:
+                        raise errors.RespondWithError(str(error))
+                    case _:
+                        return data
             msg = "It seems Dota2Bot is down, please ask Irene to fix it"
             raise errors.RespondWithError(msg)
 
@@ -167,8 +182,12 @@ class LocalAPI:
         return await self._invoke(f"/user/{user_id}")
 
     async def get_profile_card(self, friend_id: int) -> ProfileCard:
-        """Get profile_card."""
+        """Get profile card."""
         return await self._invoke(f"/profile_card/{friend_id}")
+
+    async def get_previous_match(self, friend_id: int) -> PreviousMatch:
+        """Get previous match."""
+        return await self._invoke(f"/previous_match/{friend_id}")
 
 
 # /* cSpell:disable */
@@ -773,33 +792,29 @@ class MMRBot(IrePublicComponent):
     @commands.command(aliases=["pm"])
     async def previous_match(self, ctx: IreContext) -> None:
         """Show summary stats for the previous match."""
-        _, hero_id, match = await self.get_last_game(ctx.broadcaster.id)
+        streamer: Streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
+        match: PreviousMatch = await self.local_api.get_previous_match(streamer["id"])
+        score_category = ScoreCategory.create(match["lobby_type"], match["game_mode"])
 
-        slot, player = next(iter((s, p) for s, p in enumerate(match["players"]) if p["hero_id"] == hero_id), (None, None))
+        win_word = "Win" if match["win"] else "Loss"
+
+        minimal = await self.local_api.get_minimal_match(match["match_id"])
+        slot, player = next(
+            iter((s, p) for s, p in enumerate(minimal["players"]) if p["hero_id"] == match["hero_id"]), (None, None)
+        )
         if slot is None or player is None:
             msg = "Somehow can't find streamer's account in their previous match uuh weird"
             raise errors.SomethingWentWrongError(msg)
-
-        is_radiant = slot < 5
-        score_category = ScoreCategory.create(match["lobby_type"], match["game_mode"])
-        if match["outcome"] >= MatchOutcome.NotScoredPoorNetworkConditions:
-            outcome = "Not Scored"
-        elif match["outcome"] == MatchOutcome.RadiantVictory:
-            outcome = "Win" if is_radiant else "Loss"
-        elif match["outcome"] == MatchOutcome.DireVictory:
-            outcome = "Loss" if is_radiant else "Win"
-        else:
-            outcome = "Unknown outcome"
 
         delta = clock.utcnow() - (
             datetime.datetime.fromisoformat(match["start_time"]) + datetime.timedelta(seconds=match["duration"])
         )
 
         response = (
-            f"Last Game - {score_category.name}: {outcome} as "
+            f"Previous Match - {score_category.name}: {win_word} as "
             f"{player['hero_name']} {player['kills']}/{player['deaths']}/{player['assists']} "
             f"\N{BULLET} ended {clock.human_timedelta(delta, mode='short')} ago "
-            f"\N{BULLET} stratz.com/matches/{match['id']}"
+            f"\N{BULLET} stratz.com/matches/{match['match_id']}"
         )
         await ctx.send(response)
 
@@ -809,7 +824,7 @@ class MMRBot(IrePublicComponent):
 
     async def get_id_convert(self, argument: str) -> int:
         """Get minimal match."""
-        async with self.bot.session.get(f"http://127.0.0.1:8000/convert/{argument}") as resp:
+        async with self.bot.session.get(f"http://127.0.0.1:8000/steam_id/{argument}") as resp:
             try:
                 data = (await resp.json())["id"]
             except KeyError:
