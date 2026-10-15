@@ -8,6 +8,7 @@ Notices
 
 from __future__ import annotations
 
+import textwrap
 from typing import TYPE_CHECKING, override
 
 import twitchio
@@ -64,3 +65,8 @@ class IreContext(commands.Context["IreBot"]):
         except twitchio.MessageRejectedError:
             # Bypass this error with a 7TV trick of adding an unknown character (32 is space though)
             return await super().send(content + chr(32) + chr(917504), me=me)
+
+    async def chunk_send(self, content: str, *, me: bool = False, width: int = 500) -> None:
+        """Send content in chunks if it's expected to be a long one."""
+        for chunk in textwrap.wrap(content, width, break_long_words=False):
+            await self.send(chunk, me=me)

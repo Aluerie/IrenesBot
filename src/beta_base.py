@@ -31,7 +31,7 @@ from twitchio.ext import commands
 
 from config import env
 from core import IreDevComponent, ireloop
-from shared import errors
+from shared import clock, errors
 from utils import const
 
 if TYPE_CHECKING:

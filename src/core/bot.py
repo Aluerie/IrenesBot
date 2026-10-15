@@ -488,7 +488,11 @@ class IreBot(BotBase, commands.AutoBot):
                 # let's be nice and refund channel points for failed redeems
                 await original.refund(token_for=original.broadcaster.id)
 
-            if await self.handle_common_errors(error, original.respond):
+            async def error_redemption_respond(content: str) -> twitchio.SentMessage:
+                """Add `(refunded)` to the response."""
+                return await original.respond(f"{content} (refunded)")
+
+            if await self.handle_common_errors(error, error_redemption_respond):
                 # 1. Handle common error
                 return
 

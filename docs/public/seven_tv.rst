@@ -2,14 +2,17 @@
 ================
 
 In this page we will document bot's features for adding / removing / managing `7TV <https://7tv.app/>`_ emotes.
-There is quite a few features, so let's get started.
+
+Some of these features are managed via channel points rewards, e.g. viewers can redeem to add an emote.
+You can check general philosophy of how bot's channel point rewards related features work here: :ref:`channel_points_reward_tips`.
+
 
 🖊️ Making the bot your 7TV editor
 #################################
 
 .. attention::
 
-   For 7TV bot's features to work - you need to add the bot as your 7TV editor.
+   First of all, for 7TV bot's features to work - you need to add the bot as your 7TV editor.
    So please,
 
    1. Go to your `7TV editors settings page <https://7tv.app/settings/editors>`_
@@ -17,8 +20,8 @@ There is quite a few features, so let's get started.
    3. Set Editor Permissions - currently, ``Emotes Sets > ✅ Manage`` permission (the default) is enough, 
       but maybe future features will require more.
    4. At the moment, the bot doesn't automatically accept 7TV editor invites. However, you can use ``!7tv editor accept`` 
-      command to make the bot accept it
-   5. The commands below might be of help.
+      command to make the bot accept it.
+   5. The commands ``!7tv editor <subcommand>`` below might be of help.
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_editor_guide
 
@@ -41,10 +44,25 @@ the commands here will help to reattach the bot to a proper emote set that the s
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_emoteset_attach
 
-🚲 Add Cycle Emotes Channel Reward
+🚦 "Add Permanent Emote" Channel Reward
+#######################################
+
+These commands are about managing "Add Permanent Emote". The word "permanent" here doesn't mean much - 
+it's only needed to differentiate this feature from "Add Cycle Emote" which is described below.
+
+The "Add Permanent Emote" works like this. A streamer has a channel points reward that was created with the bot's help.
+When a chatter redeems while specifying which emote to add - the bot adds the requested emote. That's it. 
+
+The requested emote can be managed with ``!7tv rename/remove/replace`` commands (including the person who requested it).
+
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_permanent_create
+
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_permanent_status
+
+🚲 "Add Cycle Emote" Channel Reward
 #####################################
 
-These commands are about managing 7tv cycling emotes.
+These commands are about managing "Add Cycle Emote".
 
 Cycling emotes are supposed to work as follows. 
 A streamer has a channel points redeem (that was setup with the bot's help).
@@ -71,6 +89,9 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
    We all know how 7TV can be laggy and annoying. 
    Well, it's quite the same when developing with it.
 
+Similarly to "Add Permanent Emote", the emotes added this way can be managed with ``!7tv rename/remove/replace`` commands 
+(including the person who requested it).
+
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_create
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_status
@@ -83,8 +104,8 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_cycle_allowcommonwords
 
-🐦‍⬛ Remove and Blacklist Channel Reward
-##########################################
+🐦‍⬛ "Remove and Blacklist Emote" Channel Reward
+#################################################
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_create
 

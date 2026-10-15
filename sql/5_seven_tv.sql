@@ -22,7 +22,7 @@ CREATE TABLE
         emote_id TEXT NOT NULL,
         broadcaster_id TEXT NOT NULL REFERENCES ttv_stv_cycle_rewards (broadcaster_id) ON DELETE CASCADE,
         emote_set_id TEXT NOT NULL,
-        added_at TIMESTAMP DEFAULT (now() AT TIME ZONE 'utc'::text),
+        added_at TIMESTAMP DEFAULT (now () AT TIME ZONE 'utc'),
         requested_by TEXT NOT NULL -- twitch_id string;
     );
 
@@ -85,4 +85,11 @@ CREATE TABLE
         broadcaster_id TEXT NOT NULL,
         editor_id TEXT NOT NULL,
         PRIMARY KEY (broadcaster_id, editor_id)
+    );
+
+CREATE TABLE
+    /* Permanent Emote Rewards */
+    IF NOT EXISTS ttv_stv_permanent_rewards (
+        broadcaster_id TEXT PRIMARY KEY REFERENCES ttv_stv_users (broadcaster_id) ON DELETE CASCADE,
+        reward_id TEXT NOT NULL
     );

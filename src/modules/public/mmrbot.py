@@ -14,7 +14,7 @@ Notices
 
 from __future__ import annotations
 
-import datetime as dt
+import datetime
 import logging
 import operator
 import pprint
@@ -50,7 +50,7 @@ if TYPE_CHECKING:
 
     class ScoreQueryRow(TypedDict):
         friend_id: int
-        start_time: dt.datetime
+        start_time: datetime.datetime
         lobby_type: int
         game_mode: int
         outcome: int | None
@@ -83,7 +83,7 @@ if TYPE_CHECKING:
         game_mode_name: str
         server_steam_id: int
         players: list[Player]
-        started_at: dt.datetime
+        started_at: datetime.datetime
         average_mmr: str | None
         state: MatchState
 
@@ -791,7 +791,9 @@ class MMRBot(IrePublicComponent):
         else:
             outcome = "Unknown outcome"
 
-        delta = clock.utcnow() - (dt.datetime.fromisoformat(match["start_time"]) + dt.timedelta(seconds=match["duration"]))
+        delta = clock.utcnow() - (
+            datetime.datetime.fromisoformat(match["start_time"]) + datetime.timedelta(seconds=match["duration"])
+        )
 
         response = (
             f"Last Game - {score_category.name}: {outcome} as "
@@ -938,7 +940,7 @@ class MMRBot(IrePublicComponent):
         """
         streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
         query = "SELECT last_seen FROM ttv_dota_accounts WHERE friend_id = $1"
-        last_seen: dt.datetime = await self.bot.pool.fetchval(query, streamer["id"])
+        last_seen: datetime.datetime = await self.bot.pool.fetchval(query, streamer["id"])
         delta = clock.utcnow() - last_seen
         response = (
             f"{streamer['name']} id={streamer['id']} status={streamer['status']} - "
@@ -988,7 +990,7 @@ class MMRBot(IrePublicComponent):
         #     response = f"Party members IDs: {unknown_party_members}"
         await ctx.send(response)
 
-    async def score_response_helper(self, broadcaster_id: str, stream_started_at: dt.datetime | None = None) -> str:
+    async def score_response_helper(self, broadcaster_id: str, stream_started_at: datetime.datetime | None = None) -> str:
         """Get !wl commands response."""
         clause = "AND m.start_time > $3" if stream_started_at else ""
         query = f"""
@@ -1014,7 +1016,7 @@ class MMRBot(IrePublicComponent):
         cutoff_dt = rows[0]["start_time"]
         for row in rows:
             # Let's assume gaming sessions to be separated by 6 hours from each other;
-            if row["start_time"] < cutoff_dt - dt.timedelta(hours=6):
+            if row["start_time"] < cutoff_dt - datetime.timedelta(hours=6):
                 gaming_session_dt = cutoff_dt
                 break
             cutoff_dt = row["start_time"]
