@@ -29,8 +29,8 @@ def flag_parser(
     flags: list[str],
     *,
     positional: bool = True,
-    prefix: str = "",
-    delimiter: str = ":",
+    prefix: str = "--",
+    delimiter: str = " ",
 ) -> dict[str, str | None]:
     """Flag-parser: a converter that allows for a user-friendly flag syntax.
 

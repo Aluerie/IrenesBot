@@ -119,11 +119,11 @@ class MetaCommands(IrePublicComponent):
         Parameters
         ----------
         translate_arguments
-            The formatting for this argument: ``<text_to_translate> to: <target_language> from: <source_language>``.
-            Both flag arguments (``to:`` and ``from:``) are optional.
+            The formatting for this argument: ``<text_to_translate> --to <target_language> --from <source_language>``.
+            Both flag arguments (``--to`` and ``--from``) are optional.
 
-            * By default, ``to: <target_language>`` is assumed to be ``en`` (English).
-            * If ``from: <source_language>`` is not provided then the bot autodetect the used language.
+            * By default, ``--to <target_language>`` is assumed to be ``en`` (English).
+            * If ``--from <source_language>`` is not provided then the bot autodetect the used language.
 
             The languages needs to be passed as a 2-letters code (some languages use 3 letters though),
             e.g. ``fr`` for French, ``de`` for German.
@@ -369,8 +369,8 @@ class MetaCommands(IrePublicComponent):
         Examples
         --------
         * ``!translate Je t'aime``
-        * ``!translate Ich liebe dich to: fr``
-        * ``!translate  i love you to: fr from: en``
+        * ``!translate Ich liebe dich --to fr``
+        * ``!translate  i love you --to fr --from en``
         * ``!translate`` (but as a reply to somebody's message "Hola te amo")
         """
         text = ctx.message.reply.parent_message_body if ctx.message.reply else translate_arguments.text

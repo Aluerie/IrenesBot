@@ -66,7 +66,7 @@ CREATE TABLE
     IF NOT EXISTS ttv_stv_blacklist_rewards (
         broadcaster_id TEXT PRIMARY KEY REFERENCES ttv_stv_users (broadcaster_id) ON DELETE CASCADE,
         reward_id TEXT NOT NULL,
-        duration INTEGER NOT NULL DEFAULT (169)
+        duration INTEGER DEFAULT (167) -- in hours, if NULL then no blacklist is applied - the emote is just removed.
     );
 
 CREATE TABLE

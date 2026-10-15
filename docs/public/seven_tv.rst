@@ -111,6 +111,8 @@ Similarly to "Add Permanent Emote", the emotes added this way can be managed wit
 
 .. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_duration
 
+.. autochatcommand:: modules.public.seven_tv.SevenTVFeatures.stv_blacklist_removeonly
+
 🤹🏻 Emote Management
 #####################
 
