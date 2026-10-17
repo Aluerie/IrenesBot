@@ -30,19 +30,16 @@ import twitchio
 # )
 from twitchio.ext import commands
 
-from core import IreDevComponent, IrePublicComponent, ireloop
-from shared import clock, errors, ut
-from shared.concepts.logs import PrefixLoggerAdapter
-from shared.globs import DIGITS, Global7TV
-from shared.seven_tv_gql import exceptions as stv_errors
-from shared.seven_tv_gql.models import PartialEmote, PartialEmoteSet
+from core import IreDevComponent, IrePublicComponent
+from shared import clock, errors, globs, ut
+from shared.apis.stv import EmoteNotFoundError, GraphQL7TVClient, PartialEmote, PartialEmoteSet, UnsatisfyingResultError
+from shared.concepts import PrefixLoggerAdapter, loop
 from utils import const, guards
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from core import IreBot, IreContext
-    from shared.seven_tv_gql import GraphQL7TVClient
 
     # class BatchLastYearEntry(TypedDict):
     #     emote_id: int
@@ -185,7 +182,7 @@ COMMON_WORDS = frozenset((
 'watch', 'watching', 'water', 'way', 'we', 'wear', 'wednesday', 'wee', 'week', 'weigh', 'welcome', 'well', 'west', 'what',
 'when', 'where', 'whether', 'which', 'while', 'white', 'who', 'whole', 'why', 'wide', 'wife', 'will', 'win', 'wind',
 'window', 'wish', 'with', 'within', 'without', 'woman', 'wonder', 'wood', 'woof', 'word', 'work', 'world', 'worry', 'worse',
-'worth', 'would', 'wow', 'write', 'wrong', 'year', 'yes', 'yesterday', 'yet', 'yellow', 'yo', 'you', 'young')
+'worth', 'would', 'wow', 'write', 'wrong', 'year', 'yes', 'yesterday', 'yet', 'yellow', 'yo', 'you', 'young',)
 )
 # fmt: on
 
@@ -409,7 +406,7 @@ def is_broadcaster_dev_editor_or_adder() -> Any:
 class SevenTVPublic(IrePublicComponent):
     """Cycling Emotes."""
 
-    EMOTE = Global7TV.FeelsDankMan
+    EMOTE = globs.TwitchEmote.FeelsDankMan
 
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
@@ -464,7 +461,7 @@ class SevenTVPublic(IrePublicComponent):
         query = f"SELECT reward_id FROM {reward.table}"  # ruff: ignore[hardcoded-sql-expression]
         reward.cache = {r for (r,) in await self.bot.pool.fetch(query)}
 
-    @ireloop(seconds=10)
+    @loop(seconds=10)
     async def fill_all_caches(self) -> None:
         """Task to fill caches on startup."""
         try:
@@ -476,7 +473,7 @@ class SevenTVPublic(IrePublicComponent):
             self.caches_ready.set()
             self.fill_all_caches.stop()
 
-    @ireloop(hours=8)
+    @loop(hours=8)
     async def double_check_reward_redemptions_queues(self) -> None:
         """Double-check the reward redemption queues.
 
@@ -504,7 +501,7 @@ class SevenTVPublic(IrePublicComponent):
                         if isinstance(
                             error,
                             (
-                                stv_errors.UnsatisfyingResultError,
+                                UnsatisfyingResultError,
                                 errors.BadUserInputError,
                                 errors.NotAllowedError,
                                 errors.RespondWithError,
@@ -725,7 +722,10 @@ class SevenTVPublic(IrePublicComponent):
             emote = await self.bot.stv.fetch_emote(emote_id)
             emote_alias = emote.default_name
         if emote_alias in COMMON_WORDS:
-            msg = "Common words are not allowed to be used as emote aliases for this emote set"
+            msg = "Common words are not allowed to be used as emote aliases"
+            raise errors.NotAllowedError(msg)
+        if emote_alias.isnumeric():
+            msg = "Numbers are considered as a common words and as such not allowed"
             raise errors.NotAllowedError(msg)
         return True
 
@@ -953,7 +953,7 @@ class SevenTVPublic(IrePublicComponent):
     # CYCLE TASKS
     #########################################################################################################################
 
-    @ireloop(hours=8)
+    @loop(hours=8)
     async def double_check_cycle_emotes_existence(self) -> None:
         """Double check database's data.
 
@@ -1176,7 +1176,7 @@ class SevenTVPublic(IrePublicComponent):
         for emote_id_to_remove in emote_ids_to_remove:
             try:
                 await emote_set.remove_emote(emote_id=emote_id_to_remove)
-            except stv_errors.EmoteNotFoundError:
+            except EmoteNotFoundError:
                 log.debug("Emote Not Found #%s - skipping", emote_id_to_remove)
             else:
                 log.debug("Removed emote %s", emote_id_to_remove)
@@ -1228,9 +1228,10 @@ class SevenTVPublic(IrePublicComponent):
         Practically a TL;DR of the "Attention" admonition from above.
         """
         content = (
-            f"{DIGITS[1]} Go to 7tv.app/settings/editors "
-            f"{DIGITS[2]} Add Editor > @IrenesBot, make sure 'Emote Sets > Manage' permission is given "
-            f"{DIGITS[3]} Use '{ctx.prefix}7tv editor accept' command to make the bot accept the editor role {self.EMOTE}"
+            f"{globs.DIGITS[1]} Go to 7tv.app/settings/editors "
+            f"{globs.DIGITS[2]} Add Editor > @IrenesBot, make sure 'Emote Sets > Manage' permission is given "
+            f"{globs.DIGITS[3]} Use '{ctx.prefix}7tv editor accept' command to make the bot accept the editor role "
+            f"{self.EMOTE}"
         )
         await ctx.send(content)
 
@@ -1507,7 +1508,7 @@ class SevenTVPublic(IrePublicComponent):
 
         await self.run_add_emote_validators(emote_id=emote.id, broadcaster_id=ctx.broadcaster.id, emote_alias=alias)
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
-        with contextlib.suppress(stv_errors.EmoteNotFoundError):
+        with contextlib.suppress(EmoteNotFoundError):
             await emote_set.remove_emote(emote_id=row["emote_id"])
         await emote_set.add_emote(emote.id, emote_alias=alias)
 
@@ -1731,7 +1732,7 @@ class SevenTVPublic(IrePublicComponent):
         if selected_emote_id is None:
             msg = f"This is not a known temporary emote {self.EMOTE}"
             raise errors.RespondWithError(msg)
-        with contextlib.suppress(stv_errors.EmoteNotFoundError):
+        with contextlib.suppress(EmoteNotFoundError):
             await emote_set.remove_emote(emote_id=selected_emote_id)
         await self.delete_from_cycle_emotes(selected_emote_id, emote_set.id)
 
@@ -1755,7 +1756,7 @@ class SevenTVPublic(IrePublicComponent):
         """Somebody redeemed a 'Blacklist/Remove Emote' channel points reward."""
         await self.process_blacklist_redemption(redemption)
 
-    @ireloop(time=[datetime.time(hour=hour) for hour in range(24)])
+    @loop(time=[datetime.time(hour=hour) for hour in range(24)])
     async def expire_blacklisted_emotes(self) -> None:
         """Task to expire blacklisted emotes."""
         query = """
@@ -1939,7 +1940,7 @@ class SevenTVDevOnly(IreDevComponent):
 
         partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.StvID.IRENE_EMOTE_SET)
         for emote_id in self.BALLS.values():
-            with contextlib.suppress(stv_errors.EmoteNotFoundError):
+            with contextlib.suppress(EmoteNotFoundError):
                 await partial_emote_set.remove_emote(emote_id)
         await ctx.send(f"Done {const.Stv.DonkCrayon}")
 

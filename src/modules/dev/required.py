@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING, TypedDict, override
 
 from twitchio.ext import commands
 
-from core import IreDevComponent, Streamer, ireloop
+from core import IreDevComponent, Streamer
+from shared.concepts import loop
 
 if TYPE_CHECKING:
     import twitchio
@@ -53,7 +54,7 @@ class StreamerIndexManagement(IreDevComponent):
     async def component_teardown(self) -> None:
         self.fill_streamers_index.cancel()
 
-    @ireloop(count=1)
+    @loop(count=1)
     async def fill_streamers_index(self) -> None:
         """Fill `bot.streamers` index on bot's startup."""
         log.debug("Filling `self.bot.streamers` index")
@@ -89,7 +90,7 @@ class StreamerIndexManagement(IreDevComponent):
         streamer.online = False
         streamer.started_dt = None
 
-    @ireloop(time=datetime.time(hour=6, minute=34, second=10))
+    @loop(time=datetime.time(hour=6, minute=34, second=10))
     async def check_twitch_accounts_renames(self) -> None:
         """Check if people in FPC database renamed themselves on twitch.tv.
 

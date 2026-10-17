@@ -20,8 +20,9 @@ import twitchio
 from discord import Embed
 from twitchio.ext import commands
 
-from core import IrePublicComponent, ireloop
+from core import IrePublicComponent
 from shared import errors, fmt, globs
+from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -229,7 +230,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
             if count == 1
             else (
                 f"@{redemption.user.display_name}, Gratz! you've been first {count} times "
-                f"{const.Stv.gg} {globs.Global7TV.EZ}"
+                f"{const.Stv.gg} {globs.TwitchEmote.EZ}"
             )
         )
         await redemption.respond(msg)
@@ -269,7 +270,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
                 reward_row["original_title"],
             )
 
-    @ireloop(hours=6)
+    @loop(hours=6)
     async def double_check(self) -> None:
         """Double Check the information.
 
@@ -292,7 +293,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
                 row["original_title"],
             )
 
-    @ireloop(time=[datetime.time(hour=3, minute=59)])
+    @loop(time=[datetime.time(hour=3, minute=59)])
     async def check_first_reward(self) -> None:
         """Task that ensures the reward "First" under a specific id exists.
 
@@ -313,7 +314,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
             partial_user = self.bot.create_partialuser(row["streamer_id"])
             first_reward = next(iter(await partial_user.fetch_custom_rewards(ids=[row["reward_id"]])))
             if not first_reward:
-                content = self.bot.error_ping
+                content = self.bot.ping_role_mention
                 embed = Embed(
                     description=(
                         f"Looks like something wrong with streamer @{partial_user.name} ({row['streamer_id']}) "

@@ -15,9 +15,9 @@ Notices
 
 CATEGORY_MODULES_MAPPING: dict[str, list[str]] = {
     "dev": [
-        # "required",
+        "required",
         # ---
-        # "control",
+        "control",
         # "other",
         # "webhook_logs",
     ],
@@ -34,8 +34,8 @@ CATEGORY_MODULES_MAPPING: dict[str, list[str]] = {
     ],
     "public": [
         # "meta"
-        # "mmrbot",
-        "seven_tv"
+        "mmrbot",
+        # "seven_tv"
     ],
 }
 

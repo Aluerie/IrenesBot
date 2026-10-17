@@ -17,7 +17,8 @@ from typing import TYPE_CHECKING, Any, override
 from discord import Embed
 from twitchio.ext import commands
 
-from core import IrePersonalComponent, ireloop
+from core import IrePersonalComponent
+from shared.concepts import loop
 from utils import const
 
 if TYPE_CHECKING:
@@ -50,7 +51,6 @@ class EmoteChecker(IrePersonalComponent):
 
     async def send_error_embed(self, emotes_to_send: list[str], service: str, colour: int) -> None:
         """Send ping to developers that something is wrong with emote services."""
-        content = self.bot.error_ping
         embed = Embed(
             title=f"Problem with {service} emotes",
             description=(
@@ -59,7 +59,7 @@ class EmoteChecker(IrePersonalComponent):
             ),
             colour=colour,
         ).set_footer(text="but it was previously used for @IrenesBot emotes")
-        await self.bot.notification_webhook.send(content=content, embed=embed)
+        await self.bot.notify_developers(embed=embed)
 
     async def cross_check_emotes(self, api_emotes: list[str], bot_emotes: type[StrEnum], color: int) -> None:
         """Cross check between emote list in `utils.const` and list from 3rd party emote service API."""
@@ -72,7 +72,7 @@ class EmoteChecker(IrePersonalComponent):
         else:
             log.debug("Checked 7TV, FFZ & BTTV emotes from 'const.py' - all seems good.")
 
-    @ireloop(time=[datetime.time(hour=5, minute=59)])
+    @loop(time=[datetime.time(hour=5, minute=59)])
     async def check_emotes(self) -> None:
         """Task to check emotes."""
         if datetime.datetime.now(datetime.UTC).weekday() != 5:

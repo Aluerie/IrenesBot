@@ -30,8 +30,9 @@ import twitchio
 from twitchio.ext import commands
 
 from config import env
-from core import IreDevComponent, ireloop
+from core import IreDevComponent
 from shared import clock, errors
+from shared.concepts import loop
 from utils import const
 
 if TYPE_CHECKING:
@@ -50,11 +51,11 @@ class BetaCog(IreDevComponent):
         super().__init__(bot)
         self.beta_test.start()
 
-    @ireloop(count=1)
+    @loop(count=1)
     async def beta_test(self) -> None:
         """Task that is supposed to run just once to test stuff out."""
         await self.beta_test_task_count_1()
 
     async def beta_test_task_count_1(self) -> None:
-        """Worker function for `self.beta_test` ireloop task."""
+        """Worker function for `self.beta_test` task."""
         raise NotImplementedError

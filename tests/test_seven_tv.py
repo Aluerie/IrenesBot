@@ -7,20 +7,20 @@ Notices
 """
 
 import pytest
-from src.shared import seven_tv_gql
+from src.shared.apis import stv
 from src.utils import const
 
 pytest_plugins = ("pytest_asyncio",)
 
 
 @pytest.fixture
-async def stv() -> seven_tv_gql.GraphQL7TVClient:  # ruff: ignore[unused-async]
+async def stv_client() -> stv.GraphQL7TVClient:  # ruff: ignore[unused-async]
     """7TV client fixture."""
-    return seven_tv_gql.GraphQL7TVClient(bot_7tv_user_id=const.StvID.BOT)
+    return stv.GraphQL7TVClient(bot_7tv_user_id=const.StvID.BOT)
 
 
 @pytest.mark.asyncio
-async def test_active_emote_set_by_broadcaster(stv: seven_tv_gql.GraphQL7TVClient) -> None:
+async def test_active_emote_set_by_broadcaster(stv_client: stv.GraphQL7TVClient) -> None:
     """Whether the client can properly fetch Irene's active emote set."""
-    partial_emote_set = await stv.create_partial_user(const.UserID.Irene).fetch_active_emote_set()
+    partial_emote_set = await stv_client.create_partial_user(const.UserID.Irene).fetch_active_emote_set()
     assert partial_emote_set.id == const.StvID.IRENE_EMOTE_SET

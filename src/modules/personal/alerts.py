@@ -15,8 +15,9 @@ from typing import TYPE_CHECKING, Any
 
 from twitchio.ext import commands
 
-from core import IrePersonalComponent, ireloop
+from core import IrePersonalComponent
 from shared import clock, fmt
+from shared.concepts import loop
 from utils import const
 
 if TYPE_CHECKING:
@@ -126,7 +127,7 @@ class Alerts(IrePersonalComponent):
         else:
             self.reminder_to_stop_streaming.start(online)
 
-    @ireloop(count=1)
+    @loop(count=1)
     async def reminder_to_turn_recording_on(self, online: twitchio.StreamOnline) -> None:
         """Reminder task to turn recording on.
 
@@ -141,7 +142,7 @@ class Alerts(IrePersonalComponent):
             f'chat spam " {const.Stv.ALERT} "'
         )
 
-    @ireloop(count=1)
+    @loop(count=1)
     async def reminder_to_stop_streaming(self, online: twitchio.StreamOnline) -> None:
         """Reminder task to stop streaming after a long time.
 

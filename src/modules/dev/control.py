@@ -15,7 +15,8 @@ from typing import TYPE_CHECKING, Annotated, override
 import discord
 from twitchio.ext import commands
 
-from core import IreDevComponent, ireloop
+from core import IreDevComponent
+from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -133,7 +134,7 @@ class Control(IreDevComponent):
             if m:
                 await ctx.send(f"{const.Stv.DankDolmes} {c}: {', '.join(m)}")
 
-    @ireloop(minutes=10)
+    @loop(minutes=10)
     async def heartbeat_task(self) -> None:
         """Send heartbeat reports to a discord channel with a small information."""
         await self.bot.heartbeat_webhook.send("Alive")

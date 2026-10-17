@@ -25,8 +25,8 @@ from twitchio.web import StarletteAdapter
 from config import env
 from modules import get_modules
 from shared import errors, fmt, globs
-from shared.concepts import BotBase, ErrorNotificationManager
-from shared.seven_tv_gql import GraphQL7TVClient, exceptions as stv_errors
+from shared.apis import stv
+from shared.concepts import BotBase
 from utils import const
 
 from .bases import IreContext
@@ -140,7 +140,7 @@ class IreBot(BotBase, commands.AutoBot):
             client_secret = env.TEST_TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Test
             self.prefixes = ("%",)
-            self.error_ping = "<@&1337106675433340990>"
+            ping_role_mention = "<@&1337106675433340990>"
         else:
             # production account
             self.test = False
@@ -148,13 +148,13 @@ class IreBot(BotBase, commands.AutoBot):
             client_secret = env.TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Bot
             self.prefixes = ("!", "?", "$")
-            self.error_ping = "<@&1116171071528374394>"
+            ping_role_mention = "<@&1116171071528374394>"
 
         super().__init__(
             session,
-            error_webhook=env.WEBHOOK_ERROR,
-            error_ping=self.error_ping,
-            notification_webhook=env.WEBHOOK_NOTIFICATION,
+            ping_role_mention=ping_role_mention,
+            error_webhook_url=env.WEBHOOK_ERROR,
+            notification_webhook_url=env.WEBHOOK_NOTIFICATION,
         )
         super(commands.AutoBot, self).__init__(
             client_id=client_id,
@@ -177,12 +177,11 @@ class IreBot(BotBase, commands.AutoBot):
         """
 
         self.modules_to_load: tuple[str, ...] = get_modules(is_subset_mode=self.subset_mode)
-        self.error_manager = ErrorNotificationManager(self, env.WEBHOOK_ERROR, self.error_ping)
 
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
 
-        self.stv: GraphQL7TVClient = GraphQL7TVClient(
+        self.stv: stv.GraphQL7TVClient = stv.GraphQL7TVClient(
             bearer_token=env.SEVEN_TV_BEARER,
             bot_7tv_user_id=const.StvID.BOT,
         )
@@ -222,7 +221,7 @@ class IreBot(BotBase, commands.AutoBot):
                 await self.load_module(module)
             except commands.ModuleLoadFailure as error:
                 embed = discord.Embed(title="Module Load Error", colour=0x12A28A)
-                await self.error_manager.register(error, embed=embed)
+                await self.error_notification_manager.register(error, embed=embed)
 
     @override
     async def event_oauth_authorized(self, payload: twitchio.authentication.UserTokenPayload) -> None:
@@ -317,8 +316,8 @@ class IreBot(BotBase, commands.AutoBot):
             self.launch_time = datetime.datetime.now(datetime.UTC)
 
     SOMETHING_WENT_WRONG_MESSAGE = (
-        f"Something went wrong {globs.Global7TV.FeelsDankMan} "
-        f"but I've notified Irene about the error {globs.Global7TV.FeelsDankMan}"
+        f"Something went wrong {globs.TwitchEmote.FeelsDankMan} "
+        f"but I've notified Irene about the error {globs.TwitchEmote.FeelsDankMan}"
     )
 
     async def handle_common_errors(
@@ -346,19 +345,19 @@ class IreBot(BotBase, commands.AutoBot):
                 await respond(error.response_message)
                 return False
             # 7TV
-            case stv_errors.UnauthorizedError():
+            case stv.UnauthorizedError():
                 await respond(
                     "Ooups, 7TV logged me out; Irene needs to fix it "
-                    f"(surely permanently this time) {globs.Global7TV.FeelsDankMan}"
+                    f"(surely permanently this time) {globs.TwitchEmote.FeelsDankMan}"
                 )
                 return False
-            case stv_errors.InvokeQueryError():
-                await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
+            case stv.InvokeQueryError():
+                await respond(f"{error} {globs.TwitchEmote.FeelsDankMan}")
                 return False
-            case stv_errors.SomethingWentWrongError():
+            case stv.SomethingWentWrongError():
                 return False
-            case stv_errors.UnsatisfyingResultError():
-                await respond(f"{error} {globs.Global7TV.FeelsDankMan}")
+            case stv.UnsatisfyingResultError():
+                await respond(f"{error} {globs.TwitchEmote.FeelsDankMan}")
                 return True
 
             # TWITCHIO ERRORS
@@ -379,12 +378,6 @@ class IreBot(BotBase, commands.AutoBot):
             case _:
                 return False
         return True
-
-    @staticmethod
-    def add_codeblock_field(embed: discord.Embed, field_name: str, data: dict[str, Any]) -> discord.Embed:
-        """Add data to an embed as nicely formatted field."""
-        embed.add_field(name=field_name, value=fmt.pformat_dict(data), inline=False)
-        return embed
 
     @override
     async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
@@ -477,8 +470,8 @@ class IreBot(BotBase, commands.AutoBot):
                     .add_field(name="Command Args", value=fmt.pformat_dict(ctx.kwargs), inline=False)
                 )
                 if debug_data := getattr(error, "debug_data", None):
-                    embed = self.add_codeblock_field(embed, "Extra Debug Data", debug_data)
-                await self.error_manager.register(error, embed=embed)
+                    embed = self.add_codeblock_field(embed, data=debug_data)
+                await self.error_notification_manager.register(error, embed=embed)
 
     @override
     async def event_error(self, payload: twitchio.EventErrorPayload) -> None:
@@ -517,8 +510,8 @@ class IreBot(BotBase, commands.AutoBot):
                 icon_url=(await chatter.user()).profile_image,
             )
         if debug_data := getattr(error, "debug_data", None):
-            embed = self.add_codeblock_field(embed, "Extra Debug Data", debug_data)
-        await self.error_manager.register(error, embed=embed)
+            embed = self.add_codeblock_field(embed, data=debug_data)
+        await self.error_notification_manager.register(error, embed=embed)
 
     # SHORTCUTS AND UTILITIES
 

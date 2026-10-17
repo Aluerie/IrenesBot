@@ -15,7 +15,8 @@ from typing import TYPE_CHECKING, Any, TypedDict
 import twitchio
 from twitchio.ext import commands
 
-from core import IrePersonalComponent, ireloop
+from core import IrePersonalComponent
+from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -63,7 +64,7 @@ class StreamInformation(IrePersonalComponent):
 
         self.start_tracking.start()
 
-    @ireloop(count=1)
+    @loop(count=1)
     async def start_tracking(self) -> None:
         """Start tracking my channel info.
 

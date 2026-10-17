@@ -77,7 +77,7 @@ class MetaCommands(IrePublicComponent):
     @commands.command()
     async def irene(self, ctx: IreContext) -> None:
         """Just a random command that is unlikely to be in other bots."""
-        await ctx.send(globs.Global7TV.FeelsDankMan)
+        await ctx.send(globs.TwitchEmote.FeelsDankMan)
 
     @commands.command()
     async def ping(self, ctx: IreContext) -> None:

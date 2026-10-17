@@ -30,8 +30,7 @@ from twitchio.ext import commands
 from config import env
 from core import IreContext, IrePublicComponent
 from shared import clock, errors, fmt, fuzzy
-from shared.dota_apis.steam_web_api import RealTimeStats, SteamWebAPIClient
-from shared.local_api.client import Category, LocalAPI, MatchState, MinimalMatch, Streamer, StreamerLiveMatch
+from shared.apis import local, steam_web
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -319,19 +318,15 @@ class MMRBot(IrePublicComponent):
 
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
-        self.steam_web_api = SteamWebAPIClient(api_key=env.STEAM_API_KEY, session=bot.session)
-        self.local_api = LocalAPI(bot.session)
+        self.steam_web_api = steam_web.SteamWebAPIClient(api_key=env.STEAM_API_KEY, session=bot.session)
+        self.local_api = local.LocalAPI(bot.session)
 
     #########################################################################################################################
     # COMMON
     #########################################################################################################################
 
-    async def get_streamer(self, broadcaster_id: str, *, is_green_online_required: bool = True) -> Streamer:
-        """Find broadcaster's steam friend_id.
-
-        Note that we only return their last-seen account.
-        We assume the last-seen account is the one they want to use commands against.
-        """
+    async def get_friend_id(self, broadcaster_id: str) -> int:
+        """Get friend id."""
         query = """
             SELECT twitch_id, friend_id
             FROM ttv_dota_accounts
@@ -341,10 +336,19 @@ class MMRBot(IrePublicComponent):
         """
         row = await self.bot.pool.fetchrow(query, broadcaster_id)
         if row is None:
-            msg = "There is no steam accounts associated with your twitch channel"
+            msg = "There is no steam accounts associated with this twitch channel"
             raise errors.RespondWithError(msg)
 
-        streamer: Streamer = await self.local_api.get_streamer(row["friend_id"])
+        return row["friend_id"]
+
+    async def get_friend(self, broadcaster_id: str, *, is_green_online_required: bool = True) -> local.Friend:
+        """Find broadcaster's steam friend_id.
+
+        Note that we only return their last-seen account.
+        We assume the last-seen account is the one they want to use commands against.
+        """
+        friend_id = await self.get_friend_id(broadcaster_id)
+        streamer: local.Friend = await self.local_api.get_friend(friend_id)
         if is_green_online_required and not streamer.is_playing_dota:
             msg = "Inactive command \N{BULLET} it requires streamer to be green-online \N{LARGE GREEN CIRCLE} in Dota 2"
             raise errors.RespondWithError(msg)
@@ -354,9 +358,9 @@ class MMRBot(IrePublicComponent):
     # LIVE GAME
     #########################################################################################################################
 
-    async def get_live_match(self, broadcaster_id: str) -> StreamerLiveMatch:
+    async def get_live_match(self, broadcaster_id: str) -> local.FriendLiveMatch:
         """Find broadcaster's active match."""
-        streamer = await self.get_streamer(broadcaster_id)
+        streamer = await self.get_friend(broadcaster_id)
         live_match = streamer.live_match
         if live_match is None:
             msg = f"No Active Game Found \N{BULLET} Streamer's status: {streamer.status}"
@@ -364,12 +368,12 @@ class MMRBot(IrePublicComponent):
         if live_match.tag == "unsupported":
             msg = live_match.message
             raise errors.RespondWithError(msg)
-        if live_match.state == MatchState.ApiError:
+        if live_match.state == local.MatchState.ApiError:
             msg = "I'm not able to fetch data for this match, sorry."
             raise errors.RespondWithError(msg)
         return live_match
 
-    async def send_with_tag(self, ctx: IreContext, match: StreamerLiveMatch, content: str) -> None:
+    async def send_with_tag(self, ctx: IreContext, match: local.FriendLiveMatch, content: str) -> None:
         """Send with tag."""
         prefix = "[Spectating] " if match.tag == "spectating" else ""
         await ctx.send(f"{prefix}{content}")
@@ -471,7 +475,7 @@ class MMRBot(IrePublicComponent):
     # LIVE GAME THAT REQUIRE REAL TIME STATS
     #########################################################################################################################
 
-    async def get_real_time_stats(self, match: StreamerLiveMatch) -> RealTimeStats:
+    async def get_real_time_stats(self, match: local.FriendLiveMatch) -> steam_web.RealTimeStats:
         """Get Real time stats."""
         if match.server_steam_id is None:
             msg = "This match doesn't support real time stats"
@@ -560,7 +564,7 @@ class MMRBot(IrePublicComponent):
     # LAST GAME
     #########################################################################################################################
 
-    async def get_last_game(self, broadcaster_id: str) -> tuple[int, int, MinimalMatch]:
+    async def get_last_game(self, broadcaster_id: str) -> tuple[int, int, local.MinimalMatch]:
         """Get broadcaster's last played game from the database.
 
         Returns
@@ -615,23 +619,23 @@ class MMRBot(IrePublicComponent):
         await ctx.send(content)
 
     @commands.command(aliases=["pm"])
-    async def previous_match(self, ctx: IreContext) -> None:
+    async def previous_match(self, ctx: IreContext, index: int = 0) -> None:
         """Show summary stats for the previous match."""
-        streamer: Streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
-        match = await self.local_api.get_previous_match(streamer.id)
+        if not 0 <= index < 20:
+            msg = "`index` argument should integer and be 0 <= index < 20"
+            raise errors.RespondWithError(msg)
 
-        win_word = "Win" if match.win else "Loss"
+        friend_id = await self.get_friend_id(ctx.broadcaster.id)
+        match = await self.local_api.get_previous_match(friend_id)
 
         minimal = await self.local_api.get_minimal_match(match.id)
-        slot, player = next(
-            iter((s, p) for s, p in enumerate(minimal.players) if p.hero.id == match.hero.id), (None, None)
-        )
+        slot, player = next(iter((s, p) for s, p in enumerate(minimal.players) if p.hero.id == match.hero.id), (None, None))
         if slot is None or player is None:
             msg = "Somehow can't find streamer's account in their previous match uuh weird"
             raise errors.SomethingWentWrongError(msg)
 
         response = (
-            f"Previous Match - {match.category.name}: {win_word} as "
+            f"Previous Match - {match.category.name}: {'Win' if match.win else 'Loss'} as "
             f"{player.hero.name} {player.kills}/{player.deaths}/{player.assists} "
             f"\N{BULLET} ended {clock.human_timedelta(match.end_dt, mode='short')} ago "
             f"\N{BULLET} stratz.com/matches/{match.id}"
@@ -737,17 +741,17 @@ class MMRBot(IrePublicComponent):
     @commands.command(aliases=["rank", "medal"])
     async def mmr(self, ctx: IreContext) -> None:
         """Show streamer's mmr on the current account."""
-        streamer: Streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
-        profile_card = await self.local_api.get_profile_card(streamer.id)
+        friend_id = await self.get_friend_id(ctx.broadcaster.id)
+        profile_card = await self.local_api.get_profile_card(friend_id)
         await ctx.send(profile_card.rank_display_name)
 
     @commands.command(aliases=["stratz", "opendota"])
     async def dotabuff(self, ctx: IreContext) -> None:
         """Show stats service profile link for the streamer, i.e. dotabuff / stratz / opendota."""
-        streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
+        friend_id = await self.get_friend_id(ctx.broadcaster.id)
         if (invoked := ctx.invoked_with) is None:
             invoked = "stratz"
-        await ctx.send(content=f"{invoked}.com/players/{streamer.id}")
+        await ctx.send(content=f"{invoked}.com/players/{friend_id}")
 
     @commands.command(aliases=["lastseen"])
     async def status(self, ctx: IreContext) -> None:
@@ -755,7 +759,7 @@ class MMRBot(IrePublicComponent):
 
         This account is considered to be queried against for the bot's commands.
         """
-        streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
+        streamer = await self.get_friend(ctx.broadcaster.id, is_green_online_required=False)
         query = "SELECT last_seen FROM ttv_dota_accounts WHERE friend_id = $1"
         last_seen: datetime.datetime = await self.bot.pool.fetchval(query, streamer.id)
         delta = clock.utcnow() - last_seen
@@ -769,7 +773,7 @@ class MMRBot(IrePublicComponent):
     @commands.command()
     async def party(self, ctx: IreContext) -> None:
         """Show notable players in the current party."""
-        streamer = await self.get_streamer(ctx.broadcaster.id)
+        streamer = await self.get_friend(ctx.broadcaster.id)
         party = streamer.raw_rich_presence.get("party")
         if party is None:
             msg = "Streamer is not in a party."
@@ -820,15 +824,15 @@ class MMRBot(IrePublicComponent):
             ORDER BY m.start_time DESC;
         """  # ruff: ignore[hardcoded-sql-expression]
         rows: list[ScoreQueryRow] = (
-            await self.bot.pool.fetch(query, broadcaster_id, MatchState.Live, stream_started_at)
+            await self.bot.pool.fetch(query, broadcaster_id, local.MatchState.Live, stream_started_at)
             if stream_started_at
-            else await self.bot.pool.fetch(query, broadcaster_id, MatchState.Live)
+            else await self.bot.pool.fetch(query, broadcaster_id, local.MatchState.Live)
         )
 
         if not rows:
             return "0 W - 0 L" if stream_started_at else "0 W - 0 L (No games played in the last 2 days)"
 
-        index: dict[int, dict[Category, Score]] = {}
+        index: dict[int, dict[local.Category, Score]] = {}
 
         cutoff_dt = rows[0]["start_time"]
         for row in rows:
@@ -838,7 +842,7 @@ class MMRBot(IrePublicComponent):
                 break
             cutoff_dt = row["start_time"]
 
-            score_category = Category.create(row["lobby_type"], row["game_mode"])
+            score_category = local.Category.create(row["lobby_type"], row["game_mode"])
             score = index.setdefault(row["friend_id"], {}).setdefault(score_category, Score(0, 0, 0, 0))
 
             if row["abandon"]:
@@ -912,7 +916,7 @@ class MMRBot(IrePublicComponent):
     @commands.command(name="d2pt")
     async def dota2protracker_hero_page(self, ctx: IreContext) -> None:
         """Show Dota 2 Pro Tracker page for the currently played hero."""
-        streamer = await self.get_streamer(ctx.broadcaster.id)
+        streamer = await self.get_friend(ctx.broadcaster.id)
         npc_hero_name = streamer.raw_rich_presence.get("param2")
         if npc_hero_name is not None:
             hero = Hero.create_from_npc_dota_hero_name(npc_hero_name.removeprefix("#"))
@@ -925,7 +929,7 @@ class MMRBot(IrePublicComponent):
     @commands.command(name="raw_rp")
     async def send_raw_rich_presence(self, ctx: IreContext) -> None:
         """Send current rich presence state to @irene for debugging reasons."""
-        friend = await self.get_streamer(ctx.broadcaster.id)
+        friend = await self.get_friend(ctx.broadcaster.id)
         to_send = fmt.codeblock(pprint.pformat(friend.raw_rich_presence), "json")
         await self.bot.notification_webhook.send(content=to_send)
         await ctx.send(content="Done")

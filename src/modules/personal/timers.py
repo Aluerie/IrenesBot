@@ -15,7 +15,8 @@ from typing import TYPE_CHECKING, Any
 
 from twitchio.ext import commands
 
-from core import IrePersonalComponent, ireloop
+from core import IrePersonalComponent
+from shared.concepts import loop
 from utils import const
 
 if TYPE_CHECKING:
@@ -121,7 +122,7 @@ class Timers(IrePersonalComponent):
                 self.lines_count = 0
                 self._most_recent = datetime.datetime.now(datetime.UTC)
 
-    @ireloop(hours=5)
+    @loop(hours=5)
     async def random_daily_announcement(self) -> None:
         """It's time to boink."""
         if self.random_daily_announcement.current_loop == 0:
