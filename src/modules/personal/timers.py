@@ -24,24 +24,24 @@ if TYPE_CHECKING:
     from core import IreBot
 
 MESSAGES: list[str] = [
-    f"FIX YOUR POSTURE {const.BTTV.weirdChamp}",
-    f"{const.STV.Adge} {const.STV.DankApprove}",
-    f"Don't forget to stand up, stretch and scoot {const.STV.GroupScoots}",
-    f"{const.STV.plink}",
-    f"{const.STV.uuh}",
-    f"chat don't forget to {const.STV.plink}",
+    f"FIX YOUR POSTURE {const.Bttv.weirdChamp}",
+    f"{const.Stv.Adge} {const.Stv.DankApprove}",
+    f"Don't forget to stand up, stretch and scoot {const.Stv.GroupScoots}",
+    f"{const.Stv.plink}",
+    f"{const.Stv.uuh}",
+    f"chat don't forget to {const.Stv.plink}",
     (
         "hi chat many features of this bot are WIP so, please, if you notice bugs or incorrect responses - "
-        f"inform me {const.STV.DANKHACKERMANS}"
+        f"inform me {const.Stv.DANKHACKERMANS}"
     ),
     (
         f"Bad image quality? Overlay not working (especially chat/!showemote ones)? Sound issues? "
-        f"Please, let me know about any problems {const.STV.dankFix}"
+        f"Please, let me know about any problems {const.Stv.dankFix}"
     ),
     "!showemote ass",
     (
         f"chat I kinda need to grind affiliate on @IrenesBot account. "
-        f"Please, follow it and if possible lurk there when I eventually gonna stream from it {const.STV.DankApprove}"
+        f"Please, follow it and if possible lurk there when I eventually gonna stream from it {const.Stv.DankApprove}"
     ),
     # (
     #     "hey chat I'm making a small web-page to describe the bot's features (WIP)."
@@ -129,9 +129,9 @@ class Timers(IrePersonalComponent):
 
         now = datetime.datetime.now(datetime.UTC)
         message = (
-            f"it's friday night gents {const.STV.fridayNight} time to dance"
+            f"it's friday night gents {const.Stv.fridayNight} time to dance"
             if (now.weekday == 4 and now.hour > 18) or (now.weekday == 5 and now.hour < 6)
-            else f"It's time to {const.STV.Boink}"
+            else f"It's time to {const.Stv.Boink}"
         )
         await self.bot.create_partialuser(self.bot.owner_id).send_announcement(
             message=message, moderator=self.bot.bot_id, color="primary"

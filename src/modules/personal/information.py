@@ -84,21 +84,21 @@ class StreamInformation(IrePersonalComponent):
             # respond with current game name the channel is playing
             channel_info = await ctx.broadcaster.fetch_channel_info()
             game_name = channel_info.game_name or "No game category"
-            await ctx.send(f"{game_name} {const.STV.DankDolmes}")
+            await ctx.send(f"{game_name} {const.Stv.DankDolmes}")
             return
 
         # 2. Argument "game_name" is provided
         # Set the game to it
         if not ctx.chatter.moderator:
             # a. non-mod case
-            await ctx.send(f"Only moderators are allowed to change game name {const.FFZ.peepoPolice}")
+            await ctx.send(f"Only moderators are allowed to change game name {const.Ffz.peepoPolice}")
             return
 
         if game_name.lower() == "clear":
             # b. A keyword to clear the game category, sets it uncategorized
             self.game_dt = datetime.datetime.now(datetime.UTC)
             await ctx.broadcaster.modify_channel(game_id="0")
-            await ctx.send(f'Set game to "No game category" {const.STV.uuh}')
+            await ctx.send(f'Set game to "No game category" {const.Stv.uuh}')
             return
 
         # c. specified game
@@ -106,12 +106,12 @@ class StreamInformation(IrePersonalComponent):
 
         game = next(iter(await self.bot.fetch_games(names=[game_name])), None)
         if not game:
-            await ctx.send(f"Couldn't find any games with such a name {const.STV.How2Read}")
+            await ctx.send(f"Couldn't find any games with such a name {const.Stv.How2Read}")
             return
 
         self.game_dt = datetime.datetime.now(datetime.UTC)
         await ctx.broadcaster.modify_channel(game_id=game.id)
-        await ctx.send(f'Changed game to "{game.name}" {const.STV.DankMods}')
+        await ctx.send(f'Changed game to "{game.name}" {const.Stv.DankMods}')
         return
 
     async def update_title(self, broadcaster: twitchio.PartialUser, title: str) -> None:
@@ -139,18 +139,18 @@ class StreamInformation(IrePersonalComponent):
         # 2. Argument "title" is provided
         elif not ctx.chatter.moderator:
             # a. non-mod case: give a warning for the chatter
-            await ctx.send(f"Only moderators are allowed to change title {const.FFZ.peepoPolice}")
+            await ctx.send(f"Only moderators are allowed to change title {const.Ffz.peepoPolice}")
         else:
             # b. mod case: actually update the title
             await self.update_title(ctx.broadcaster, title=title)
-            await ctx.send(f'{const.STV.donkHappy} Changed title to "{title}"')
+            await ctx.send(f'{const.Stv.donkHappy} Changed title to "{title}"')
 
     @commands.is_moderator()
     @title_group.command(name="set")
     async def title_set(self, ctx: IreContext, *, title: str) -> None:
         """Set the title for the stream."""
         await self.update_title(ctx.broadcaster, title=title)
-        await ctx.send(f'{const.STV.donkHappy} Set title to "{title}"')
+        await ctx.send(f'{const.Stv.donkHappy} Set title to "{title}"')
 
     @commands.Component.listener(name="channel_update")
     async def channel_update(self, update: twitchio.ChannelUpdate) -> None:
@@ -165,7 +165,7 @@ class StreamInformation(IrePersonalComponent):
             new_category = update.category_name or "No category"
             if (now - self.game_dt).seconds > 15:
                 # time condition so the bot doesn't announce changes done via !game command
-                await update.respond(f'{const.STV.donkDetective} Game was changed to "{new_category}"')
+                await update.respond(f'{const.Stv.donkDetective} Game was changed to "{new_category}"')
 
             if self.bot.is_online(update.broadcaster.id):
                 with contextlib.suppress(twitchio.HTTPException):
@@ -175,7 +175,7 @@ class StreamInformation(IrePersonalComponent):
 
         if self.title != update.title and (now - self.title_dt).seconds > 15:
             # time condition so the bot doesn't announce changes done via !title command
-            await update.respond(f'{const.STV.DankThink} Title was changed to "{update.title}"')
+            await update.respond(f'{const.Stv.DankThink} Title was changed to "{update.title}"')
 
         self.game = update.category_name
         self.title = update.title
@@ -189,7 +189,7 @@ class StreamInformation(IrePersonalComponent):
         Stream marker is a just a timestamp to mark in Twitch.tv Video Highlighter.
         """
         await ctx.broadcaster.create_stream_marker(token_for=const.UserID.Irene, description=description)
-        await ctx.send(f"Successfully created a marker. {const.STV.DankApprove}")
+        await ctx.send(f"Successfully created a marker. {const.Stv.DankApprove}")
 
 
 async def setup(bot: IreBot) -> None:

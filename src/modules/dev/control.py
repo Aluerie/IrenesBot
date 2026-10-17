@@ -95,21 +95,21 @@ class Control(IreDevComponent):
         """Unload the modules."""
         await self.bot.unload_module(modules)
         log.info("!unload - unloaded %s", modules)
-        await ctx.send(f"{const.STV.DankApprove} unloaded {modules}")
+        await ctx.send(f"{const.Stv.DankApprove} unloaded {modules}")
 
     @commands.command()
     async def reload(self, ctx: IreContext, *, modules: Annotated[str, ModuleConverter]) -> None:
         """Reload the modules."""
         await self.bot.reload_module(modules)
         log.info("!reload - reloaded %s", modules)
-        await ctx.send(f"{const.STV.DankApprove} reloaded {modules}")
+        await ctx.send(f"{const.Stv.DankApprove} reloaded {modules}")
 
     @commands.command()
     async def load(self, ctx: IreContext, *, modules: Annotated[str, ModuleConverter]) -> None:
         """Load the modules."""
         await self.bot.load_module(modules)
         log.info("!load - loaded %s", modules)
-        await ctx.send(f"{const.STV.DankApprove} loaded {modules}")
+        await ctx.send(f"{const.Stv.DankApprove} loaded {modules}")
 
     @commands.command(name="modules", aliases=["extensions", "components"])  # module != component but whatever
     async def list_modules(self, ctx: IreContext) -> None:
@@ -131,7 +131,7 @@ class Control(IreDevComponent):
 
         for c, m in index.items():
             if m:
-                await ctx.send(f"{const.STV.DankDolmes} {c}: {', '.join(m)}")
+                await ctx.send(f"{const.Stv.DankDolmes} {c}: {', '.join(m)}")
 
     @ireloop(minutes=10)
     async def heartbeat_task(self) -> None:

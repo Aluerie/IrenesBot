@@ -90,13 +90,13 @@ update:  # Update dependencies
 .PHONY: run
 .SILENT: run
 run:  # Run the bot in the subset-mode
-	uv run --no-dev src/main.py --subset-mode --adapter=local --test-account
+	uv run src/main.py --subset-mode --adapter=local --test-account
 
 
 .PHONY: scopes
 .SILENT: scopes
 scopes:  # Run the bot in the scopes-only mode
-	uv run --no-dev src/main.py --subset-mode --adapter=local --test-account --scopes-only
+	uv run src/main.py --subset-mode --adapter=local --test-account --scopes-only
 
 
 .PHONY: ruff

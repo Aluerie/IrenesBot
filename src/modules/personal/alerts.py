@@ -67,12 +67,12 @@ class Alerts(IrePersonalComponent):
             "enjoy the show",
         ])
         random_emote = random.choice([
-            const.STV.donkHappy,
-            const.BTTV.PogU,
-            const.STV.dankHey,
-            const.STV.donkHey,
-            const.BTTV.peepoHey,
-            const.STV.Hey,
+            const.Stv.donkHappy,
+            const.Bttv.PogU,
+            const.Stv.dankHey,
+            const.Stv.donkHey,
+            const.Bttv.peepoHey,
+            const.Stv.Hey,
         ])
         await follow.respond(f"@{follow.user.display_name} just followed! Thanks, {random_phrase} {random_emote}")
 
@@ -91,7 +91,7 @@ class Alerts(IrePersonalComponent):
             message=(
                 f"@{raid.from_broadcaster.display_name} just raided us! "
                 f'They were playing {raider_channel_info.game_name} with title "{raider_channel_info.title}". '
-                f"chat be nice to raiders {const.STV.donkHappy} raiders, feel free to raid and run tho."
+                f"chat be nice to raiders {const.Stv.donkHappy} raiders, feel free to raid and run tho."
             ),
         )
 
@@ -104,15 +104,15 @@ class Alerts(IrePersonalComponent):
         channel_info = await online.broadcaster.fetch_channel_info()
         # notification
         await online.respond(
-            f"Stream just started {const.STV.FeelsBingMan} Game: {channel_info.game_name} | Title: {channel_info.title}"
+            f"Stream just started {const.Stv.FeelsBingMan} Game: {channel_info.game_name} | Title: {channel_info.title}"
         )
         # 0 minutes reminder for the streamer
         await online.respond(
-            f"{online.broadcaster.mention} a few reminders {const.STV.ALERT} "
-            f"pin some info {const.STV.ALERT} "
-            f"start recording {const.STV.ALERT} "
-            f"Turn music on {const.STV.ALERT} "
-            f"Check if chat overlay shows emotes properly {const.STV.ALERT}"
+            f"{online.broadcaster.mention} a few reminders {const.Stv.ALERT} "
+            f"pin some info {const.Stv.ALERT} "
+            f"start recording {const.Stv.ALERT} "
+            f"Turn music on {const.Stv.ALERT} "
+            f"Check if chat overlay shows emotes properly {const.Stv.ALERT}"
         )
         # 10 minutes reminder about some things
         if self.reminder_to_turn_recording_on.is_running():
@@ -135,10 +135,10 @@ class Alerts(IrePersonalComponent):
         await asyncio.sleep(10 * 60)
         # if stream goes offline, this task gets cancelled in `.stream_end`
         await online.respond(
-            f"Irene {const.STV.ALERT} "
-            f"last reminder {const.STV.ALERT} "
-            f"start recording please {const.STV.ALERT} "
-            f'chat spam " {const.STV.ALERT} "'
+            f"Irene {const.Stv.ALERT} "
+            f"last reminder {const.Stv.ALERT} "
+            f"start recording please {const.Stv.ALERT} "
+            f'chat spam " {const.Stv.ALERT} "'
         )
 
     @ireloop(count=1)
@@ -151,10 +151,10 @@ class Alerts(IrePersonalComponent):
         await asyncio.sleep(youtube_vod_limit)
         # if stream goes offline, this task gets cancelled in `.stream_end`
         await online.respond(
-            f"Irene {const.STV.ALERT} "
-            f"you've been streaming for almost 12h {const.STV.ALERT} "
-            f"remember youtube vod time limit {const.STV.ALERT} "
-            f"{const.STV.OVERWORKING} wrap it up {const.STV.ALERT} "
+            f"Irene {const.Stv.ALERT} "
+            f"you've been streaming for almost 12h {const.Stv.ALERT} "
+            f"remember youtube vod time limit {const.Stv.ALERT} "
+            f"{const.Stv.OVERWORKING} wrap it up {const.Stv.ALERT} "
         )
 
     @commands.Component.listener(name="stream_offline")
@@ -163,7 +163,7 @@ class Alerts(IrePersonalComponent):
         if not self.is_dev(offline.broadcaster.id):
             return
 
-        await offline.respond(f"Stream is now offline {const.BTTV.Offline}")
+        await offline.respond(f"Stream is now offline {const.Bttv.Offline}")
         self.reminder_to_turn_recording_on.cancel()
         self.reminder_to_stop_streaming.cancel()
 
@@ -175,7 +175,7 @@ class Alerts(IrePersonalComponent):
 
         word = "automatic" if ad_break.automatic else "manual"
         human_delta = clock.dm_human_timedelta(ad_break.duration, mode="short")
-        await ad_break.respond(f"{human_delta} {word} ad starting {const.STV.peepoAds}")
+        await ad_break.respond(f"{human_delta} {word} ad starting {const.Stv.peepoAds}")
 
         # this is pointless probably
         # await asyncio.sleep(payload.duration)
@@ -212,7 +212,7 @@ class Alerts(IrePersonalComponent):
 
         await asyncio.sleep(4.0)  # wait for auto-mod / WizeBot to ban super-sus users - 4 sec is probably enough.
         if message.chatter.id in self.ban_list:
-            await message.respond(const.STV.LastTimeChatter)
+            await message.respond(const.Stv.LastTimeChatter)
             return
 
         query = """
@@ -225,8 +225,8 @@ class Alerts(IrePersonalComponent):
         await self.bot.pool.execute(query, message.chatter.id, message.chatter.name)
 
         await message.respond(
-            f"{const.STV.FirstTimeChadder} or {const.STV.FirstTimeDentge} "
-            f"\N{WHITE QUESTION MARK ORNAMENT} {const.STV.DankThink}"
+            f"{const.Stv.FirstTimeChadder} or {const.Stv.FirstTimeDentge} "
+            f"\N{WHITE QUESTION MARK ORNAMENT} {const.Stv.DankThink}"
         )
 
     @commands.Component.listener(name="subscription")
@@ -235,7 +235,7 @@ class Alerts(IrePersonalComponent):
         if not self.is_dev(subscription.broadcaster.id):
             return
 
-        await subscription.respond(f"{subscription.user.mention} just subscribed {const.STV.Donki} thanks")
+        await subscription.respond(f"{subscription.user.mention} just subscribed {const.Stv.Donki} thanks")
 
     @commands.Component.listener(name="subscription_message")
     async def subscription_message(self, subscription_message: twitchio.ChannelSubscriptionMessage) -> None:
@@ -245,7 +245,7 @@ class Alerts(IrePersonalComponent):
 
         await subscription_message.respond(
             f"{subscription_message.user.mention} just subscribed for {fmt.ordinal(subscription_message.months)} months "
-            f"{const.STV.Donki} thanks a lot"
+            f"{const.Stv.Donki} thanks a lot"
         )
 
 

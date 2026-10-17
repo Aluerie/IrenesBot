@@ -58,14 +58,14 @@ class StableCommands(IrePersonalComponent):
     async def ads_snooze(self, ctx: IreContext) -> None:
         """Snooze next ad."""
         await ctx.broadcaster.snooze_next_ad()
-        await ctx.send(f"Snoozing next ad for 5 min {const.STV.DankApprove}")
+        await ctx.send(f"Snoozing next ad for 5 min {const.Stv.DankApprove}")
 
     @commands.cooldown(rate=1, per=60, key=commands.BucketType.channel)
     @guards.is_owner_channel()
     @commands.command()
     async def boink(self, ctx: IreContext) -> None:
         """Send an announcement for an obligatory boink."""
-        await ctx.send_announcement(content=f"it's time to boink {const.STV.Boink}", color="purple")
+        await ctx.send_announcement(content=f"it's time to boink {const.Stv.Boink}", color="purple")
 
     @commands.command()
     async def controller(self, ctx: IreContext) -> None:
@@ -75,7 +75,7 @@ class StableCommands(IrePersonalComponent):
     @commands.command()
     async def discord(self, ctx: IreContext) -> None:
         """Link to my discord community server."""
-        await ctx.send(f"{const.STV.discord} discord.gg/K8FuDeP")
+        await ctx.send(f"{const.Stv.discord} discord.gg/K8FuDeP")
 
     @commands.command()
     async def donate(self, ctx: IreContext) -> None:
@@ -110,15 +110,15 @@ class StableCommands(IrePersonalComponent):
         def choose_love_emote() -> tuple[int, str]:
             love = random.randint(0, 100)
             if love < 10:
-                emote = const.STV.donkSad
+                emote = const.Stv.donkSad
             if love < 33:
-                emote = const.FFZ.sadKEK
+                emote = const.Ffz.sadKEK
             elif love < 66:
-                emote = const.STV.donkHappy
+                emote = const.Stv.donkHappy
             elif love < 88:
-                emote = const.STV.widepeepoHappyRightHeart
+                emote = const.Stv.widepeepoHappyRightHeart
             else:
-                emote = const.STV.DankL
+                emote = const.Stv.DankL
             return love, emote
 
         # chr(917504) is a weird "unknown" invisible symbol 7tv appends to the message
@@ -137,7 +137,7 @@ class StableCommands(IrePersonalComponent):
     @commands.command()
     async def lurk(self, ctx: IreContext) -> None:
         """Make it clear to the chat that you are lurking."""
-        await ctx.send(f"{ctx.chatter.mention} is now lurking {const.STV.DankLurk} Have fun {const.STV.donkHappy}")
+        await ctx.send(f"{ctx.chatter.mention} is now lurking {const.Stv.DankLurk} Have fun {const.Stv.donkHappy}")
 
     @commands.command(name="decide", aliases=["ball", "8ball", "answer", "question", "yesno"])
     async def magic_ball(self, ctx: IreContext, *, text: str | None = None) -> None:
@@ -146,7 +146,7 @@ class StableCommands(IrePersonalComponent):
         Better than ChatGPT.
         """
         if text is None:
-            await ctx.send(f"Wrong command usage! You need to ask the bot yes/no question with it {const.FFZ.peepoWTF}")
+            await ctx.send(f"Wrong command usage! You need to ask the bot yes/no question with it {const.Ffz.peepoWTF}")
             return
 
         options = [
@@ -227,21 +227,21 @@ class StableCommands(IrePersonalComponent):
         mention = ctx.chatter.mention
 
         for phrase in [
-            f"/me places the revolver to {mention}'s head {const.FFZ.monkaGIGAGUN}",
+            f"/me places the revolver to {mention}'s head {const.Ffz.monkaGIGAGUN}",
             f"{globs.DIGITS[3]} {const.Global.monkaS} ... ",
-            f"{globs.DIGITS[2]} {const.FFZ.monkaH} ... ",
-            f"{globs.DIGITS[1]} {const.FFZ.monkaGIGA} ... The trigger is pulled... ",
+            f"{globs.DIGITS[2]} {const.Ffz.monkaH} ... ",
+            f"{globs.DIGITS[1]} {const.Ffz.monkaGIGA} ... The trigger is pulled... ",
         ]:
             await ctx.send(phrase)
             await asyncio.sleep(0.87)
 
         if ctx.chatter.moderator:
             # Special case: we will not kill any moderators
-            await ctx.send(f"Revolver malfunctions! {mention} is miraculously alive! {const.STV.PogChampPepe}")
+            await ctx.send(f"Revolver malfunctions! {mention} is miraculously alive! {const.Stv.PogChampPepe}")
         elif random.randint(0, 1):
-            await ctx.send(f"Revolver clicks! {mention} has lived to survive roulette! {const.STV.POGCRAZY}")
+            await ctx.send(f"Revolver clicks! {mention} has lived to survive roulette! {const.Stv.POGCRAZY}")
         else:
-            await ctx.send(f"Revolver fires! {mention} lies dead in chat {const.STV.Deadge}")
+            await ctx.send(f"Revolver fires! {mention} lies dead in chat {const.Stv.Deadge}")
 
             await ctx.broadcaster.timeout_user(
                 moderator=const.UserID.Bot, user=ctx.chatter.id, duration=30, reason="Lost in !russianroulette"
@@ -264,7 +264,7 @@ class StableCommands(IrePersonalComponent):
             * They are sent by @IrenesBot
             * All such messages should start with `dankJAM`.
             """
-            return payload.chatter.id == const.UserID.Bot and payload.text.startswith(const.STV.YouTube)
+            return payload.chatter.id == const.UserID.Bot and payload.text.startswith(const.Stv.YouTube)
 
         try:
             _: twitchio.ChatMessage = await self.bot.wait_for("message", predicate=predicate, timeout=5.0)
@@ -280,7 +280,7 @@ class StableCommands(IrePersonalComponent):
             resp_text = await resp.text()
 
         if not resp.ok:
-            await ctx.send(f"{const.STV.Spotify} Irene needs to login + authorize for the tool to work {const.STV.dankFix}")
+            await ctx.send(f"{const.Stv.Spotify} Irene needs to login + authorize for the tool to work {const.Stv.dankFix}")
             return
 
         if resp_text.startswith("Error:"):
@@ -290,7 +290,7 @@ class StableCommands(IrePersonalComponent):
             # the top to include as dependency for this
             # f"https://nowplaying.aidenwallis.co.uk/{env.SPOTIFY_AIDENWALLIS}"
             await ctx.send(
-                f"{const.STV.Spotify} {resp_text} {const.STV.DankThink} "
+                f"{const.Stv.Spotify} {resp_text} {const.Stv.DankThink} "
                 "You can probably look the song title on the screen in one of the corners."
             )
             return
@@ -305,13 +305,13 @@ class StableCommands(IrePersonalComponent):
                     await self.yt_music_on.wait()
             except TimeoutError:
                 # No YT Music
-                await ctx.send(f"{const.STV.Spotify} No song playing {const.STV.donkJam}")
+                await ctx.send(f"{const.Stv.Spotify} No song playing {const.Stv.donkJam}")
                 return
             else:
                 # Yes YT Music
                 return
 
-        await ctx.send(f"{const.STV.Spotify} {resp_text} {const.STV.donkJam}")
+        await ctx.send(f"{const.Stv.Spotify} {resp_text} {const.Stv.donkJam}")
 
     # @commands.cooldown(rate=1, per=10, key=commands.BucketType.channel)
     @guards.is_owner_channel()
@@ -329,10 +329,10 @@ class StableCommands(IrePersonalComponent):
         """Get stream uptime."""
         stream = next(iter(await self.bot.fetch_streams(user_ids=[ctx.broadcaster.id])), None)
         if stream is None:
-            await ctx.send(f"Stream is offline {const.BTTV.Offline}")
+            await ctx.send(f"Stream is offline {const.Bttv.Offline}")
         else:
             uptime = clock.utcnow() - stream.started_at
-            await ctx.send(f"{clock.human_timedelta(uptime)} {const.STV.peepoDapper}")
+            await ctx.send(f"{clock.human_timedelta(uptime)} {const.Stv.peepoDapper}")
 
     @commands.command(aliases=["seppuku"])
     async def vanish(self, ctx: IreContext) -> None:
@@ -351,7 +351,7 @@ class StableCommands(IrePersonalComponent):
     @commands.command()
     async def vods(self, ctx: IreContext) -> None:
         """Get the link to youtube vods archive."""
-        await ctx.send(f"youtube.com/@AluerieVODS/ {const.STV.Cinema}")
+        await ctx.send(f"youtube.com/@AluerieVODS/ {const.Stv.Cinema}")
 
 
 async def setup(bot: IreBot) -> None:

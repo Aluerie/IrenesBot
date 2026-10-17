@@ -59,7 +59,7 @@ class IreDevComponent(IreComponent):
     @override
     async def component_before_invoke(self, ctx: IreContext) -> None:  # ty: ignore[invalid-method-override]
         if ctx.chatter.id != ctx.bot.owner_id:
-            msg = f"Command is not allowed by anybody else except Irene {const.FFZ.peepoPolice}"
+            msg = f"Command is not allowed by anybody else except Irene {const.Ffz.peepoPolice}"
             if ctx.broadcaster.id == ctx.bot.owner_id:
                 raise errors.NotAllowedError(msg)
             raise errors.NotAllowedError(msg, behavior="silent")

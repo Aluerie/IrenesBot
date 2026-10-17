@@ -13,13 +13,14 @@ from __future__ import annotations
 from enum import StrEnum
 
 __all__ = (
-    "BTTV",
-    "FFZ",
-    "STV",
     "BotsLowerName",
+    "Bttv",
+    "Ffz",
     "Global",
     "Logo",
     "LowerName",
+    "Stv",
+    "StvID",
     "UserID",
 )
 
@@ -55,7 +56,7 @@ class Global(StrEnum):
     # None - no good ones?..
 
 
-class BTTV(StrEnum):
+class Bttv(StrEnum):
     """Some of BTTV emotes enabled on the channel."""
 
     DankG = "DankG"
@@ -66,7 +67,7 @@ class BTTV(StrEnum):
     weirdChamp = "weirdChamp"
 
 
-class FFZ(StrEnum):
+class Ffz(StrEnum):
     """Some of FFZ emotes enabled on the channel."""
 
     Weirdge = "Weirdge"
@@ -80,7 +81,7 @@ class FFZ(StrEnum):
     WTFF = "WTFF"
 
 
-class STV(StrEnum):
+class Stv(StrEnum):
     """Some of 7TV emotes enabled on the channel."""
 
     actually = "actually"
@@ -190,10 +191,10 @@ class Logo(StrEnum):
     )
 
 
-class SevenTV(StrEnum):
+class StvID(StrEnum):
     """Some often used 7TV snowflakes."""
 
-    IRENE_EMOTE_SET_ID = "01FAQVCS500002EV4FV330P46A"
-    IRENE_ID = "01FAQVCS500002EV4FV330P46A"
-    BOT_EMOTE_SET_ID = "01FAQVCS500002EV4FV330P46A"
-    BOT_ID = "01KFF67D46PJPD1S6DPFFT06E3"
+    IRENE_EMOTE_SET = "01FAQVCS500002EV4FV330P46A"
+    IRENE = "01FAQVCS500002EV4FV330P46A"
+    BOT_EMOTE_SET = "01FAQVCS500002EV4FV330P46A"
+    BOT = "01KFF67D46PJPD1S6DPFFT06E3"

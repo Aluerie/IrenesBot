@@ -45,7 +45,7 @@ class TemporaryCommands(IrePersonalComponent):
         attempts: int = await self.bot.pool.fetchval(query, "gunfort_attempts")
 
         stats = f" Success Rate: {success / attempts:.1%} (over {attempts} attempts)"
-        await ctx.send(f"{const.STV.science} Yolo Gunfort {stats}")
+        await ctx.send(f"{const.Stv.science} Yolo Gunfort {stats}")
 
     @commands.is_owner()
     @gunfort.command()
@@ -57,7 +57,7 @@ class TemporaryCommands(IrePersonalComponent):
         attempts: int = await self.bot.pool.fetchval(query, "gunfort_attempts")
 
         stats = f" Success Rate: {success / attempts:.1%} (over {attempts} attempts)"
-        await ctx.send(f"Failed yolo gunfort? {const.STV.classic} {stats} {const.STV.buenoFail}")
+        await ctx.send(f"Failed yolo gunfort? {const.Stv.classic} {stats} {const.Stv.buenoFail}")
 
     @commands.is_owner()
     @gunfort.command()
@@ -69,7 +69,7 @@ class TemporaryCommands(IrePersonalComponent):
         attempts: int = await self.bot.pool.fetchval(query, "gunfort_attempts")
 
         stats = f" Success Rate: {success / attempts:.1%} (over {attempts} attempts)"
-        await ctx.send(f"Yolo Gunfort is easy {const.STV.EZdodge} {stats} {const.STV.buenoSuccess}")
+        await ctx.send(f"Yolo Gunfort is easy {const.Stv.EZdodge} {stats} {const.Stv.buenoSuccess}")
 
     @commands.command(name="is")
     async def immortal_severance(self, ctx: IreContext) -> None:
@@ -145,7 +145,7 @@ class TemporaryCommands(IrePersonalComponent):
             # Check duration
             duration = match.group("duration")
             if int(duration) > 30:
-                msg = f"Not allowed to put duration more than 30 {const.FFZ.peepoPolice}"
+                msg = f"Not allowed to put duration more than 30 {const.Ffz.peepoPolice}"
                 raise errors.RespondWithError(msg)
 
         await ctx.send(f"!chat {argument}")

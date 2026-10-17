@@ -62,7 +62,7 @@ class Counters(IrePersonalComponent):
         # milestone
         if erm_amount_milestone % 1000 == 0:
             await message.respond(
-                f"{const.STV.wow} we reached a milestone of {erm_amount_milestone} {const.STV.Erm} in chat"
+                f"{const.Stv.wow} we reached a milestone of {erm_amount_milestone} {const.Stv.Erm} in chat"
             )
             return
 
@@ -72,7 +72,7 @@ class Counters(IrePersonalComponent):
             await asyncio.sleep(3)
             query = "SELECT value FROM ttv_counters WHERE name = $1"
             erm_amount_random: int = await self.bot.pool.fetchval(query, "erm")
-            await message.respond(f"{erm_amount_random} {const.STV.Erm} in chat.")
+            await message.respond(f"{erm_amount_random} {const.Stv.Erm} in chat.")
             return
 
     @commands.command(aliases=["erm"])
@@ -80,7 +80,7 @@ class Counters(IrePersonalComponent):
         """Get an erm_counter value."""
         query = "SELECT value FROM ttv_counters WHERE name = $1"
         value: int = await self.bot.pool.fetchval(query, "erm")
-        await ctx.send(f"{value} {const.STV.Erm} in chat.")
+        await ctx.send(f"{value} {const.Stv.Erm} in chat.")
 
 
 async def setup(bot: IreBot) -> None:

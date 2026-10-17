@@ -37,7 +37,7 @@ class MetaCommands(IrePublicComponent):
     @commands.command()
     async def about(self, ctx: IreContext) -> None:
         """Get some information about about the bot."""
-        await ctx.send(f"I'm a personal Irene's bot, made by Irene. {const.STV.AYAYA}")
+        await ctx.send(f"I'm a personal Irene's bot, made by Irene. {const.Stv.AYAYA}")
 
     @guards.is_online()
     @commands.command()
@@ -72,7 +72,7 @@ class MetaCommands(IrePublicComponent):
 
         Simple command.
         """
-        await ctx.send(f"{const.STV.hello} Hello!")
+        await ctx.send(f"{const.Stv.hello} Hello!")
 
     @commands.command()
     async def irene(self, ctx: IreContext) -> None:
@@ -96,7 +96,7 @@ class MetaCommands(IrePublicComponent):
     async def twitch_id(self, ctx: IreContext, *, user: twitchio.User | None = None) -> None:
         """Get mentioned @user numeric twitch_id."""
         who = user or ctx.author
-        await ctx.send(f"Twitch ID for {who.mention}: {who.id} {const.STV.donkDetective}")
+        await ctx.send(f"Twitch ID for {who.mention}: {who.id} {const.Stv.donkDetective}")
 
     TRANSLATE_ARGUMENT_DEFAULT = TranslateArguments("")
 
@@ -384,7 +384,7 @@ class MetaCommands(IrePublicComponent):
             target_language=translate_arguments.to,
             session=self.bot.session,
         )
-        answer = f"{const.STV.ApuBritish} [{result.source_language} to {result.target_language}] {result.translated}"
+        answer = f"{const.Stv.ApuBritish} [{result.source_language} to {result.target_language}] {result.translated}"
         await ctx.send(answer)
 
     @commands.command()
@@ -394,7 +394,7 @@ class MetaCommands(IrePublicComponent):
         The language codes from this command are supposed to be used in ``to:``, ``from:`` argument flags of the said
         command.
         """
-        answer = f"{const.STV.ApuBritish} Supported languages: {' '.join(translate.LANGUAGES)}"
+        answer = f"{const.Stv.ApuBritish} Supported languages: {' '.join(translate.LANGUAGES)}"
         await ctx.send(answer)
 
 

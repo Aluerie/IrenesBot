@@ -30,7 +30,7 @@ import twitchio
 # )
 from twitchio.ext import commands
 
-from core import IrePublicComponent, ireloop
+from core import IreDevComponent, IrePublicComponent, ireloop
 from shared import clock, errors, ut
 from shared.concepts.logs import PrefixLoggerAdapter
 from shared.globs import DIGITS, Global7TV
@@ -66,7 +66,7 @@ if TYPE_CHECKING:
         emote_set_id: str
 
 
-__all__ = ("SevenTVFeatures",)
+__all__ = ("SevenTVDevOnly", "SevenTVPublic")
 
 log = PrefixLoggerAdapter(logging.getLogger(__name__), "🤯")
 log.setLevel(logging.DEBUG)
@@ -227,7 +227,7 @@ def regex_to_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> PartialE
         # Valid 7tv ids are
         # * new format - ULID format: [0-7][0-9A-HJKMNP-TV-Z]{25}
         # * old format - MongoDB ObjectID format: [0-9a-fA-F]{24}
-        pattern=r"(?P<emote_id>[0-7][0-9A-HJKMNP-TV-Z]{25}|[0-9a-fA-F]{24})",
+        pattern=r"\b(?P<emote_id>[0-7][0-9A-HJKMNP-TV-Z]{25}|[0-9a-fA-F]{24})\b",
         string=emote_id_or_link,
     )
     if search is None:
@@ -406,7 +406,7 @@ def is_broadcaster_dev_editor_or_adder() -> Any:
 #############################################################################################################################
 
 
-class SevenTVFeatures(IrePublicComponent):
+class SevenTVPublic(IrePublicComponent):
     """Cycling Emotes."""
 
     EMOTE = Global7TV.FeelsDankMan
@@ -414,91 +414,42 @@ class SevenTVFeatures(IrePublicComponent):
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
 
+        # Supported Rewards
         self.permanent = Reward(
             code="permanent",
-            name="'Add Permanent Emote'",
+            name="Add Permanent Emote",
             table="ttv_stv_permanent_rewards",
             processor=self.process_permanent_redemption,
         )
         self.cycle = Reward(
             code="cycle",
-            name="'Add Cycle Emote'",
+            name="Add Cycle Emote",
             table="ttv_stv_cycle_rewards",
             processor=self.process_cycle_redemption,
         )
         self.blacklist = Reward(
             code="blacklist",
-            name="'Blacklist/Remove Emote'",
+            name="Blacklist/Remove Emote",
             table="ttv_stv_blacklist_rewards",
             processor=self.process_blacklist_redemption,
         )
         self.rewards = (self.permanent, self.cycle, self.blacklist)
         self.caches_ready: asyncio.Event = asyncio.Event()
 
-        # stats
-        # self._batch_total: defaultdict[int, Counter[int]] = defaultdict(Counter)
-        # self._batch_last_year: list[BatchLastYearEntry] = []
-        # self._batch_lock = asyncio.Lock()
-        # self.bulk_insert.add_exception_type(asyncpg.PostgresConnectionError)
-
-    # async def ws_callback(data: ResponseTypes) -> None:
-    #     """7TV WebSocket Callback.
-
-    #     When emotes get deleted - they should be deleted from the bot's database too.
-    #     """
-    #     if not isinstance(data, Dispatch):
-    #         return
-    #     if data.type != EventType.EMOTE_SET_UPDATE:
-    #         return
-
-    #     # log.debug("7TV WebSocket %s", data)
-
-    #     if data.body.pulled:
-    #         # Emote Deleted
-    #         for pulled in data.body.pulled:
-    #             query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2;"
-    #             emote_id: str = pulled.old_value["id"]
-    #             emote_set_id = data.body.id
-
-    #             await self.bot.pool.execute(query, emote_id, emote_set_id)
-
-    # self.stv_ws = SevenTVWebSocket(callback=ws_callback, websocket_url="wss://events.7tv.io/v3/")
-
-    # async def stv_ws_subscribe(self, emote_set_id: str) -> None:
-    #     """Make 7TV WebSocket Subscription."""
-    #     condition = SubscriptionCondition(object_id=emote_set_id)  # your emote-set id
-    #     subscription = SubscriptionData(subscription_type=EventType.EMOTE_SET_ALL, condition=condition)
-    #     await self.stv_ws.subscribe(subscription_data=subscription)
-
-    # async def stv_ws_multi_subscribe(self) -> None:
-    #     """Make 7TV WebSocket Subscriptions."""
-    #     query = "SELECT DISTINCT emote_set_id FROM ttv_stv_users;"
-    #     for (emote_set_id,) in await self.bot.pool.fetch(query):
-    #         await self.stv_ws_subscribe(emote_set_id)
-
     @override
     async def component_load(self) -> None:
-        # await self.stv_ws.connect()
-        # await self.stv_ws_multi_subscribe()
         self.fill_all_caches.start()
-
         self.double_check_reward_redemptions_queues.start()
         self.double_check_cycle_emotes_existence.start()
         self.expire_blacklisted_emotes.start()
-        # self.bulk_insert.start()
-        # self.clean_up_old_records.start()
         await super().component_load()
 
     @override
     async def component_teardown(self) -> None:
-        # await self.stv_ws.close()
         self.fill_all_caches.stop()
-
         self.double_check_reward_redemptions_queues.stop()
         self.double_check_cycle_emotes_existence.stop()
         self.expire_blacklisted_emotes.stop()
-        # self.bulk_insert.stop()
-        # self.clean_up_old_records.stop()
         await super().component_teardown()
 
     #########################################################################################################################
@@ -675,6 +626,16 @@ class SevenTVFeatures(IrePublicComponent):
     #########################################################################################################################
     # VALIDATIONS
     #########################################################################################################################
+
+    NO_REWARD_ERROR_MSG = "This broadcaster does not have {0!r} channel points reward set up " + EMOTE
+
+    async def validate_reward_exists(self, reward: Reward, broadcaster_id: str) -> None:
+        """Validate whether the broadcaster has reward within the database."""
+        query = "SELECT COUNT(1) FROM ttv_stv_cycle_rewards WHERE broadcaster_id = $1"
+        count: int = await self.bot.pool.fetchval(query, broadcaster_id)
+        if count == 0:
+            msg = self.NO_REWARD_ERROR_MSG.format(reward.name)
+            raise errors.RespondWithError(msg)
 
     async def validate_editor_status(self, ctx: IreContext) -> None:
         """Validate whether the bot is currently a 7TV editor for the ctx.broadcaster."""
@@ -1054,7 +1015,6 @@ class SevenTVFeatures(IrePublicComponent):
             ),
             recreate=recreate,
         )
-        # await self.stv_ws_subscribe(partial_emote_set.id)
 
     @stv_cycle.command(name="status")
     async def stv_cycle_status(self, ctx: IreContext) -> None:
@@ -1101,12 +1061,7 @@ class SevenTVFeatures(IrePublicComponent):
             msg = "You need to input at least one of the settings"
             raise errors.RespondWithError(msg)
 
-        # Validate reward exists
-        query = "SELECT COUNT(1) FROM ttv_stv_cycle_rewards WHERE broadcaster_id = $1"
-        count: int = await self.bot.pool.fetchval(query, ctx.broadcaster.id)
-        if count == 0:
-            msg = f"This broadcaster does not have 'Add Cycle Emote' channel points reward set up {self.EMOTE}"
-            raise errors.RespondWithError(msg)
+        await self.validate_reward_exists(self.cycle, ctx.broadcaster.id)
 
         # Validate new_limit
         if emote_limit is not None:
@@ -1249,50 +1204,6 @@ class SevenTVFeatures(IrePublicComponent):
     #########################################################################################################################
     # DEVELOPER TESTING COMMANDS                                                                                            #
     #########################################################################################################################
-
-    BALLS: ClassVar[dict[str, str]] = {
-        # cSpell: disable
-        "Blue": "01J8FC6EN0000DNWJ3ST67HH38",
-        "Teal": "01J8FCA6RR0004HJ8DYSFE2PF2",
-        "Purple": "01J8FCAY6R0006NP3M7JY4GDAA",
-        "Yellow": "01J8FCBGRG000A5QBDAQ50YRYC",
-        "Orange": "01J8FCC2B00005G1FWF2H9XPCE",
-        "Pink": "01J8FCG750000D15QN0BDGKN3A",
-        "Olive": "01J8FCGXKR000E0691W9XKC6X0",
-        "LightBlue": "01J8FCHF68000E0691W9XKC6X5",
-        "DarkGreen": "01J8FCHZSG000C93G7AYMMNCBC",
-        "Brown": "01J8FCK00R0006NP3M7JY4GDB0",
-        # cSpell: enable
-    }
-
-    @guards.is_dev()
-    @commands.command()
-    async def balls(self, ctx: IreContext) -> None:
-        """Balls."""
-        content = " ".join(f"{k} {v}" for k, v in self.BALLS.items())
-        await ctx.send(content)
-
-    @guards.is_dev()
-    @commands.command(aliases=["dev_reset_cycle"])
-    async def dev_cycle_reset(self, ctx: IreContext) -> None:
-        """Developer command for temporary reset / testing.
-
-        This
-        * sets @Irene's `emote_limit` to 2;
-        * removes all current @Irene's cycling emotes;
-        * removes color emotes (Blue, Teal, Yellow, etc) from Irene's active emote set;
-        """
-        query = "UPDATE ttv_stv_cycle_rewards SET emote_limit = $1 WHERE broadcaster_id = $2;"
-        await self.bot.pool.execute(query, 2, const.UserID.Irene)
-
-        query = "DELETE FROM ttv_stv_cycle_emotes tce WHERE tce.broadcaster_id = $1;"
-        await self.bot.pool.execute(query, const.UserID.Irene)
-
-        partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.SevenTV.IRENE_EMOTE_SET_ID)
-        for emote_id in self.BALLS.values():
-            with contextlib.suppress(stv_errors.EmoteNotFoundError):
-                await partial_emote_set.remove_emote(emote_id)
-        await ctx.send(f"Done {const.STV.DonkCrayon}")
 
     #########################################################################################################################
     # 7TV EDITOR STATUS / ACCEPT                                                                                            #
@@ -1721,6 +1632,73 @@ class SevenTVFeatures(IrePublicComponent):
         await ctx.send(f"{status} {self.EMOTE}")
 
     # TODO: Wait for FlagConverter
+    @is_broadcaster_dev_or_editor()
+    @stv_blacklist.command(name="settings")
+    async def stv_blacklist_settings(
+        self, ctx: IreContext, *, days: int | None, hours: int | None, remove_only: bool | None
+    ) -> None:
+        """Show or change settings related to 'Blacklist/Remove Emote' channel points reward.
+
+        Parameters
+        ----------
+        days
+            Amount of days the emotes will be blacklisted.
+        hours
+            Additionally, amount of hours the emotes will be blacklisted.
+
+            A few notes:
+
+            * The bot removes blacklisted status from emotes every hour at X:00. This means, for example,
+              if current blacklist duration is set to 7 days,
+              it's been 5 days since a certain emote was blacklisted and now the broadcaster sets new duration to 3 days then
+              that emote (and other emotes) will be released at next X:00.
+            * I guess, it's pedantic to point out that the emotes are not being blacklisted `precisely` for the inputted
+              duration, since the bot does the blacklist-expiry task every hour at X:00. So an emote "AAA" that was
+              blacklisted at 2:01AM will
+              have its status lifted at the same time as an emote "BBB" that got blacklisted at 2:59AM.
+
+        Examples
+        --------
+        * ``!7tv blacklist --days 10 --hours 13`` - 10 days, 13 hours.
+        * ``!7tv blacklist --days 14`` - 2 weeks (14 days).
+        * ``!7tv blacklist --remove_only yes``
+        """
+        await self.validate_reward_exists(self.cycle, ctx.broadcaster.id)
+
+        if all(x is None for x in (days, hours, remove_only)):
+            # ``!7tv blacklist settings`` with no arguments: show current settings
+            query = """
+                SELECT duration, remove_only
+                FROM ttv_stv_blacklist_rewards
+                WHERE broadcaster_id = $1;
+            """
+            row = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
+            response = " \N{BULLET} ".join([
+                f"duration={clock.dm_human_timedelta(60 * 60 * row['duration'])}",
+                f"remove_only={row['remove_only']}",
+            ])
+            await ctx.send(f"{response} {self.EMOTE}")
+            return
+
+        # Duration
+        if days is not None or hours is not None:
+            days, hours = days or 0, hours or 0
+            new_duration = days * 24 + hours
+            if new_duration < 0:
+                msg = "Negative blacklist duration is not allowed"
+                raise errors.RespondWithError(msg)
+            query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2"
+            await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
+            await ctx.send(
+                f"Changed duration to {clock.dm_human_timedelta(datetime.timedelta(days=days, hours=hours))} {self.EMOTE}"
+            )
+        if remove_only is not None:
+            query = "UPDATE ttv_stv_blacklist_rewards SET remove_only = $2 WHERE broadcaster_id = $1;"
+            status: str = await self.bot.pool.execute(query, ctx.broadcaster.id, remove_only)
+            if status == "UPDATE 0":
+                msg = f"This broadcaster does not have 'Blacklist/Remove Emote' channel points reward set up {self.EMOTE}"
+                raise errors.RespondWithError(msg)
+            await ctx.send(f"Changed 'Blacklist/Remove Emote' channel points reward behavior to remove-only {self.EMOTE}")
 
     async def process_blacklist_redemption(
         self,
@@ -1756,12 +1734,17 @@ class SevenTVFeatures(IrePublicComponent):
         with contextlib.suppress(stv_errors.EmoteNotFoundError):
             await emote_set.remove_emote(emote_id=selected_emote_id)
         await self.delete_from_cycle_emotes(selected_emote_id, emote_set.id)
-        query = """
-            INSERT INTO ttv_stv_blacklist_emotes
-            (emote_id, broadcaster_id, requested_by)
-            VALUES ($1, $2, $3)
-        """
-        await self.bot.pool.execute(query, emote.id, redemption.broadcaster.id, redemption.user.id)
+
+        query = "SELECT remove_only FROM ttv_stv_blacklist_rewards WHERE broadcaster_id = $1"
+        remove_only: bool = await self.bot.pool.fetchval(query, redemption.broadcaster.id)
+        if not remove_only:
+            # Blacklist the emote.
+            query = """
+                INSERT INTO ttv_stv_blacklist_emotes
+                (emote_id, broadcaster_id, requested_by)
+                VALUES ($1, $2, $3)
+            """
+            await self.bot.pool.execute(query, emote.id, redemption.broadcaster.id, redemption.user.id)
 
         await self.redemption_respond(redemption, f"Done {self.EMOTE}")
         await self.fulfil_redemption(redemption)
@@ -1786,63 +1769,7 @@ class SevenTVFeatures(IrePublicComponent):
     @is_broadcaster_dev_or_editor()
     @stv_blacklist.command(name="duration")
     async def stv_blacklist_duration(self, ctx: IreContext, days: int, hours: int = 0) -> None:
-        """Set duration for which the emotes are going to be blacklisted.
-
-        A few notes:
-
-        * The bot removes blacklisted status from emotes every hour at X:00. This means, for example,
-          if current blacklist duration is set to 7 days,
-          it's been 5 days since a certain emote was blacklisted and now the broadcaster sets new duration to 3 days then
-          that emote (and other emotes) will be released at next X:00.
-        * I guess, it's pedantic to point out that the emotes are not being blacklisted `precisely` for the inputted
-          duration, since the bot does the blacklist-expiry task every hour at X:00. So an emote "AAA" that was blacklisted
-          at 2:01AM will have its status lifted at the same time as an emote "BBB" that got blacklisted at 2:59AM.
-
-        Parameters
-        ----------
-        days
-            Amount of days the emotes will be blacklisted.
-        hours
-            Additionally, amount of hours the emotes will be blacklisted.
-
-        Examples
-        --------
-        * ``7tv blacklist duration 10 13`` - 10 days, 13 hours.
-        * ``7tv blacklist duration 14`` - 2 weeks (14 days).
-        """
-        new_duration = days * 24 + hours
-        if new_duration < 0:
-            msg = "Negative blacklist duration is not allowed"
-            raise errors.RespondWithError(msg)
-
-        query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2"
-        status: str = await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
-        if status == "UPDATE 0":
-            msg = f"This broadcaster does not have 'Blacklist/Remove Emote' channel points reward set up {self.EMOTE}"
-            raise errors.RespondWithError(msg)
-        await ctx.send(
-            f"Changed duration to {clock.dm_human_timedelta(datetime.timedelta(days=days, hours=hours))} {self.EMOTE}"
-        )
-
-    @is_broadcaster_dev_or_editor()
-    @stv_blacklist.command(name="remove-only")
-    async def stv_blacklist_removeonly(self, ctx: IreContext, *, new_value: bool | None = None) -> None:
-        """Change 'Blacklist/Remove Emote' channel points reward to remove-only behavior.
-
-        So the emotes don't get blacklisted at all.
-        """
-        if new_value is None:
-            query = "SELECT remove_only FROM ttv_stv_blacklist_rewards WHERE broadcaster_id = $1;"
-            remove_only = await self.bot.pool.fetchval(query, ctx.broadcaster.id)
-            await ctx.send(f"Current value for `remove_only` flag within 'Blacklist/Remove Emote' is {remove_only}")
-            return
-
-        query = "UPDATE ttv_stv_blacklist_rewards SET remove_only = $2 WHERE broadcaster_id = $1;"
-        status: str = await self.bot.pool.execute(query, ctx.broadcaster.id)
-        if status == "UPDATE 0":
-            msg = f"This broadcaster does not have 'Blacklist/Remove Emote' channel points reward set up {self.EMOTE}"
-            raise errors.RespondWithError(msg)
-        await ctx.send(f"Changed 'Blacklist/Remove Emote' channel points reward behavior to remove-only {self.EMOTE}")
+        """Set duration for which the emotes are going to be blacklisted."""
 
     #########################################################################################################################
     # SOME MODERATION RELATED
@@ -1967,117 +1894,57 @@ class SevenTVFeatures(IrePublicComponent):
         await self.bot.pool.execute(query, new_state, ctx.broadcaster.id)
         await ctx.send(f"Changed allow-common-words setting to '{new_state!s}' {self.EMOTE}")
 
-    #########################################################################################################################
-    # 7TV EMOTE STATS                                                                                                       #
-    #########################################################################################################################
 
-    # @guards.is_broadcaster_or_dev()
-    # @stv.group(name="stats")
-    # async def stv_stats(self, ctx: IreContext) -> None:
-    #     """Group command for !7tv stats."""
-    #     await ctx.group_default_response()
+class SevenTVDevOnly(IreDevComponent):
+    """Developer Only commands related to SevenTV features.
 
-    # # @guards.is_broadcaster_or_dev()
-    # # @stv_stats.group(name="allow")
-    # # async def stv_stats_allow(self, ctx: IreContext) -> None:
-    # #     """Group command for !7tv stats."""
-    # #     await ctx.send("")
+    Just some easy testing commands.
+    """
 
-    # @ireloop(seconds=60.0)
-    # async def bulk_insert(self) -> None:
-    #     """Bulk insert gathered emoji stats in the last minute."""
-    #     async with self._batch_lock:
-    #         if not self._batch_last_year:
-    #             # there was no data to commit to the database.
-    #             return
+    BALLS: ClassVar[dict[str, str]] = {
+        # cSpell: disable
+        "Blue": "01J8FC6EN0000DNWJ3ST67HH38",
+        "Teal": "01J8FCA6RR0004HJ8DYSFE2PF2",
+        "Purple": "01J8FCAY6R0006NP3M7JY4GDAA",
+        "Yellow": "01J8FCBGRG000A5QBDAQ50YRYC",
+        "Orange": "01J8FCC2B00005G1FWF2H9XPCE",
+        "Pink": "01J8FCG750000D15QN0BDGKN3A",
+        "Olive": "01J8FCGXKR000E0691W9XKC6X0",
+        "LightBlue": "01J8FCHF68000E0691W9XKC6X5",
+        "DarkGreen": "01J8FCHZSG000C93G7AYMMNCBC",
+        "Brown": "01J8FCK00R0006NP3M7JY4GDB0",
+        # cSpell: enable
+    }
 
-    #         # TOTAL COUNT
-    #         transformed = [
-    #             {"guild": guild_id, "emote": emote_id, "added": count}
-    #             for guild_id, data in self._batch_total.items()
-    #             for emote_id, count in data.items()
-    #         ]
-    #         query_total = """
-    #             INSERT INTO ttv_emote_stats_total (broadcaster_id, emote_id, total)
-    #                 SELECT x.broadcaster, x.emote, x.added
-    #                 FROM jsonb_to_recordset($1::jsonb) AS
-    #                 x(
-    #                     broadcaster TEXT,
-    #                     emote TEXT,
-    #                     added INT
-    #                 )
-    #             ON CONFLICT (broadcaster_id, emote_id) DO UPDATE
-    #             SET total = ttv_emote_stats_total.total + excluded.total;
-    #         """
+    @commands.command()
+    async def balls(self, ctx: IreContext) -> None:
+        """Balls."""
+        content = " ".join(f"{k} {v}" for k, v in self.BALLS.items())
+        await ctx.send(content)
 
-    #         # LAST YEAR COUNT
-    #         query_last_year = """
-    #             INSERT INTO ttv_emote_stats_last_year (emote_id, broadcaster_id, author_id, used)
-    #                 SELECT x.emote_id, x.broadcaster_id, x.author_id, x.used
-    #                 FROM jsonb_to_recordset($1::jsonb) AS
-    #                 x(
-    #                     emote_id TEXT,
-    #                     broadcaster_id TEXT,
-    #                     author_id TEXT,
-    #                     used TIMESTAMP
-    #                 )
-    #             """
-    #         async with self.bot.pool.acquire() as connection:
-    #             tr = connection.transaction()
-    #             await tr.start()
+    @commands.command(aliases=["dev_reset_cycle"])
+    async def dev_cycle_reset(self, ctx: IreContext) -> None:
+        """Developer command for temporary reset / testing.
 
-    #             try:
-    #                 await connection.execute(query_total, transformed)
-    #                 await connection.execute(query_last_year, self._batch_last_year)
-    #             except Exception:
-    #                 await tr.rollback()
-    #                 raise
-    #             else:
-    #                 await tr.commit()
+        This
+        * sets @Irene's `emote_limit` to 2;
+        * removes all current @Irene's cycling emotes;
+        * removes color emotes (Blue, Teal, Yellow, etc) from Irene's active emote set;
+        """
+        query = "UPDATE ttv_stv_cycle_rewards SET emote_limit = $1 WHERE broadcaster_id = $2;"
+        await self.bot.pool.execute(query, 2, const.UserID.Irene)
 
-    #         self._batch_total.clear()
-    #         self._batch_last_year.clear()
+        query = "DELETE FROM ttv_stv_cycle_emotes tce WHERE tce.broadcaster_id = $1;"
+        await self.bot.pool.execute(query, const.UserID.Irene)
 
-    # @ireloop(time=datetime.time(hour=12, minute=11, second=45))
-    # async def clean_up_old_records(self) -> None:
-    #     """Clean up "way too old" records from the Last Year emote usage database.
-
-    #     I'm kinda afraid of running out of memory so I'm just keeping a one year records max.
-    #     If I'm proven wrong and we can hold much more data than this - I will consider extending the database.
-    #     But for now - we clean up the database from 1 year+ records.
-
-    #     Note that this doesn't affect `emote_stats_total` in any way. Everything is correct there.
-    #     """
-    #     async with self._batch_lock:
-    #         clean_up_dt = clock.utcnow() - datetime.timedelta(days=365)
-
-    #         query = """
-    #                 DELETE FROM emote_stats_last_year
-    #                 WHERE used < $1::date
-    #             """
-    #         await self.bot.pool.execute(query, clean_up_dt)
-
-    # @commands.Component.listener(name="message")
-    # async def collect_emote_usage_stats(self, message: twitchio.ChatMessage) -> None:
-    #     """Collect emote usage data in batches from twitch chat messages to be ready for database INSERT.
-
-    #     Parameters
-    #     ----------
-    #     message: twitchio.ChatMessage
-    #         message to filter emotes from.
-    #     """
-    #     if not message.text:
-    #         return
-
-    #     if message.chatter.display_name is not None and message.chatter.display_name.lower() in const.BotsLowerName:
-    #         # Not counting known bots
-    #         return
-
-    #     if next((x for x in message.chatter.badges if x.set_id == "bot-badge"), None):
-    #         # Not counting bots
-    #         return
+        partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.StvID.IRENE_EMOTE_SET)
+        for emote_id in self.BALLS.values():
+            with contextlib.suppress(stv_errors.EmoteNotFoundError):
+                await partial_emote_set.remove_emote(emote_id)
+        await ctx.send(f"Done {const.Stv.DonkCrayon}")
 
 
 async def setup(bot: IreBot) -> None:
     """Load IreBot module. Framework of twitchio."""
-    await bot.add_component(SevenTVFeatures(bot))
+    await bot.add_component(SevenTVPublic(bot))
+    await bot.add_component(SevenTVDevOnly(bot))

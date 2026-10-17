@@ -30,7 +30,7 @@ __all__ = ("Tags",)
 NO_TAG_MESSAGE_FMT = "There is no tag with name '{tag_name}' {emote}".format(
     # Trickery: https://stackoverflow.com/a/69462670/19217368
     tag_name="{tag_name}",
-    emote=const.STV.uuhAcktshucally,
+    emote=const.Stv.uuhAcktshucally,
 )
 
 
@@ -68,7 +68,7 @@ class Tags(IrePersonalComponent):
           ``<tag_content>`` being "Some cool info".
         """
         if tag_name in {"delete", "remove", "del", "add", "list", "edit", "a", "d", "r", "e", "l"}:
-            msg = f"This tag_name is reserved {const.STV.uuhAcktshucally}"
+            msg = f"This tag_name is reserved {const.Stv.uuhAcktshucally}"
             raise errors.RespondWithError(msg)
         try:
             query = """
@@ -77,9 +77,9 @@ class Tags(IrePersonalComponent):
                 VALUES ($1, $2);
             """
             await self.bot.pool.execute(query, tag_name, tag_content)
-            await ctx.send(f"Created tag '{tag_name}' {const.STV.uuhAcktshucally}")
+            await ctx.send(f"Created tag '{tag_name}' {const.Stv.uuhAcktshucally}")
         except asyncpg.UniqueViolationError:
-            msg = f"There already exists a tag with name '{tag_name}' {const.STV.uuhAcktshucally}"
+            msg = f"There already exists a tag with name '{tag_name}' {const.Stv.uuhAcktshucally}"
             raise errors.RespondWithError(msg) from None
 
     @commands.is_moderator()
@@ -95,7 +95,7 @@ class Tags(IrePersonalComponent):
         await ctx.send(
             NO_TAG_MESSAGE_FMT.format(tag_name=tag_name)
             if val is None
-            else f"Deleted tag '{tag_name}' {const.STV.uuhAcktshucally}"
+            else f"Deleted tag '{tag_name}' {const.Stv.uuhAcktshucally}"
         )
 
     @commands.is_moderator()
@@ -112,7 +112,7 @@ class Tags(IrePersonalComponent):
         await ctx.send(
             NO_TAG_MESSAGE_FMT.format(tag_name=tag_name)
             if val is None
-            else f"Edited tag '{tag_name}' {const.STV.uuhAcktshucally}"
+            else f"Edited tag '{tag_name}' {const.Stv.uuhAcktshucally}"
         )
 
     @commands.is_moderator()
@@ -129,7 +129,7 @@ class Tags(IrePersonalComponent):
         await ctx.send(
             NO_TAG_MESSAGE_FMT.format(tag_name=tag_name)
             if val is None
-            else f"Renamed tag '{tag_name}' into '{new_tag_name}' {const.STV.uuhAcktshucally}"
+            else f"Renamed tag '{tag_name}' into '{new_tag_name}' {const.Stv.uuhAcktshucally}"
         )
 
     @tag_group.command(name="names", aliases=["n"])
@@ -140,9 +140,9 @@ class Tags(IrePersonalComponent):
         """
         tag_names: list[str] = [r for (r,) in await self.bot.pool.fetch(query)]
         await ctx.send(
-            f"{const.STV.uuhAcktshucally} {', '.join(tag_names)}"
+            f"{const.Stv.uuhAcktshucally} {', '.join(tag_names)}"
             if tag_names
-            else f"No tags were created yet {const.STV.uuhAcktshucally}"
+            else f"No tags were created yet {const.Stv.uuhAcktshucally}"
         )
 
     @tag_group.command(name="list", aliases=["l", "all"])
@@ -153,9 +153,9 @@ class Tags(IrePersonalComponent):
         """
         tag_rows: list[TagQueryRow] = await self.bot.pool.fetch(query)
         if not tag_rows:
-            await ctx.send(f"No tags were created yet {const.STV.uuhAcktshucally}")
+            await ctx.send(f"No tags were created yet {const.Stv.uuhAcktshucally}")
         for tag_row in tag_rows:
-            await ctx.send(f"{const.STV.uuhAcktshucally} {tag_row['tag_name']}: {tag_row['tag_content']}")
+            await ctx.send(f"{const.Stv.uuhAcktshucally} {tag_row['tag_name']}: {tag_row['tag_content']}")
 
 
 async def setup(bot: IreBot) -> None:

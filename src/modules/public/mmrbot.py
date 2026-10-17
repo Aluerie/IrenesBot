@@ -20,25 +20,22 @@ import operator
 import pprint
 import re
 from dataclasses import dataclass
-from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, override
+from typing import TYPE_CHECKING, Any, TypedDict, override
 from urllib import parse as url_parse
 
 import steam
-from steam.ext.dota2 import GameMode, Hero, LobbyType, MatchOutcome
+from steam.ext.dota2 import Hero, LobbyType, MatchOutcome
 from twitchio.ext import commands
 
 from config import env
 from core import IreContext, IrePublicComponent
 from shared import clock, errors, fmt, fuzzy
-from shared.dota_apis.steam_web_api import SteamWebAPIClient
+from shared.dota_apis.steam_web_api import RealTimeStats, SteamWebAPIClient
+from shared.local_api.client import Category, LocalAPI, MatchState, MinimalMatch, Streamer, StreamerLiveMatch
 from utils import const, guards
 
 if TYPE_CHECKING:
-    import aiohttp
-
     from core import IreBot
-    from shared.types_ import steam_web_api as steam_web_api_schemas
 
     #########################################################################################################################
     # DATABASE QUERIES
@@ -57,137 +54,11 @@ if TYPE_CHECKING:
         player_slot: int
         abandon: bool
 
-    #########################################################################################################################
-    # LOCAL API
-    #########################################################################################################################
-
-    type Streamers = dict[str, Streamer]
-
-    class Streamer(TypedDict):
-        id: int
-        name: str
-        is_playing_dota: str
-        status: str
-        rich_presence: str
-        raw_rich_presence: dict[str, str]
-        activity: str
-        live_match: LiveMatch | None
-
-    class LiveMatch(TypedDict):
-        tag: Literal["playing", "spectating", "unsupported"]
-        message: str
-        match_id: int
-        lobby_type: int | None
-        lobby_type_name: str
-        game_mode: int | None
-        game_mode_name: str
-        server_steam_id: int
-        players: list[Player]
-        started_at: datetime.datetime
-        average_mmr: str | None
-        state: MatchState
-
-    class Player(TypedDict):
-        id: int
-        player_slot: int
-        color: str
-        lifetime_games: int
-        medal: str
-        hero_id: int
-        hero_name: str
-
-    class MinimalMatch(TypedDict):
-        id: int
-        players: list[MinimalMatchPlayer]
-        outcome: int
-        lobby_type: int
-        game_mode: int
-        duration: int
-        start_time: str
-
-    class MinimalMatchPlayer(TypedDict):
-        id: int
-        hero_id: int
-        hero_name: str
-        kills: int
-        deaths: int
-        assists: int
-
-    class ProfileCard(TypedDict):
-        medal: str
-
-    class User(TypedDict):
-        name: str
-
-    class PreviousMatch(TypedDict):
-        match_id: int
-        hero_id: int
-        hero_name: str
-        win: bool
-        abandon: bool
-        game_mode: int
-        lobby_type: int
-        start_time: str
-        duration: int
-
-#########################################################################################################################
-# FROM DOTA2BOT
-#########################################################################################################################
-
-
-class MatchState(IntEnum):
-    """Indicates current state for matches."""
-
-    Starting = 1
-    Live = 2
-    Pending = 3
-    Completed = 4
-    ApiError = 91
-
 
 __all__ = ("MMRBot",)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-
-
-class LocalAPI:
-    """Local API provided by my Dota2Bot."""
-
-    BASE_URL = "http://127.0.0.1:8000"
-
-    def __init__(self, session: aiohttp.ClientSession) -> None:
-        self.session = session
-
-    async def _invoke(self, endpoint: str) -> Any:
-        async with self.session.get(f"{self.BASE_URL}{endpoint}") as resp:
-            if resp.ok:
-                data = await resp.json()
-                match data:
-                    case {"error": error}:
-                        raise errors.RespondWithError(str(error))
-                    case _:
-                        return data
-            msg = "It seems Dota2Bot is down, please ask Irene to fix it"
-            raise errors.RespondWithError(msg)
-
-    async def get_streamers(self) -> Streamers:
-        return await self._invoke("/streamers")
-
-    async def get_minimal_match(self, match_id: int) -> MinimalMatch:
-        """Get minimal match."""
-        return await self._invoke(f"/minimal/{match_id}")
-
-    async def get_user(self, user_id: int) -> User:
-        return await self._invoke(f"/user/{user_id}")
-
-    async def get_profile_card(self, friend_id: int) -> ProfileCard:
-        """Get profile card."""
-        return await self._invoke(f"/profile_card/{friend_id}")
-
-    async def get_previous_match(self, friend_id: int) -> PreviousMatch:
-        """Get previous match."""
-        return await self._invoke(f"/previous_match/{friend_id}")
 
 
 # /* cSpell:disable */
@@ -421,33 +292,6 @@ def extract_player_slot(argument: str, hero_names: list[str]) -> int:
     return result[0]
 
 
-class ScoreCategory(Enum):
-    """Match categories for !score (!wl !winloss) command.
-
-    The bot will group matches into !wl command by this parameter, i.e. !wl -> "Ranked 3 W - 1 L, Turbo 2 W - 0 L."
-    """
-
-    Ranked = 1
-    Unranked = 2
-    Turbo = 3
-    Other = 4
-
-    @classmethod
-    def create(cls, lobby_type: int, game_mode: int) -> ScoreCategory:
-        """Create !wl command category from `lobby_type` and `game_mode`.
-
-        Dota Matches naturally in API data are described by those attributes.
-        This allows categorizing dota matches for !wl command.
-        """
-        match lobby_type:
-            case LobbyType.Ranked:
-                return ScoreCategory.Ranked
-            case LobbyType.Unranked:
-                return ScoreCategory.Turbo if game_mode == GameMode.Turbo else ScoreCategory.Unranked
-            case _:
-                return ScoreCategory.Other
-
-
 @dataclass
 class Score:
     wins: int
@@ -464,7 +308,7 @@ def is_allowed_to_add_notable() -> Any:
         allowed_ids = (const.UserID.Irene, const.UserID.Xas)
         if ctx.chatter.id in allowed_ids:
             return True
-        msg = f"You are not allowed to add notable players into the bot's database {const.FFZ.peepoPolice}"
+        msg = f"You are not allowed to add notable players into the bot's database {const.Ffz.peepoPolice}"
         raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)
@@ -500,44 +344,34 @@ class MMRBot(IrePublicComponent):
             msg = "There is no steam accounts associated with your twitch channel"
             raise errors.RespondWithError(msg)
 
-        data: Streamers = await self.local_api.get_streamers()
-        if not data:
-            msg = "Dota2Bot is restarting, please, wait a bit"
+        streamer: Streamer = await self.local_api.get_streamer(row["friend_id"])
+        if is_green_online_required and not streamer.is_playing_dota:
+            msg = "Inactive command \N{BULLET} it requires streamer to be green-online \N{LARGE GREEN CIRCLE} in Dota 2"
             raise errors.RespondWithError(msg)
-
-        streamer = data.get(str(row["friend_id"]))
-
-        if streamer is not None:
-            if is_green_online_required and not streamer["is_playing_dota"]:
-                msg = "Inactive command \N{BULLET} it requires streamer to be green-online \N{LARGE GREEN CIRCLE} in Dota 2"
-                raise errors.RespondWithError(msg)
-            return streamer
-
-        msg = "Couldn't find streamer's steam account in my friends uuh"
-        raise errors.RespondWithError(msg)
+        return streamer
 
     #########################################################################################################################
     # LIVE GAME
     #########################################################################################################################
 
-    async def get_live_match(self, broadcaster_id: str) -> LiveMatch:
+    async def get_live_match(self, broadcaster_id: str) -> StreamerLiveMatch:
         """Find broadcaster's active match."""
         streamer = await self.get_streamer(broadcaster_id)
-        live_match = streamer["live_match"]
+        live_match = streamer.live_match
         if live_match is None:
-            msg = f"No Active Game Found \N{BULLET} Streamer's status: {streamer['status']}"
+            msg = f"No Active Game Found \N{BULLET} Streamer's status: {streamer.status}"
             raise errors.RespondWithError(msg)
-        if live_match["tag"] == "unsupported":
-            msg = live_match["message"]
+        if live_match.tag == "unsupported":
+            msg = live_match.message
             raise errors.RespondWithError(msg)
-        if live_match["state"] == MatchState.ApiError:
+        if live_match.state == MatchState.ApiError:
             msg = "I'm not able to fetch data for this match, sorry."
             raise errors.RespondWithError(msg)
         return live_match
 
-    async def send_with_tag(self, ctx: IreContext, match: LiveMatch, content: str) -> None:
+    async def send_with_tag(self, ctx: IreContext, match: StreamerLiveMatch, content: str) -> None:
         """Send with tag."""
-        prefix = "[Spectating] " if match["tag"] == "spectating" else ""
+        prefix = "[Spectating] " if match.tag == "spectating" else ""
         await ctx.send(f"{prefix}{content}")
 
     @commands.command()
@@ -547,26 +381,24 @@ class MMRBot(IrePublicComponent):
         Useful if I want to manually request `GetRealTimeStats`.
         """
         match = await self.get_live_match(ctx.broadcaster.id)
-        await ctx.send(content=str(match["server_steam_id"]))
+        await ctx.send(content=str(match.server_steam_id))
 
     @commands.command(aliases=["matchid"])
     async def match_id(self, ctx: IreContext) -> None:
         """Show match ID for the current match."""
         match = await self.get_live_match(ctx.broadcaster.id)
-        content = str(match["match_id"])
+        content = str(match.id)
         await self.send_with_tag(ctx, match, content)
 
     @commands.command(aliases=["gm"])
     async def game_medals(self, ctx: IreContext) -> None:
         """Fetch each player rank medals in the current game."""
         match = await self.get_live_match(ctx.broadcaster.id)
-        if not match["players"]:
+        if not match.players:
             content = "No player data yet"
         else:
-            response_parts = [
-                f"{player['hero_name'] or player['color']} {player['medal'] or '?'}" for player in match["players"]
-            ]
-            prefix = f"[{avg_mmr} avg mmr] " if bool(avg_mmr := match["average_mmr"]) else ""
+            response_parts = [f"{player.identifier} {player.rank_display_name}" for player in match.players]
+            prefix = f"[{avg_mmr} avg mmr] " if (avg_mmr := match.average_mmr) is not None else ""
             content = prefix + " \N{BULLET} ".join(response_parts)
         await self.send_with_tag(ctx, match, content)
 
@@ -574,11 +406,11 @@ class MMRBot(IrePublicComponent):
     async def ranked(self, ctx: IreContext) -> None:
         """Show whether the current game is ranked or not."""
         match = await self.get_live_match(ctx.broadcaster.id)
-        if match["lobby_type"] is None or match["game_mode"] is None:
+        if match.lobby_type is None or match.game_mode is None:
             content = "No lobby data yet."
         else:
-            yes_no = "Yes" if match["lobby_type"] == LobbyType.Ranked else "No"
-            content = f"{yes_no}, it's {match['lobby_type_name']} ({match['game_mode_name']})"
+            yes_no = "Yes" if match.lobby_type == LobbyType.Ranked else "No"
+            content = f"{yes_no}, it's {match.lobby_type.display_name} ({match.game_mode.display_name})"
         await self.send_with_tag(ctx, match, content)
 
     @commands.command(aliases=["lifetime"])
@@ -588,12 +420,12 @@ class MMRBot(IrePublicComponent):
         Not really a "smurf detector", but it's quite good initial metric.
         """
         match = await self.get_live_match(ctx.broadcaster.id)
-        if not match["players"]:
+        if not match.players:
             content = "No players data yet."
         else:
             response_parts = [
-                f"{player['hero_name'] or player['color']} {player['lifetime_games']}"
-                for player in sorted(match["players"], key=operator.itemgetter("lifetime_games"))
+                f"{player.identifier} {player.lifetime_games}"
+                for player in sorted(match.players, key=operator.attrgetter("lifetime_games"))
             ]
             content = "Lifetime Games: " + " \N{BULLET} ".join(response_parts)
         await self.send_with_tag(ctx, match, content)
@@ -602,19 +434,19 @@ class MMRBot(IrePublicComponent):
     async def notable_players(self, ctx: IreContext) -> None:
         """List notable players for the current match."""
         match = await self.get_live_match(ctx.broadcaster.id)
-        if not match["players"]:
+        if not match.players:
             content = "No player data yet."
         else:
             query = "SELECT friend_id, nickname FROM ttv_dota_notable_players WHERE friend_id = ANY($1);"
-            rows: list[NotablePlayersQueryRow] = await self.bot.pool.fetch(query, [p["id"] for p in match["players"]])
+            rows: list[NotablePlayersQueryRow] = await self.bot.pool.fetch(query, [p.id for p in match.players])
             if not rows:
                 content = "No notable players found"
             else:
                 nickname_mapping = {row["friend_id"]: row["nickname"] for row in rows}
                 response_parts = [
-                    f"{nick} as {player['hero_name'] or player['color']}"
-                    for player in match["players"]
-                    if (nick := nickname_mapping.get(player["id"])) is not None
+                    f"{nick} as {player.identifier}"
+                    for player in match.players
+                    if (nick := nickname_mapping.get(player.id)) is not None
                 ]
                 content = " \N{BULLET} ".join(response_parts)
         await self.send_with_tag(ctx, match, content)
@@ -626,28 +458,28 @@ class MMRBot(IrePublicComponent):
         `argument` can be a hero name, hero alias, player slot or colour.
         """
         match = await self.get_live_match(ctx.broadcaster.id)
-        if not match["players"]:
+        if not match.players:
             content = "No player data yet."
         else:
-            hero_names = [player["hero_name"] for player in match["players"]]
+            hero_names = [player.hero.name for player in match.players]
             player_slot = extract_player_slot(player_slot_color_or_hero_name, hero_names)
-            player = match["players"][player_slot]
-            content = f"{player['hero_name'] or player['color']} stratz.com/players/{player['id']}"
+            player = match.players[player_slot]
+            content = f"{player.identifier} stratz.com/players/{player.id}"
         await self.send_with_tag(ctx, match, content)
 
     #########################################################################################################################
     # LIVE GAME THAT REQUIRE REAL TIME STATS
     #########################################################################################################################
 
-    async def get_real_time_stats(self, match: LiveMatch) -> steam_web_api_schemas.RealTimeStats:
+    async def get_real_time_stats(self, match: StreamerLiveMatch) -> RealTimeStats:
         """Get Real time stats."""
-        if not match["server_steam_id"]:
+        if match.server_steam_id is None:
             msg = "This match doesn't support real time stats"
             raise errors.RespondWithError(msg)
-        if match["lobby_type"] == LobbyType.NewPlayerMode:
+        if match.lobby_type == LobbyType.NewPlayerMode:
             msg = "New Player Mode matches do not support real time stats."
             raise errors.RespondWithError(msg)
-        return await self.steam_web_api.get_real_time_stats(match["server_steam_id"])
+        return await self.steam_web_api.get_real_time_stats(match.server_steam_id)
 
     @commands.command(aliases=["items", "kda"])
     async def stats(self, ctx: IreContext, *, player_slot_color_or_hero_name: str) -> None:
@@ -656,25 +488,21 @@ class MMRBot(IrePublicComponent):
         `argument` can be a hero name, hero alias, player slot or colour.
         """
         match = await self.get_live_match(ctx.broadcaster.id)
-        if not match["players"]:
+        if not match.players:
             await ctx.send("No player data yet.")
             return
 
-        hero_names = [player["hero_name"] for player in match["players"]]
+        hero_names = [player.hero.name for player in match.players]
         player_slot = extract_player_slot(player_slot_color_or_hero_name, hero_names)
-        player = match["players"][player_slot]
+        player = match.players[player_slot]
         stats = await self.get_real_time_stats(match)
 
-        api_player = next(
-            iter(p for team in stats["teams"] for p in team["players"] if p["heroid"] == player["hero_id"]), None
-        )
+        api_player = next(iter(p for p in stats.players if p.hero.id == player.hero.id), None)
         if api_player is None:
-            msg = f"Somehow couldn't find the player {player_slot=} with {player['hero_name']} in the game."
+            msg = f"Somehow couldn't find the player {player_slot=} with {player.hero.name} in the game."
             raise errors.SomethingWentWrongError(msg)
 
-        try:
-            api_player["items"]
-        except KeyError:
+        if not api_player.items:
             items = "No item data yet"
         else:
             # https://stackoverflow.com/a/35456954/19217368
@@ -685,20 +513,19 @@ class MMRBot(IrePublicComponent):
                 ORDER BY t.ord;
             """
             player_items_dict: dict[int, str] = {
-                r["item_id"]: r["display_name"] for r in await self.bot.pool.fetch(query, api_player["items"])
+                r["item_id"]: r["display_name"] for r in await self.bot.pool.fetch(query, api_player.items)
             }
-            items: str = ", ".join([
-                player_items_dict.get(item, "Unknown Item") for item in api_player["items"] if item != -1
-            ])
+            items: str = ", ".join([player_items_dict.get(item, "Unknown Item") for item in api_player.items if item != -1])
+
         response_parts = (
             (  # Prefix
-                f"{'[2m delay] ' if match['tag'] == 'playing' else ''}"
-                f"{api_player['name']} {player['hero_name']} lvl {api_player['level']}"
+                f"{'[2m delay] ' if match.tag == 'playing' else ''}"
+                f"{api_player.name} {player.identifier} lvl {api_player.level}"
             ),
-            f"NW: {api_player['net_worth']}",  # Net worth
-            f"{api_player['kill_count']}/{api_player['death_count']}/{api_player['assists_count']}",  # KDA
-            f"CS: {api_player['lh_count']}",  # Last Hits
-            items,  # Items
+            f"NW {api_player.networth}",
+            f"KDA {api_player.kills}/{api_player.deaths}/{api_player.assists}",
+            f"CS {api_player.creep_score}/{api_player.denies}",
+            items,
         )
         content = " \N{BULLET} ".join(response_parts)
         await self.send_with_tag(ctx, match, content)
@@ -720,13 +547,11 @@ class MMRBot(IrePublicComponent):
         """Show which team has a gold lead and by how much."""
         match = await self.get_live_match(ctx.broadcaster.id)
         stats = await self.get_real_time_stats(match)
-        radiant = stats["teams"][0]
-        dire = stats["teams"][1]
-        lead = radiant["net_worth"] - dire["net_worth"]
+        lead = stats.radiant_nw - stats.dire_nw
         word = "Radiant" if lead > 0 else "Dire"
         content = (
-            f"{'[2m delay] ' if match['tag'] == 'playing' else ''}"
-            f"Radiant {radiant['score']} - Dire {dire['score']}: "
+            f"{'[2m delay] ' if match.tag == 'playing' else ''}"
+            f"Radiant {stats.radiant_score} - Dire {stats.dire_score}: "
             f"{word} is leading by {abs(lead) / 1000:.1f}k"
         )
         await self.send_with_tag(ctx, match, content)
@@ -765,20 +590,20 @@ class MMRBot(IrePublicComponent):
     async def played_with(self, ctx: IreContext) -> None:
         """List recurring players from the last game present in the current match."""
         match = await self.get_live_match(ctx.broadcaster.id)
-        if not match["players"]:
+        if not match.players:
             await ctx.send("No player data yet.")
             return
 
-        if match["tag"] == "playing":
+        if match.tag == "playing":
             friend_id, _, last_game = await self.get_last_game(ctx.broadcaster.id)
 
-            last_game_hero_player_index: dict[int, str] = {p["id"]: p["hero_name"] for p in last_game["players"]}
+            last_game_hero_player_index: dict[int, str] = {p.id: p.hero.name for p in last_game.players}
             last_game_hero_player_index.pop(friend_id, None)  # remove the streamer themselves
 
             response_parts = [
-                f"{player['hero_name'] or player['color']} played as {last_game_played_as}"
-                for player in match["players"]
-                if (last_game_played_as := last_game_hero_player_index.get(player["id"])) is not None
+                f"{player.identifier} played as {last_game_played_as}"
+                for player in match.players
+                if (last_game_played_as := last_game_hero_player_index.get(player.id)) is not None
             ]
             content = (
                 " \N{BULLET} ".join(response_parts)
@@ -793,28 +618,23 @@ class MMRBot(IrePublicComponent):
     async def previous_match(self, ctx: IreContext) -> None:
         """Show summary stats for the previous match."""
         streamer: Streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
-        match: PreviousMatch = await self.local_api.get_previous_match(streamer["id"])
-        score_category = ScoreCategory.create(match["lobby_type"], match["game_mode"])
+        match = await self.local_api.get_previous_match(streamer.id)
 
-        win_word = "Win" if match["win"] else "Loss"
+        win_word = "Win" if match.win else "Loss"
 
-        minimal = await self.local_api.get_minimal_match(match["match_id"])
+        minimal = await self.local_api.get_minimal_match(match.id)
         slot, player = next(
-            iter((s, p) for s, p in enumerate(minimal["players"]) if p["hero_id"] == match["hero_id"]), (None, None)
+            iter((s, p) for s, p in enumerate(minimal.players) if p.hero.id == match.hero.id), (None, None)
         )
         if slot is None or player is None:
             msg = "Somehow can't find streamer's account in their previous match uuh weird"
             raise errors.SomethingWentWrongError(msg)
 
-        delta = clock.utcnow() - (
-            datetime.datetime.fromisoformat(match["start_time"]) + datetime.timedelta(seconds=match["duration"])
-        )
-
         response = (
-            f"Previous Match - {score_category.name}: {win_word} as "
-            f"{player['hero_name']} {player['kills']}/{player['deaths']}/{player['assists']} "
-            f"\N{BULLET} ended {clock.human_timedelta(delta, mode='short')} ago "
-            f"\N{BULLET} stratz.com/matches/{match['match_id']}"
+            f"Previous Match - {match.category.name}: {win_word} as "
+            f"{player.hero.name} {player.kills}/{player.deaths}/{player.assists} "
+            f"\N{BULLET} ended {clock.human_timedelta(match.end_dt, mode='short')} ago "
+            f"\N{BULLET} stratz.com/matches/{match.id}"
         )
         await ctx.send(response)
 
@@ -911,33 +731,15 @@ class MMRBot(IrePublicComponent):
         await ctx.send(response)
 
     #########################################################################################################################
-    # MMR
+    # PROFILE
     #########################################################################################################################
 
-    @commands.group(invoke_fallback=True)
+    @commands.command(aliases=["rank", "medal"])
     async def mmr(self, ctx: IreContext) -> None:
         """Show streamer's mmr on the current account."""
         streamer: Streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
-        query = "SELECT estimated_mmr FROM ttv_dota_accounts WHERE friend_id = $1;"
-        mmr: int = await self.bot.pool.fetchval(query, streamer["id"])
-
-        profile_card = await self.local_api.get_profile_card(streamer["id"])
-        response = f"Medal: {profile_card['medal']} \N{BULLET} Database tracked MMR: {mmr}"
-        await ctx.send(response)
-
-    @commands.is_broadcaster()
-    @mmr.command(name="set")
-    async def mmr_set(self, ctx: IreContext, new_mmr: int) -> None:
-        """Set streamer's mmr in the database."""
-        streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
-        query = "UPDATE ttv_dota_accounts SET estimated_mmr = $1 WHERE friend_id = $2;"
-        await self.bot.pool.fetchval(query, new_mmr, streamer["id"])
-        response = f'Successfully set MMR to {new_mmr} for the account "{streamer["name"]}"'
-        await ctx.send(response)
-
-    #########################################################################################################################
-    # PROFILE
-    #########################################################################################################################
+        profile_card = await self.local_api.get_profile_card(streamer.id)
+        await ctx.send(profile_card.rank_display_name)
 
     @commands.command(aliases=["stratz", "opendota"])
     async def dotabuff(self, ctx: IreContext) -> None:
@@ -945,7 +747,7 @@ class MMRBot(IrePublicComponent):
         streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
         if (invoked := ctx.invoked_with) is None:
             invoked = "stratz"
-        await ctx.send(content=f"{invoked}.com/players/{streamer['id']}")
+        await ctx.send(content=f"{invoked}.com/players/{streamer.id}")
 
     @commands.command(aliases=["lastseen"])
     async def status(self, ctx: IreContext) -> None:
@@ -955,10 +757,10 @@ class MMRBot(IrePublicComponent):
         """
         streamer = await self.get_streamer(ctx.broadcaster.id, is_green_online_required=False)
         query = "SELECT last_seen FROM ttv_dota_accounts WHERE friend_id = $1"
-        last_seen: datetime.datetime = await self.bot.pool.fetchval(query, streamer["id"])
+        last_seen: datetime.datetime = await self.bot.pool.fetchval(query, streamer.id)
         delta = clock.utcnow() - last_seen
         response = (
-            f"{streamer['name']} id={streamer['id']} status={streamer['status']} - "
+            f"{streamer.name} id={streamer.id} status={streamer.status} - "
             f"changed to it {clock.human_timedelta(delta, mode='short')} ago "
             "(while being green-online in Dota 2)"
         )
@@ -968,11 +770,11 @@ class MMRBot(IrePublicComponent):
     async def party(self, ctx: IreContext) -> None:
         """Show notable players in the current party."""
         streamer = await self.get_streamer(ctx.broadcaster.id)
-        party = streamer["raw_rich_presence"].get("party")
+        party = streamer.raw_rich_presence.get("party")
         if party is None:
             msg = "Streamer is not in a party."
             raise errors.RespondWithError(msg)
-        if (party2 := streamer["raw_rich_presence"].get("party2")) is not None:
+        if (party2 := streamer.raw_rich_presence.get("party2")) is not None:
             # Apparently if a party is too big, valve just slice the string into party2
             party += party2
 
@@ -996,7 +798,7 @@ class MMRBot(IrePublicComponent):
             response += known_party_members
 
         unknown_party_members = " \N{BULLET} ".join([
-            f"{(await self.local_api.get_user(v[0]))['name']} ({k})" for k, v in members.items() if not v[1]
+            f"{(await self.local_api.get_steam_user(v[0])).name} ({k})" for k, v in members.items() if not v[1]
         ])
         if unknown_party_members:
             response += f". And not notable to the bot: {unknown_party_members}"
@@ -1026,7 +828,7 @@ class MMRBot(IrePublicComponent):
         if not rows:
             return "0 W - 0 L" if stream_started_at else "0 W - 0 L (No games played in the last 2 days)"
 
-        index: dict[int, dict[ScoreCategory, Score]] = {}
+        index: dict[int, dict[Category, Score]] = {}
 
         cutoff_dt = rows[0]["start_time"]
         for row in rows:
@@ -1036,7 +838,7 @@ class MMRBot(IrePublicComponent):
                 break
             cutoff_dt = row["start_time"]
 
-            score_category = ScoreCategory.create(row["lobby_type"], row["game_mode"])
+            score_category = Category.create(row["lobby_type"], row["game_mode"])
             score = index.setdefault(row["friend_id"], {}).setdefault(score_category, Score(0, 0, 0, 0))
 
             if row["abandon"]:
@@ -1073,7 +875,10 @@ class MMRBot(IrePublicComponent):
 
         response = " \N{LARGE PURPLE CIRCLE} ".join(
             # Let's make extra query to know name accounts
-            [f"{(await self.local_api.get_user(friend_id))['name']}: {part}" for friend_id, part in response_parts.items()]
+            [
+                f"{(await self.local_api.get_steam_user(friend_id)).name}: {part}"
+                for friend_id, part in response_parts.items()
+            ]
         )
         if not stream_started_at:
             timedelta = clock.utcnow() - gaming_session_dt
@@ -1108,7 +913,7 @@ class MMRBot(IrePublicComponent):
     async def dota2protracker_hero_page(self, ctx: IreContext) -> None:
         """Show Dota 2 Pro Tracker page for the currently played hero."""
         streamer = await self.get_streamer(ctx.broadcaster.id)
-        npc_hero_name = streamer["raw_rich_presence"].get("param2")
+        npc_hero_name = streamer.raw_rich_presence.get("param2")
         if npc_hero_name is not None:
             hero = Hero.create_from_npc_dota_hero_name(npc_hero_name.removeprefix("#"))
             response = url_parse.quote(f"dota2protracker.com/hero/{hero.display_name}")
@@ -1121,7 +926,7 @@ class MMRBot(IrePublicComponent):
     async def send_raw_rich_presence(self, ctx: IreContext) -> None:
         """Send current rich presence state to @irene for debugging reasons."""
         friend = await self.get_streamer(ctx.broadcaster.id)
-        to_send = fmt.codeblock(pprint.pformat(friend["raw_rich_presence"]), "json")
+        to_send = fmt.codeblock(pprint.pformat(friend.raw_rich_presence), "json")
         await self.bot.notification_webhook.send(content=to_send)
         await ctx.send(content="Done")
 

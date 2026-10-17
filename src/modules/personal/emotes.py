@@ -84,19 +84,19 @@ class EmoteChecker(IrePersonalComponent):
         async with self.bot.session.get(f"https://7tv.io/v3/users/twitch/{broadcaster_id}") as resp:
             stv_json = await resp.json()
             stv_emote_list = [emote["name"] for emote in stv_json["emote_set"]["emotes"]]
-            await self.cross_check_emotes(stv_emote_list, const.STV, 0x3493EE)
+            await self.cross_check_emotes(stv_emote_list, const.Stv, 0x3493EE)
 
         # FFZ
         async with self.bot.session.get(f"https://api.frankerfacez.com/v1/room/id/{broadcaster_id}") as resp:
             ffz_json = await resp.json()  # if we ever need this "654554" then it exists as `ffz_json["room"]["set"]`
             ffz_emote_list = [emote["name"] for emote in ffz_json["sets"]["654554"]["emoticons"]]
-            await self.cross_check_emotes(ffz_emote_list, const.FFZ, 0x271F3E)
+            await self.cross_check_emotes(ffz_emote_list, const.Ffz, 0x271F3E)
 
         # BTTV
         async with self.bot.session.get(f"https://api.betterttv.net/3/cached/users/twitch/{broadcaster_id}") as resp:
             bttv_json = await resp.json()
             bttv_emote_list = [emote["code"] for emote in bttv_json["channelEmotes"] + bttv_json["sharedEmotes"]]
-            await self.cross_check_emotes(bttv_emote_list, const.BTTV, 0xD50014)
+            await self.cross_check_emotes(bttv_emote_list, const.Bttv, 0xD50014)
 
     @commands.command(aliases=["potatbotat"])
     async def potat(self, ctx: IreContext) -> None:
@@ -105,7 +105,7 @@ class EmoteChecker(IrePersonalComponent):
         Link to the tool: https://potat.app/help/mergeset.
         Using this command will trigger @PotatBotat automatically as it listens to other bots messages too.
         """
-        await ctx.send(f'#mergeset {const.SevenTV.IRENE_EMOTE_SET_ID} 01JS1XW1PAAKP34984FDYZVDR7 as:"Default but Dota 2"')
+        await ctx.send(f'(#)mergeset {const.StvID.IRENE_EMOTE_SET} 01JS1XW1PAAKP34984FDYZVDR7 as:"Default but Dota 2"')
 
 
 async def setup(bot: IreBot) -> None:

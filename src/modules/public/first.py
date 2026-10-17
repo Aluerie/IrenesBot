@@ -225,11 +225,11 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
         """
         count: int = await self.bot.pool.fetchval(query, redemption.user.id, redemption.broadcaster.id)
         msg = (
-            f'@{redemption.user.display_name}, gratz on your very first "First!" {const.STV.gg}'
+            f'@{redemption.user.display_name}, gratz on your very first "First!" {const.Stv.gg}'
             if count == 1
             else (
                 f"@{redemption.user.display_name}, Gratz! you've been first {count} times "
-                f"{const.STV.gg} {globs.Global7TV.EZ}"
+                f"{const.Stv.gg} {globs.Global7TV.EZ}"
             )
         )
         await redemption.respond(msg)
@@ -340,7 +340,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
             msg = "This channel doesn't have `First!` feature setup."
             raise errors.RespondWithError(msg)
 
-        content = f'{const.BTTV.DankG} Top5 "First!" redeemers: '
+        content = f'{const.Bttv.DankG} Top5 "First!" redeemers: '
         rank_medals = [
             "\N{FIRST PLACE MEDAL}",
             "\N{SECOND PLACE MEDAL}",

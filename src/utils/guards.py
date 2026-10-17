@@ -42,7 +42,7 @@ def is_vps() -> Any:
         # Still allow Irene to use the command during the testing;
         if not ctx.bot.subset_mode or ctx.chatter.id == ctx.bot.owner_id:
             return True
-        msg = f"Sorry, this command is currently disabled while Irene is testing some stuff {const.FFZ.peepoPolice}"
+        msg = f"Sorry, this command is currently disabled while Irene is testing some stuff {const.Ffz.peepoPolice}"
         raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)
@@ -54,7 +54,7 @@ def is_online() -> Any:
     def predicate(ctx: IreContext) -> bool:
         if ctx.bot.is_online(ctx.broadcaster.id):
             return True
-        msg = f"This commands is allowed only during online streams {const.FFZ.peepoPolice}"
+        msg = f"This commands is allowed only during online streams {const.Ffz.peepoPolice}"
         raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)
@@ -69,7 +69,7 @@ def is_owner_channel() -> Any:
         # decorators order in twitchio performs
         # `.component_before_invoke` after local decorators
         # so this workaround fixes that order
-        msg = f"This command is allowed only in Irene's channel {const.FFZ.peepoPolice}"
+        msg = f"This command is allowed only in Irene's channel {const.Ffz.peepoPolice}"
         raise errors.NotAllowedError(msg, behavior="silent")
 
     return commands.guard(predicate)
@@ -84,7 +84,7 @@ def is_broadcaster_or_dev() -> Any:
     def predicate(ctx: IreContext) -> bool:
         if ctx.chatter.id in {ctx.broadcaster.id, ctx.bot.owner_id}:
             return True
-        msg = f"Sorry, this command can only be used by the streamer {const.FFZ.peepoPolice}"
+        msg = f"Sorry, this command can only be used by the streamer {const.Ffz.peepoPolice}"
         raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)
@@ -99,7 +99,7 @@ def is_dev() -> Any:
     def predicate(ctx: IreContext) -> bool:
         if ctx.chatter.id == ctx.bot.owner_id:
             return True
-        msg = f"Sorry, this command can only be used by Irene {const.FFZ.peepoPolice}"
+        msg = f"Sorry, this command can only be used by Irene {const.Ffz.peepoPolice}"
         raise errors.NotAllowedError(msg)
 
     return commands.guard(predicate)

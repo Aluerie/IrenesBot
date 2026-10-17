@@ -150,7 +150,12 @@ class IreBot(BotBase, commands.AutoBot):
             self.prefixes = ("!", "?", "$")
             self.error_ping = "<@&1116171071528374394>"
 
-        super().__init__(session, env.WEBHOOK_ERROR, self.error_ping)
+        super().__init__(
+            session,
+            error_webhook=env.WEBHOOK_ERROR,
+            error_ping=self.error_ping,
+            notification_webhook=env.WEBHOOK_NOTIFICATION,
+        )
         super(commands.AutoBot, self).__init__(
             client_id=client_id,
             client_secret=client_secret,
@@ -179,7 +184,7 @@ class IreBot(BotBase, commands.AutoBot):
 
         self.stv: GraphQL7TVClient = GraphQL7TVClient(
             bearer_token=env.SEVEN_TV_BEARER,
-            bot_7tv_user_id=const.SevenTV.BOT_ID,
+            bot_7tv_user_id=const.StvID.BOT,
         )
 
         # initialized later
@@ -411,7 +416,7 @@ class IreBot(BotBase, commands.AutoBot):
             case commands.CommandOnCooldown():
                 command_name = f"{ctx.prefix}{command.name}" if command else "this command"
                 await ctx.send(
-                    f"Command {command_name} is on cooldown! Try again in {error.remaining:.0f} sec {const.STV.Timeloth}",
+                    f"Command {command_name} is on cooldown! Try again in {error.remaining:.0f} sec {const.Stv.Timeloth}",
                 )
             case commands.GuardFailure():
                 if await self.handle_common_errors(error.__cause__, ctx.send):
@@ -432,9 +437,9 @@ class IreBot(BotBase, commands.AutoBot):
                     ),
                     f'For some reason ("{guard_name}") you are not allowed to use this command',
                 )
-                await ctx.send(f"{guard_response} {const.FFZ.peepoPolice}")
+                await ctx.send(f"{guard_response} {const.Ffz.peepoPolice}")
             case commands.MissingRequiredArgument():
-                await ctx.send(f'You need to provide "{error.param.name}" argument for this command {const.FFZ.peepoPolice}')
+                await ctx.send(f'You need to provide "{error.param.name}" argument for this command {const.Ffz.peepoPolice}')
             case commands.BadArgument():
                 cause = error.__cause__
                 if await self.handle_common_errors(cause, ctx.send):
@@ -446,7 +451,7 @@ class IreBot(BotBase, commands.AutoBot):
                 await ctx.send(
                     content=(
                         f"Couldn't convert value `{error.value}` for argument `{error.name}` "
-                        f"to required type/format {const.STV.dankFix}"
+                        f"to required type/format {const.Stv.dankFix}"
                     ),
                 )
             case _:
@@ -521,10 +526,10 @@ class IreBot(BotBase, commands.AutoBot):
     #     """Shortcut to discord.Webhook.from_url with some filled args."""
     #     return discord.Webhook.from_url(url=url, session=self.session)
 
-    @discord.utils.cached_property
-    def notification_webhook(self) -> discord.Webhook:
-        """Webhook in hideout server to send notifications to the developer(-s)."""
-        return self.webhook_from_url(env.WEBHOOK_NOTIFICATION)
+    # @discord.utils.cached_property
+    # def notification_webhook(self) -> discord.Webhook:
+    #     """Webhook in hideout server to send notifications to the developer(-s)."""
+    #     return self.webhook_from_url(env.WEBHOOK_NOTIFICATION)
 
     # async def ping_developers(self, **send_kwargs: Any) -> None:
     #     """Ping developers.
