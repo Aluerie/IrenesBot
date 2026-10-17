@@ -127,7 +127,7 @@ async def get_eventsub_subscriptions(
     subscriptions.extend(get_user_subscriptions(const.UserID.Irene, bot))
 
     # 2. Public member accounts
-    query = "SELECT user_id FROM ttv_tokens_test WHERE user_type = 'public';"
+    query = "SELECT user_id FROM ttv_tokens WHERE user_type = 'public';"
     public_rows: list[GetMemberAccountsQueryRow] = await pool.fetch(query)
     for user in public_rows:
         subscriptions.extend(get_user_subscriptions(user["user_id"], bot))
