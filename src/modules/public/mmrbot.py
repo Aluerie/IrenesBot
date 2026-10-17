@@ -891,7 +891,7 @@ class MMRBot(IrePublicComponent):
     @commands.group(aliases=["wl", "winloss"], invoke_fallback=True)
     async def score(self, ctx: IreContext) -> None:
         """Show streamer's Win - Loss score ratio during the stream."""
-        streamer = self.bot.streamers[ctx.broadcaster.id]
+        streamer = self.bot.get_streamer(ctx.broadcaster.id)
         if not streamer.online:
             response = await self.score_response_helper(ctx.broadcaster.id)
         else:

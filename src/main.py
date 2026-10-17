@@ -80,7 +80,7 @@ async def start_the_bot(
     "--scopes-only",
     "-s",
     is_flag=True,
-    default=False,  # usual default: False ✅
+    default=True,  # usual default: False ✅
     help=(
         "Launches the bot without any functionality except for Auth Token management."
         "This also show OATH urls with scopes for a bot account, the bot owner and broadcasters to authorize with."
@@ -116,7 +116,7 @@ async def start_the_bot(
     "--test-account",
     "-t",
     is_flag=True,
-    default=False,  # usual default: False ✅
+    default=True,  # usual default: False ✅
     help=(
         "Whether to launch the bot using test dummy account (@IrenesTest). "
         "It's useful when we want to test some features without interrupting the main account."
