@@ -522,10 +522,8 @@ class MMRBot(IrePublicComponent):
             items: str = ", ".join([player_items_dict.get(item, "Unknown Item") for item in api_player.items if item != -1])
 
         response_parts = (
-            (  # Prefix
-                f"{'[2m delay] ' if match.tag == 'playing' else ''}"
-                f"{api_player.name} {player.identifier} lvl {api_player.level}"
-            ),
+            f"{'[2m delay] ' if match.tag == 'playing' else ''}{api_player.name}",
+            f"{player.identifier} lvl {api_player.level}",
             f"NW {api_player.networth}",
             f"KDA {api_player.kills}/{api_player.deaths}/{api_player.assists}",
             f"CS {api_player.creep_score}/{api_player.denies}",
@@ -552,11 +550,10 @@ class MMRBot(IrePublicComponent):
         match = await self.get_live_match(ctx.broadcaster.id)
         stats = await self.get_real_time_stats(match)
         lead = stats.radiant_nw - stats.dire_nw
-        word = "Radiant" if lead > 0 else "Dire"
         content = (
             f"{'[2m delay] ' if match.tag == 'playing' else ''}"
             f"Radiant {stats.radiant_score} - Dire {stats.dire_score}: "
-            f"{word} is leading by {abs(lead) / 1000:.1f}k"
+            f"{'Radiant' if lead > 0 else 'Dire'} is leading by {abs(lead) / 1000:.1f}k"
         )
         await self.send_with_tag(ctx, match, content)
 

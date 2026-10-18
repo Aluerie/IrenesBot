@@ -346,18 +346,15 @@ class IreBot(BotBase, commands.AutoBot):
                 return False
             # 7TV
             case stv.UnauthorizedError():
-                await respond(
-                    "Ooups, 7TV logged me out; Irene needs to fix it "
-                    f"(surely permanently this time) {globs.TwitchEmote.FeelsDankMan}"
-                )
+                await respond("Ooups, 7TV logged me out; Irene needs to fix it (surely permanently this time)")
                 return False
             case stv.InvokeQueryError():
-                await respond(f"{error} {globs.TwitchEmote.FeelsDankMan}")
+                await respond(error)
                 return False
             case stv.SomethingWentWrongError():
                 return False
             case stv.UnsatisfyingResultError():
-                await respond(f"{error} {globs.TwitchEmote.FeelsDankMan}")
+                await respond(error)
                 return True
 
             # TWITCHIO ERRORS
@@ -488,7 +485,7 @@ class IreBot(BotBase, commands.AutoBot):
 
             async def error_redemption_respond(content: str) -> twitchio.SentMessage:
                 """Add `(refunded)` to the response."""
-                return await original.respond(f"{content} (refunded)")
+                return await original.respond(f"{content} {globs.TwitchEmote.FeelsDankMan} (refunded)")
 
             if await self.handle_common_errors(error, error_redemption_respond):
                 # 1. Handle common error
