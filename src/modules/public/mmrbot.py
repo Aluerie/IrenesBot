@@ -897,11 +897,11 @@ class MMRBot(IrePublicComponent):
     @commands.group(aliases=["wl", "winloss"], invoke_fallback=True)
     async def score(self, ctx: IreContext) -> None:
         """Show streamer's Win - Loss score ratio during the stream."""
-        streamer = self.bot.get_streamer(ctx.broadcaster.id)
-        if not streamer.online:
+        friend = self.bot.get_streamer(ctx.broadcaster.id)
+        if not friend.online:
             response = await self.score_response_helper(ctx.broadcaster.id)
         else:
-            response = await self.score_response_helper(ctx.broadcaster.id, streamer.started_dt)
+            response = await self.score_response_helper(ctx.broadcaster.id, friend.started_dt)
         await ctx.send(content=response)
 
     @score.command()
@@ -918,8 +918,8 @@ class MMRBot(IrePublicComponent):
     @commands.command(name="d2pt")
     async def dota2protracker_hero_page(self, ctx: IreContext) -> None:
         """Show Dota 2 Pro Tracker page for the currently played hero."""
-        streamer = await self.get_friend(ctx.broadcaster.id)
-        npc_hero_name = streamer.raw_rich_presence.get("param2")
+        friend = await self.get_friend(ctx.broadcaster.id)
+        npc_hero_name = friend.raw_rich_presence.get("param2")
         if npc_hero_name is not None:
             hero = Hero.create_from_npc_dota_hero_name(npc_hero_name.removeprefix("#"))
             response = url_parse.quote(f"dota2protracker.com/hero/{hero.display_name}")
@@ -935,6 +935,27 @@ class MMRBot(IrePublicComponent):
         to_send = fmt.codeblock(pprint.pformat(friend.raw_rich_presence), "json")
         await self.bot.notification_webhook.send(content=to_send)
         await ctx.send(content="Done")
+
+    @commands.is_broadcaster()
+    @commands.command(name="steam-invite")
+    async def steam_invite(self, ctx: IreContext, friend_id: int) -> None:
+        """Accept steam invite.
+
+        Parameters
+        ----------
+        friend_id
+            Your steam account friend id.
+            Please send it in steam_32ID format (e.g. for my bot it's 1807243552).
+            steam_64ID format (e.g. 76561199767509280) should also work.
+        """
+        steam_user = await self.local_api.get_accept_invite(friend_id, ctx.broadcaster.id)
+        bot_profile_link = (
+            "steamcommunity.com/id/irenesbot" if not self.bot.test else "https://steamcommunity.com/id/irenestest"
+        )
+        await ctx.send(
+            f"Waiting 10 minutes for a friend request from {steam_user.name} ({steam_user.id}) "
+            f"Please, add me asap {bot_profile_link}"
+        )
 
     #########################################################################################################################
     # LAST TOUCH
