@@ -8,7 +8,7 @@ Notices
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import re
 from typing import TYPE_CHECKING, TypedDict
 
@@ -130,7 +130,7 @@ class TemporaryCommands(IrePersonalComponent):
         )
         await ctx.send(msg)
 
-    @commands.cooldown(rate=1, per=datetime.timedelta(seconds=60), key=commands.BucketType.channel)
+    @commands.cooldown(rate=1, per=dt.timedelta(seconds=60), key=commands.BucketType.channel)
     @commands.command()
     async def chat(self, ctx: IreContext, *, argument: str) -> None:
         """Repeat chatter's request.

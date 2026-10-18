@@ -19,7 +19,7 @@ Notices
 from __future__ import annotations
 
 import asyncio
-import datetime
+import datetime as dt
 import itertools
 import logging
 import platform

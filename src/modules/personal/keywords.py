@@ -8,7 +8,7 @@ Notices
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import itertools
 import random
 import re
@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from twitchio.ext import commands
 
 from core import IrePersonalComponent
+from shared import clock
 from utils import const
 
 if TYPE_CHECKING:
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     class KeywordDict(TypedDict):
         aliases: list[str]
         response: str
-        dt: datetime.datetime
+        dt: dt.datetime
 
 
 __all__ = ("Keywords",)
@@ -41,7 +42,7 @@ class Keywords(IrePersonalComponent):
 
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
-        self.cooldown_dt = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=1)
+        self.cooldown_dt = clock.utcnow() - dt.timedelta(hours=1)
 
         response_search = {
             # response: search in chat
@@ -62,7 +63,7 @@ class Keywords(IrePersonalComponent):
         if not self.is_dev(message.broadcaster.id):
             return
 
-        now = datetime.datetime.now(datetime.UTC)
+        now = clock.utcnow()
         if (now - self.cooldown_dt).seconds < 7 * 60:
             # the keyword was recently triggered
             return

@@ -14,7 +14,7 @@ Notices
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import logging
 import operator
 import pprint
@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
     class ScoreQueryRow(TypedDict):
         friend_id: int
-        start_time: datetime.datetime
+        start_time: dt.datetime
         lobby_type: int
         game_mode: int
         outcome: int | None
@@ -637,7 +637,7 @@ class MMRBot(IrePublicComponent):
         response = (
             f"Previous Match - {match.category.name}: {'Win' if match.win else 'Loss'} as "
             f"{player.hero.name} {player.kills}/{player.deaths}/{player.assists} "
-            f"\N{BULLET} ended {clock.human_timedelta(match.end_dt, mode='short')} ago "
+            f"\N{BULLET} ended {clock.human_datetime_diff(match.end_dt, mode='short')} ago "
             f"\N{BULLET} stratz.com/matches/{match.id}"
         )
         await ctx.send(response)
@@ -761,7 +761,7 @@ class MMRBot(IrePublicComponent):
         """
         streamer = await self.get_friend(ctx.broadcaster.id, is_green_online_required=False)
         query = "SELECT last_seen FROM ttv_dota_accounts WHERE friend_id = $1"
-        last_seen: datetime.datetime = await self.bot.pool.fetchval(query, streamer.id)
+        last_seen: dt.datetime = await self.bot.pool.fetchval(query, streamer.id)
         delta = clock.utcnow() - last_seen
         response = (
             f"{streamer.name} id={streamer.id} status={streamer.status} - "
@@ -811,7 +811,7 @@ class MMRBot(IrePublicComponent):
         #     response = f"Party members IDs: {unknown_party_members}"
         await ctx.send(response)
 
-    async def score_response_helper(self, broadcaster_id: str, stream_started_at: datetime.datetime | None = None) -> str:
+    async def score_response_helper(self, broadcaster_id: str, stream_started_at: dt.datetime | None = None) -> str:
         """Get !wl commands response."""
         clause = "AND m.start_time > $3" if stream_started_at else ""
         query = f"""
@@ -830,14 +830,14 @@ class MMRBot(IrePublicComponent):
         )
 
         if not rows:
-            return "0 W - 0 L" if stream_started_at else "0 W - 0 L (No games played in the last 2 days)"
+            return "0 W - 0 L"
 
         index: dict[int, dict[local.Category, Score]] = {}
 
         cutoff_dt = rows[0]["start_time"]
         for row in rows:
             # Let's assume gaming sessions to be separated by 6 hours from each other;
-            if row["start_time"] < cutoff_dt - datetime.timedelta(hours=6):
+            if row["start_time"] < cutoff_dt - dt.timedelta(hours=6):
                 gaming_session_dt = cutoff_dt
                 break
             cutoff_dt = row["start_time"]
@@ -877,18 +877,20 @@ class MMRBot(IrePublicComponent):
             for friend_id, scores in index.items()
         }
 
-        response = " \N{LARGE PURPLE CIRCLE} ".join(
-            # Let's make extra query to know name accounts
-            [
-                f"{(await self.local_api.get_steam_user(friend_id)).name}: {part}"
-                for friend_id, part in response_parts.items()
-            ]
+        response = (
+            " \N{LARGE PURPLE CIRCLE} ".join(
+                # Let's make extra query to know name accounts
+                [
+                    f"{(await self.local_api.get_steam_user(friend_id)).name}: {part}"
+                    for friend_id, part in response_parts.items()
+                ]
+            )
+            if len(response_parts) != 1
+            else next(iter(response_parts.values()))
         )
         if not stream_started_at:
-            timedelta = clock.utcnow() - gaming_session_dt
             response = (
-                "[Offline WL for the last gaming session that started "
-                f"{clock.human_timedelta(timedelta, mode='short')} ago] {response}"
+                f"[Offline ({clock.human_timedelta(clock.utcnow() - gaming_session_dt, mode='short')} ago)] {response}"
             )
         return response
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import datetime
 import enum
 import logging
 from dataclasses import dataclass
@@ -24,7 +23,7 @@ from twitchio.web import StarletteAdapter
 
 from config import env
 from modules import get_modules
-from shared import errors, fmt, globs
+from shared import clock, errors, fmt, globs
 from shared.apis import stv
 from shared.concepts import BotBase
 from utils import const
@@ -35,6 +34,7 @@ from .bases import IreContext
 from .subscriptions import get_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
+    import datetime as dt
     from collections.abc import Callable, Coroutine
 
     from aiohttp import ClientSession
@@ -67,7 +67,7 @@ class Streamer:
 
     id: str
     online: bool = False
-    started_dt: datetime.datetime | None = None
+    started_dt: dt.datetime | None = None
 
 
 class AdapterEnum(enum.Enum):
@@ -181,13 +181,13 @@ class IreBot(BotBase, commands.AutoBot):
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
 
-        self.stv: stv.GraphQL7TVClient = stv.GraphQL7TVClient(
+        self.stv: stv.StvGraphQLClient = stv.StvGraphQLClient(
             bearer_token=env.SEVEN_TV_BEARER,
             bot_7tv_user_id=const.StvID.BOT,
         )
 
         # initialized later
-        self.launch_time: datetime.datetime
+        self.launch_time: dt.datetime
         self.logs_via_webhook_handler: logging.Handler
 
     @override
@@ -313,7 +313,7 @@ class IreBot(BotBase, commands.AutoBot):
 
         if not hasattr(self, "launch_time"):
             # who knows maybe it triggers many times like `discord.py`
-            self.launch_time = datetime.datetime.now(datetime.UTC)
+            self.launch_time = clock.utcnow()
 
     SOMETHING_WENT_WRONG_MESSAGE = (
         f"Something went wrong {globs.TwitchEmote.FeelsDankMan} "

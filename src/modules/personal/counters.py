@@ -9,7 +9,6 @@ Notices
 from __future__ import annotations
 
 import asyncio
-import datetime
 import random
 import re
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -17,9 +16,12 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from twitchio.ext import commands
 
 from core import IrePersonalComponent
+from shared import clock
 from utils import const
 
 if TYPE_CHECKING:
+    import datetime as dt
+
     import twitchio
 
     from core import IreBot, IreContext
@@ -37,7 +39,7 @@ class Counters(IrePersonalComponent):
 
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
-        self.last_erm_notification: datetime.datetime = datetime.datetime.now(datetime.UTC)
+        self.last_erm_notification: dt.datetime = clock.utcnow()
 
     # ERM COUNTERS
 
@@ -67,7 +69,7 @@ class Counters(IrePersonalComponent):
             return
 
         # random notification/reminder
-        now = datetime.datetime.now(datetime.UTC)
+        now = clock.utcnow()
         if random.randint(0, 150) < 2 and (now - self.last_erm_notification).seconds > 180:
             await asyncio.sleep(3)
             query = "SELECT value FROM ttv_counters WHERE name = $1"

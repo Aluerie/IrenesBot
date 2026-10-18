@@ -9,13 +9,14 @@ Notices
 from __future__ import annotations
 
 import contextlib
-import datetime
+import datetime as dt
 from typing import TYPE_CHECKING, Any, TypedDict
 
 import twitchio
 from twitchio.ext import commands
 
 from core import IrePersonalComponent
+from shared import clock
 from shared.concepts import loop
 from utils import const, guards
 
@@ -25,8 +26,8 @@ if TYPE_CHECKING:
     class Tracked(TypedDict):
         game: str
         title: str
-        game_dt: datetime.datetime
-        title_dt: datetime.datetime
+        game_dt: dt.datetime
+        title_dt: dt.datetime
 
 
 __all__ = ("StreamInformation",)
@@ -58,9 +59,9 @@ class StreamInformation(IrePersonalComponent):
         super().__init__(bot, *args, **kwargs)
 
         self.game: str = "idk"
-        self.game_dt: datetime.datetime = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=1)
+        self.game_dt: dt.datetime = clock.utcnow() - dt.timedelta(hours=1)
         self.title: str = "idk"
-        self.title_dt: datetime.datetime = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=1)
+        self.title_dt: dt.datetime = clock.utcnow() - dt.timedelta(hours=1)
 
         self.start_tracking.start()
 
@@ -97,7 +98,7 @@ class StreamInformation(IrePersonalComponent):
 
         if game_name.lower() == "clear":
             # b. A keyword to clear the game category, sets it uncategorized
-            self.game_dt = datetime.datetime.now(datetime.UTC)
+            self.game_dt = clock.utcnow()
             await ctx.broadcaster.modify_channel(game_id="0")
             await ctx.send(f'Set game to "No game category" {const.Stv.uuh}')
             return
@@ -110,14 +111,14 @@ class StreamInformation(IrePersonalComponent):
             await ctx.send(f"Couldn't find any games with such a name {const.Stv.How2Read}")
             return
 
-        self.game_dt = datetime.datetime.now(datetime.UTC)
+        self.game_dt = clock.utcnow()
         await ctx.broadcaster.modify_channel(game_id=game.id)
         await ctx.send(f'Changed game to "{game.name}" {const.Stv.DankMods}')
         return
 
     async def update_title(self, broadcaster: twitchio.PartialUser, title: str) -> None:
         """Update broadcaster's stream title."""
-        self.title_dt = datetime.datetime.now(datetime.UTC)
+        self.title_dt = clock.utcnow()
         await broadcaster.modify_channel(title=title)
 
     @commands.group(name="title", invoke_fallback=True)
@@ -159,7 +160,7 @@ class StreamInformation(IrePersonalComponent):
         if not self.is_dev(update.broadcaster.id):
             return
 
-        now = datetime.datetime.now(datetime.UTC)
+        now = clock.utcnow()
         # time check is needed so we don't repeat notification that comes from !game !title commands.
 
         if self.game != update.category_name:

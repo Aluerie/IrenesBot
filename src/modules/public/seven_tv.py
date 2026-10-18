@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import datetime
+import datetime as dt
 import logging
 import re
 from collections import defaultdict
@@ -19,20 +19,11 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, TypedDict, override
 
 import twitchio
-
-# from stv_event_api import SevenTVWebSocket
-# from stv_event_api.models import (
-#     Dispatch,
-#     EventType,
-#     ResponseTypes,
-#     SubscriptionCondition,
-#     SubscriptionData,
-# )
 from twitchio.ext import commands
 
 from core import IreDevComponent, IrePublicComponent
 from shared import clock, errors, globs, ut
-from shared.apis.stv import EmoteNotFoundError, GraphQL7TVClient, PartialEmote, PartialEmoteSet, UnsatisfyingResultError
+from shared.apis.stv import EmoteNotFoundError, PartialEmote, PartialEmoteSet, StvGraphQLClient, UnsatisfyingResultError
 from shared.concepts import PrefixLoggerAdapter, loop
 from utils import const, guards
 
@@ -41,20 +32,15 @@ if TYPE_CHECKING:
 
     from core import IreBot, IreContext
 
-    # class BatchLastYearEntry(TypedDict):
-    #     emote_id: int
-    #     guild_id: int
-    #     author_id: int
-    #     used: str  # isoformat
-
     #########################################################################################################################
     # DATABASE QUERY ROW TYPE-HINTS
     #########################################################################################################################
 
     class ValidateIsEmoteBlacklistedQueryRow(TypedDict):
         emote_id: str
-        blacklisted_at: datetime.datetime
-        hours: int | None
+        blacklisted_at: dt.datetime
+        duration: int
+        remove_only: bool
 
     class CycleStatusQueryRow(TypedDict):
         reward_id: str
@@ -63,7 +49,10 @@ if TYPE_CHECKING:
         emote_set_id: str
 
 
-__all__ = ("SevenTVDevOnly", "SevenTVPublic")
+__all__ = (
+    "SevenTVDevOnly",
+    "SevenTVPublic",
+)
 
 log = PrefixLoggerAdapter(logging.getLogger(__name__), "🤯")
 log.setLevel(logging.DEBUG)
@@ -76,7 +65,7 @@ log.setLevel(logging.DEBUG)
 
 @dataclass
 class Reward:
-    code: str
+    code: Literal["blacklist", "permanent", "cycle"]
     name: str
     table: str
     processor: Callable[[twitchio.ChannelPointsRedemptionAdd | twitchio.CustomRewardRedemption], Awaitable[Any]]
@@ -84,8 +73,6 @@ class Reward:
 
 
 type PartialEmoteAndAlias = tuple[PartialEmote, str | None]
-
-type RewardLiteral = Literal["blacklist", "permanent", "cycle"]
 
 
 class OwnershipEnum(StrEnum):
@@ -192,7 +179,7 @@ COMMON_WORDS = frozenset((
 #############################################################################################################################
 
 
-def regex_to_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> PartialEmote:
+def regex_to_emote(stv: StvGraphQLClient, emote_id_or_link: str) -> PartialEmote:
     """Convert a string containing 7TV emote id or link to `PartialEmote`.
 
     Does not do anything if the user input is already an emote_id.
@@ -230,36 +217,34 @@ def regex_to_emote(stv_gql: GraphQL7TVClient, emote_id_or_link: str) -> PartialE
     if search is None:
         msg = "Bad <emote_id_or_link>, check the input"
         raise errors.BadUserInputError(msg)
-    return PartialEmote(stv_gql, search["emote_id"])
+    return stv.create_partial_emote(search["emote_id"])
 
 
 async def parse_or_search_emote(
-    stv_gql: GraphQL7TVClient, emote_id_link_or_name: str, broadcaster_id: str | None
+    stv: StvGraphQLClient, emote_id_link_or_name: str, broadcaster_id: str | None
 ) -> PartialEmote:
     """Parse or search."""
     try:
         # try parsing `emote_id`
-        return regex_to_emote(stv_gql, emote_id_link_or_name)
+        return regex_to_emote(stv, emote_id_link_or_name)
     except errors.BadUserInputError:
         # `emote_name` was provided to search
         if broadcaster_id is not None:
             # search within the broadcaster
-            user = stv_gql.create_partial_user(broadcaster_id)
+            user = stv.create_partial_user(broadcaster_id)
             return await user.search_emote(emote_id_link_or_name)
         # search top globally
-        return await stv_gql.search_emote(emote_id_link_or_name)
+        return await stv.search_emote(emote_id_link_or_name)
 
 
 async def parse_add_rename_input(
-    stv_gql: GraphQL7TVClient,
-    user_input: str,
-    broadcaster_id: str | None = None,
+    stv: StvGraphQLClient, user_input: str, broadcaster_id: str | None = None
 ) -> PartialEmoteAndAlias:
     """Get emote_id from `user_input`.
 
     Parameters
     ----------
-    stv_gql
+    stv
         SevenTV GraphQL client
     user_input
         User input
@@ -282,15 +267,11 @@ async def parse_add_rename_input(
     except IndexError:
         emote_alias = None
 
-    emote = await parse_or_search_emote(stv_gql, split[0], broadcaster_id)
+    emote = await parse_or_search_emote(stv, split[0], broadcaster_id)
     return (emote, emote_alias)
 
 
-async def parse_remove_input(
-    stv_gql: GraphQL7TVClient,
-    user_input: str,
-    broadcaster_id: str,
-) -> PartialEmote:
+async def parse_remove_input(stv: StvGraphQLClient, user_input: str, broadcaster_id: str) -> PartialEmote:
     """Get emote_id from `user_input`."""
     split = user_input.split()
     if len(split) > 1:
@@ -300,7 +281,7 @@ async def parse_remove_input(
         msg = "Bad Input; why would you type an empty text?"
         raise errors.BadUserInputError(msg)
 
-    return await parse_or_search_emote(stv_gql, split[0], broadcaster_id)
+    return await parse_or_search_emote(stv, split[0], broadcaster_id)
 
 
 #############################################################################################################################
@@ -628,7 +609,7 @@ class SevenTVPublic(IrePublicComponent):
 
     async def validate_reward_exists(self, reward: Reward, broadcaster_id: str) -> None:
         """Validate whether the broadcaster has reward within the database."""
-        query = "SELECT COUNT(1) FROM ttv_stv_cycle_rewards WHERE broadcaster_id = $1"
+        query = f"SELECT COUNT(1) FROM {reward.table} WHERE broadcaster_id = $1"  # ruff: ignore[hardcoded-sql-expression]
         count: int = await self.bot.pool.fetchval(query, broadcaster_id)
         if count == 0:
             msg = self.NO_REWARD_ERROR_MSG.format(reward.name)
@@ -679,24 +660,25 @@ class SevenTVPublic(IrePublicComponent):
             Emote is blacklisted.
         """
         query = """
-            SELECT emote_id,
-                blacklisted_at,
-                (SELECT duration FROM ttv_stv_blacklist_rewards WHERE broadcaster_id = $2) as hours
-            FROM ttv_stv_blacklist_emotes
-            WHERE emote_id = $1 AND broadcaster_id = $2
+            SELECT e.emote_id, e.blacklisted_at, r.duration, r.remove_only
+            FROM ttv_stv_blacklist_emotes e
+                    JOIN ttv_stv_blacklist_rewards r
+                        ON r.broadcaster_id = e.broadcaster_id
+            WHERE e.emote_id = $1
+                AND r.broadcaster_id = $2;
         """
         row: ValidateIsEmoteBlacklistedQueryRow | None = await self.bot.pool.fetchrow(query, emote_id, broadcaster_id)
         if row is None:
             # Emote is not blacklisted.
             return True
-        if row["hours"] is None:
+        if row["remove_only"]:
             # Blacklist is turned off.
             return True
 
-        expire_dt = clock.round_to_next_hour(row["blacklisted_at"] + datetime.timedelta(hours=row["hours"]))
+        expire_dt = clock.get_next_hour_start(row["blacklisted_at"] + dt.timedelta(hours=row["duration"]))
         msg = (
             "The requested emote is blacklisted; "
-            f"{clock.human_timedelta(expire_dt, mode='short')} until it is allowed {self.EMOTE}"
+            f"{clock.human_datetime_diff(expire_dt, mode='short')} until it is allowed {self.EMOTE}"
         )
         raise errors.NotAllowedError(msg)
 
@@ -1502,7 +1484,7 @@ class SevenTVPublic(IrePublicComponent):
         if row is None:
             msg = f"It seems you have not added any emotes yet {self.EMOTE}"
             raise errors.RespondWithError(msg)
-        if clock.utcnow() - row["added_at"] > datetime.timedelta(minutes=10):
+        if clock.utcnow() - row["added_at"] > dt.timedelta(minutes=10):
             msg = f"It's been more than 10 minutes, I don't allow replacing after so long {self.EMOTE}"
             raise errors.RespondWithError(msg)
 
@@ -1624,7 +1606,7 @@ class SevenTVPublic(IrePublicComponent):
     @stv_blacklist.command(name="status")
     async def stv_blacklist_status(self, ctx: IreContext) -> None:
         """Get some information about 'Blacklist/Remove Emote' channel points reward's status."""
-        custom_reward = await self.get_custom_reward(self.permanent, ctx.broadcaster)
+        custom_reward = await self.get_custom_reward(self.blacklist, ctx.broadcaster)
         status = " \N{BULLET} ".join([
             f"title={custom_reward.title}",
             f"cost={custom_reward.cost}",
@@ -1675,7 +1657,7 @@ class SevenTVPublic(IrePublicComponent):
             """
             row = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
             response = " \N{BULLET} ".join([
-                f"duration={clock.dm_human_timedelta(60 * 60 * row['duration'])}",
+                f"duration={clock.human_timedelta(hours=row['duration'])}",
                 f"remove_only={row['remove_only']}",
             ])
             await ctx.send(f"{response} {self.EMOTE}")
@@ -1690,9 +1672,7 @@ class SevenTVPublic(IrePublicComponent):
                 raise errors.RespondWithError(msg)
             query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2"
             await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
-            await ctx.send(
-                f"Changed duration to {clock.dm_human_timedelta(datetime.timedelta(days=days, hours=hours))} {self.EMOTE}"
-            )
+            await ctx.send(f"Changed duration to {clock.human_timedelta(days=days, hours=hours)} {self.EMOTE}")
         if remove_only is not None:
             query = "UPDATE ttv_stv_blacklist_rewards SET remove_only = $2 WHERE broadcaster_id = $1;"
             status: str = await self.bot.pool.execute(query, ctx.broadcaster.id, remove_only)
@@ -1756,7 +1736,7 @@ class SevenTVPublic(IrePublicComponent):
         """Somebody redeemed a 'Blacklist/Remove Emote' channel points reward."""
         await self.process_blacklist_redemption(redemption)
 
-    @loop(time=[datetime.time(hour=hour) for hour in range(24)])
+    @loop(time=[dt.time(hour=hour) for hour in range(24)])
     async def expire_blacklisted_emotes(self) -> None:
         """Task to expire blacklisted emotes."""
         query = """
@@ -1930,7 +1910,7 @@ class SevenTVDevOnly(IreDevComponent):
         This
         * sets @Irene's `emote_limit` to 2;
         * removes all current @Irene's cycling emotes;
-        * removes color emotes (Blue, Teal, Yellow, etc) from Irene's active emote set;
+        * removes color emotes (Blue, Teal, Yellow, etc.) from Irene's active emote set;
         """
         query = "UPDATE ttv_stv_cycle_rewards SET emote_limit = $1 WHERE broadcaster_id = $2;"
         await self.bot.pool.execute(query, 2, const.UserID.Irene)

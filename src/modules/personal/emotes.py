@@ -10,7 +10,7 @@ Notices
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import logging
 from typing import TYPE_CHECKING, Any, override
 
@@ -18,6 +18,7 @@ from discord import Embed
 from twitchio.ext import commands
 
 from core import IrePersonalComponent
+from shared import clock
 from shared.concepts import loop
 from utils import const
 
@@ -72,10 +73,10 @@ class EmoteChecker(IrePersonalComponent):
         else:
             log.debug("Checked 7TV, FFZ & BTTV emotes from 'const.py' - all seems good.")
 
-    @loop(time=[datetime.time(hour=5, minute=59)])
+    @loop(time=[dt.time(hour=5, minute=59)])
     async def check_emotes(self) -> None:
         """Task to check emotes."""
-        if datetime.datetime.now(datetime.UTC).weekday() != 5:
+        if clock.utcnow().weekday() != 5:
             # simple way to make a task run once/week
             return
 

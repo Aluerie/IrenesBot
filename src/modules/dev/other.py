@@ -71,7 +71,7 @@ class OtherDevCommands(IreDevComponent):
         """
         await ctx.send(
             f"Last reboot {self.bot.launch_time.strftime('%H:%M %d/%b/%y')}; "
-            f"It's been {clock.dm_human_timedelta(self.bot.launch_time)}."
+            f"It's been {clock.human_datetime_diff(self.bot.launch_time)}."
         )
 
     @commands.command(aliases=["version", "packages", "libraries"])

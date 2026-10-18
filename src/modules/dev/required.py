@@ -8,13 +8,14 @@ Notices
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import logging
 from typing import TYPE_CHECKING, TypedDict, override
 
 from twitchio.ext import commands
 
 from core import IreDevComponent, Streamer
+from shared import clock
 from shared.concepts import loop
 
 if TYPE_CHECKING:
@@ -90,14 +91,14 @@ class StreamerIndexManagement(IreDevComponent):
         streamer.online = False
         streamer.started_dt = None
 
-    @loop(time=datetime.time(hour=6, minute=34, second=10))
+    @loop(time=dt.time(hour=6, minute=34, second=10))
     async def check_twitch_accounts_renames(self) -> None:
         """Check if people in FPC database renamed themselves on twitch.tv.
 
         I think we're using twitch ids everywhere so this timer is more for convenience matter
         when I'm browsing the database, but still.
         """
-        if datetime.datetime.now(datetime.UTC).day != 31:
+        if clock.utcnow().day != 31:
             return
 
         query = "SELECT user_id, display_name FROM ttv_tokens;"

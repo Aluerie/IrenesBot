@@ -11,7 +11,7 @@ Notices
 from __future__ import annotations
 
 import contextlib
-import datetime
+import datetime as dt
 import logging
 import re
 from typing import TYPE_CHECKING, TypedDict, override
@@ -21,7 +21,7 @@ from discord import Embed
 from twitchio.ext import commands
 
 from core import IrePublicComponent
-from shared import errors, fmt, globs
+from shared import clock, errors, fmt, globs
 from shared.concepts import loop
 from utils import const, guards
 
@@ -293,13 +293,13 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
                 row["original_title"],
             )
 
-    @loop(time=[datetime.time(hour=3, minute=59)])
+    @loop(time=[dt.time(hour=3, minute=59)])
     async def check_first_reward(self) -> None:
         """Task that ensures the reward "First" under a specific id exists.
 
         Just a fool proof measure in case I randomly snap and delete it.
         """
-        if datetime.datetime.now(datetime.UTC).day != 14:
+        if clock.utcnow().day != 14:
             # simple way to make a task run once/month
             return
 

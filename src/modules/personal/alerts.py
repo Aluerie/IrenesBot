@@ -175,7 +175,7 @@ class Alerts(IrePersonalComponent):
             return
 
         word = "automatic" if ad_break.automatic else "manual"
-        human_delta = clock.dm_human_timedelta(ad_break.duration, mode="short")
+        human_delta = clock.human_timedelta(seconds=ad_break.duration, mode="short")
         await ad_break.respond(f"{human_delta} {word} ad starting {const.Stv.peepoAds}")
 
         # this is pointless probably

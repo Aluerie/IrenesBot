@@ -153,6 +153,10 @@ flake8-quotes.inline-quotes = "double"
 "src/modules/*.py" = [
     "undocumented-param", # I don't want to document all the `ctx: IreContext`
 ]
+"tests/*.py" = [
+    "D",
+    "DOC"
+]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -9,13 +9,14 @@ Notices
 from __future__ import annotations
 
 import asyncio
-import datetime
+import datetime as dt
 import random
 from typing import TYPE_CHECKING, Any
 
 from twitchio.ext import commands
 
 from core import IrePersonalComponent
+from shared import clock
 from shared.concepts import loop
 from utils import const
 
@@ -63,8 +64,8 @@ class Timers(IrePersonalComponent):
 
         self.lines_count: int = 0
         self.index: int = 0
-        self.cooldown: datetime.timedelta = datetime.timedelta(hours=1)
-        self._most_recent: datetime.datetime | None = None
+        self.cooldown: dt.timedelta = dt.timedelta(hours=1)
+        self._most_recent: dt.datetime | None = None
         self._lock: asyncio.Lock = asyncio.Lock()
 
         self.messages = MESSAGES
@@ -109,7 +110,7 @@ class Timers(IrePersonalComponent):
 
         self.lines_count += 1
         async with self._lock:
-            if self._most_recent and (datetime.datetime.now(datetime.UTC) - self._most_recent) < self.cooldown:
+            if self._most_recent and (clock.utcnow() - self._most_recent) < self.cooldown:
                 # we already have a timer to send
                 return
 
@@ -120,7 +121,7 @@ class Timers(IrePersonalComponent):
                 # reset the index vars
                 self.index += 1
                 self.lines_count = 0
-                self._most_recent = datetime.datetime.now(datetime.UTC)
+                self._most_recent = clock.utcnow()
 
     @loop(hours=5)
     async def random_daily_announcement(self) -> None:
@@ -128,7 +129,7 @@ class Timers(IrePersonalComponent):
         if self.random_daily_announcement.current_loop == 0:
             return
 
-        now = datetime.datetime.now(datetime.UTC)
+        now = clock.utcnow()
         message = (
             f"it's friday night gents {const.Stv.fridayNight} time to dance"
             if (now.weekday == 4 and now.hour > 18) or (now.weekday == 5 and now.hour < 6)

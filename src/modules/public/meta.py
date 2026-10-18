@@ -8,7 +8,7 @@ Notices
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 from typing import TYPE_CHECKING, Annotated, TypedDict
 
 import twitchio  # ruff: ignore[typing-only-third-party-import]
@@ -100,7 +100,7 @@ class MetaCommands(IrePublicComponent):
 
     TRANSLATE_ARGUMENT_DEFAULT = TranslateArguments("")
 
-    @commands.cooldown(rate=1, per=datetime.timedelta(seconds=5), key=commands.BucketType.channel)
+    @commands.cooldown(rate=1, per=dt.timedelta(seconds=5), key=commands.BucketType.channel)
     @commands.command()
     async def translate(
         self,
