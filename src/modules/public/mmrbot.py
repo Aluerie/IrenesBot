@@ -887,7 +887,7 @@ class MMRBot(IrePublicComponent):
         )
         if not stream_started_at:
             response = (
-                f"[Offline ({clock.human_timedelta(clock.utcnow() - gaming_session_dt, mode='short')} ago)] {response}"
+                f"[Offline, {clock.human_timedelta(clock.utcnow() - gaming_session_dt, mode='short')} ago] {response}"
             )
         return response
 
