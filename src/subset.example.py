@@ -13,7 +13,7 @@ Notices
 * Copyright (C) 2020-present @Aluerie.
 """
 
-CATEGORY_MODULES_MAPPING: dict[str, list[str]] = {
+SUBSET: dict[str, list[str]] = {
     "dev": [
         "required",
         # ---

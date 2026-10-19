@@ -41,8 +41,8 @@ _build/
 .temp/
 
 # Testing Related
-src/modules/beta.py
-src/modules_subset.py
+src/ext/beta.py
+src/subset.py
 src/alpha.py
 src/zeta.py
 
