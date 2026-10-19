@@ -22,7 +22,7 @@ from twitchio.ext import commands
 from twitchio.web import StarletteAdapter
 
 from config import env
-from modules import get_modules
+from ext import DISABLED_EXTENSIONS, EXT_FOLDER
 from shared import clock, errors, fmt, globs
 from shared.apis import stv
 from shared.concepts import BotBase
@@ -117,10 +117,31 @@ class IreBot(BotBase, commands.AutoBot):
         scopes_only: bool,
         force_subscribe: bool,
         adapter_enum: AdapterEnum,
-        subset_mode: bool,
-        test_account: bool,
+        is_subset_mode: bool,
+        is_test_account: bool,
     ) -> None:
-        """Initiate IreBot."""
+        """Initiate IreBot.
+
+        Parameters
+        ----------
+        session
+            Session
+        pool
+            PoolTypedWithAny
+        subscriptions
+            list[eventsub.SubscriptionPayload],
+        scopes_only
+            bool
+        force_subscribe
+            bool
+        adapter_enum
+            AdapterEnum
+        is_subset_mode
+            A boolean flag indicating whether we launch the whole bot (e.g. production)
+            or just a subset of features (e.g. testing environment).
+        is_test_account
+            bool
+        """
         if adapter_enum is AdapterEnum.local:
             self.domain = "http://localhost:4343"
             adapter = None
@@ -133,7 +154,7 @@ class IreBot(BotBase, commands.AutoBot):
                 eventsub_secret=env.EVENTSUB,
             )
 
-        if test_account:
+        if is_test_account:
             # test account
             self.test = True
             client_id = env.TEST_TWITCH_CLIENT_ID
@@ -170,13 +191,9 @@ class IreBot(BotBase, commands.AutoBot):
         self.pool: PoolTypedWithAny = pool
         self.scopes_only: bool = scopes_only
 
-        self.subset_mode: bool = subset_mode
-        """A boolean flag indicating whether we launch the whole bot (on VPS machine)
-        or just a subset of features (on my home Windows machine). We also use
-        different credentials for certain things depending on home/vps choice.
-        """
-
-        self.modules_to_load: tuple[str, ...] = get_modules(is_subset_mode=self.subset_mode)
+        self.extensions_to_load: tuple[str, ...] = self.get_extensions(
+            is_subset_mode=is_subset_mode, folder=EXT_FOLDER, disabled_extensions=DISABLED_EXTENSIONS
+        )
 
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
@@ -215,7 +232,7 @@ class IreBot(BotBase, commands.AutoBot):
             log.warning(msg)
             return
 
-        for module in self.modules_to_load:
+        for module in self.extensions_to_load:
             log.debug("Loading module: %s", module)
             try:
                 await self.load_module(module)

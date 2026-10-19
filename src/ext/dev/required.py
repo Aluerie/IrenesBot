@@ -1,4 +1,4 @@
-"""Some caches and features for other modules.
+"""Some caches and features for other extensions.
 
 Notices
 -------

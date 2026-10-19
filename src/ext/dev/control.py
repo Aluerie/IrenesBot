@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class ModuleConverter(commands.Converter[str]):
-    """Simple converter to add `modules.` prefix to user input.
+class ExtConverter(commands.Converter[str]):
+    """Simple converter to add `ext.` prefix to user input.
 
     So I can use !reload and similar commands like this `!reload personal.emotes_check`.
     """
@@ -34,7 +34,7 @@ class ModuleConverter(commands.Converter[str]):
     @override
     async def convert(self, ctx: IreContext, arg: str) -> str:  # ty: ignore[invalid-method-override]
         # TODO: do somwething like where "stv" and "public.stv" are allowed to be used
-        return f"modules.{arg}"
+        return f"ext.{arg}"
 
 
 class Control(IreDevComponent):
@@ -57,7 +57,7 @@ class Control(IreDevComponent):
         self.heartbeat_task.stop()
         await super().component_teardown()
 
-    @guards.is_vps()
+    @guards.is_production()
     @commands.command(aliases=["kill"])
     async def maintenance(self, ctx: IreContext) -> None:
         """Kill the bot process on VPS.
@@ -75,7 +75,7 @@ class Control(IreDevComponent):
             # it might not go off
             await ctx.send("Something went wrong.")
 
-    @guards.is_vps()
+    @guards.is_production()
     @commands.command(aliases=["restart"])
     async def reboot(self, ctx: IreContext) -> None:
         """Restart the bot process on VPS.
@@ -92,22 +92,22 @@ class Control(IreDevComponent):
             await ctx.send("Something went wrong.")
 
     @commands.command()
-    async def unload(self, ctx: IreContext, *, modules: Annotated[str, ModuleConverter]) -> None:
-        """Unload the modules."""
+    async def unload(self, ctx: IreContext, *, modules: Annotated[str, ExtConverter]) -> None:
+        """Unload the modules (I also call them 'extensions')."""
         await self.bot.unload_module(modules)
         log.info("!unload - unloaded %s", modules)
         await ctx.send(f"{const.Stv.DankApprove} unloaded {modules}")
 
     @commands.command()
-    async def reload(self, ctx: IreContext, *, modules: Annotated[str, ModuleConverter]) -> None:
-        """Reload the modules."""
+    async def reload(self, ctx: IreContext, *, modules: Annotated[str, ExtConverter]) -> None:
+        """Reload the modules (I also call them 'extensions')."""
         await self.bot.reload_module(modules)
         log.info("!reload - reloaded %s", modules)
         await ctx.send(f"{const.Stv.DankApprove} reloaded {modules}")
 
     @commands.command()
-    async def load(self, ctx: IreContext, *, modules: Annotated[str, ModuleConverter]) -> None:
-        """Load the modules."""
+    async def load(self, ctx: IreContext, *, modules: Annotated[str, ExtConverter]) -> None:
+        """Load the modules (I also call them 'extensions')."""
         await self.bot.load_module(modules)
         log.info("!load - loaded %s", modules)
         await ctx.send(f"{const.Stv.DankApprove} loaded {modules}")
@@ -118,17 +118,17 @@ class Control(IreDevComponent):
 
         Examples
         --------
-        * "modules.personal.dev modules.public.states"
+        * "ext.personal.dev ext.public.states"
         """
         index: dict[str, list[str]] = {"personal": [], "public": [], "dev": [], "other": []}
         for module in ctx.bot.modules.values():
             name = module.__name__
             for category in ("public", "personal", "dev"):
-                if name.startswith(f"modules.{category}."):
-                    index[category].append(name.removeprefix(f"modules.{category}."))
+                if name.startswith(f"ext.{category}."):
+                    index[category].append(name.removeprefix(f"ext.{category}."))
                     break
             else:
-                index["other"].append(name.removeprefix("modules."))
+                index["other"].append(name.removeprefix("ext."))
 
         for c, m in index.items():
             if m:

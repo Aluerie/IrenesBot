@@ -24,8 +24,8 @@ import click
 
 from config import env
 from core import AdapterEnum, IreBot, get_eventsub_subscriptions
+from shared import ut
 from shared.concepts import db, logs
-from shared.other import run
 
 # generated at https://patorjk.com/software/taag/ using "Standard" font
 ASCII_STARTING_UP_ART = r"""
@@ -43,8 +43,8 @@ async def start_the_bot(
     scopes_only: bool,
     force_subscribe: bool,
     adapter_enum: AdapterEnum,
-    subset_mode: bool,
-    test_account: bool,
+    is_subset_mode: bool,
+    is_test_account: bool,
 ) -> None:
     """Start the bot."""
     log = logging.getLogger()
@@ -63,12 +63,12 @@ async def start_the_bot(
         IreBot(
             session=session,
             pool=pool,
-            subscriptions=await get_eventsub_subscriptions(pool, test_account=test_account),
+            subscriptions=await get_eventsub_subscriptions(pool, test_account=is_test_account),
             scopes_only=scopes_only,
             force_subscribe=force_subscribe,
             adapter_enum=adapter_enum,
-            subset_mode=subset_mode,
-            test_account=test_account,
+            is_subset_mode=is_subset_mode,
+            is_test_account=is_test_account,
         ) as irebot,
     ):
         await irebot.start()
@@ -138,13 +138,13 @@ def launch(
             filename="irebot.log",
         ):
             try:
-                run(
+                ut.run(
                     start_the_bot(
                         scopes_only=scopes_only,
                         force_subscribe=force_subscribe,
                         adapter_enum=adapter,
-                        subset_mode=subset_mode,
-                        test_account=test_account,
+                        is_subset_mode=subset_mode,
+                        is_test_account=test_account,
                     ),
                 )
             except KeyboardInterrupt:

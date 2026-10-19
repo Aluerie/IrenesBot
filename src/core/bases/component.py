@@ -34,11 +34,11 @@ class IreComponent(commands.Component):
 
 
 class IrePublicComponent(IreComponent):
-    """Base component to use for public modules."""
+    """Base component to use for public components."""
 
 
 class IrePersonalComponent(IreComponent):
-    """Base component to use for personal modules.
+    """Base component to use for personal components.
 
     Features in personal components are only available in Irene's main and secondary twitch channels.
     """
@@ -51,7 +51,7 @@ class IrePersonalComponent(IreComponent):
 
 
 class IreDevComponent(IreComponent):
-    """Base component to use for developer modules.
+    """Base component to use for developer components.
 
     Double-ensures that commands have owner-only check.
     """

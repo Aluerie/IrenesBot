@@ -658,7 +658,7 @@ class MMRBot(IrePublicComponent):
                 return data
 
     @is_allowed_to_add_notable()
-    @guards.is_vps()
+    @guards.is_production()
     @commands.group(name="npm", aliases=["np-dev"], invoke_fallback=True)
     async def npm_dev(self, ctx: IreContext) -> None:
         """Group command for the bot developer to manage list of notable players in the database."""
@@ -886,9 +886,7 @@ class MMRBot(IrePublicComponent):
             else next(iter(response_parts.values()))
         )
         if not stream_started_at:
-            response = (
-                f"[Offline, {clock.human_timedelta(clock.utcnow() - gaming_session_dt, mode='short')} ago] {response}"
-            )
+            response = f"[Offline, {clock.human_timedelta(clock.utcnow() - gaming_session_dt, mode='short')} ago] {response}"
         return response
 
     @commands.group(aliases=["wl", "winloss"], invoke_fallback=True)

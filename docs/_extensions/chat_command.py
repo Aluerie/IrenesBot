@@ -33,7 +33,7 @@ GUARD_NOTE_MAPPING = {
     "is_owner": "Only Irene_Adler__.",
     "is_broadcaster": "Only broadcaster.",
     "is_broadcaster_or_dev": "Only broadcaster.",
-    "is_broadcaster_dev_or_editor": "Only broadcaster and 7tv editors.",
+    "_is_broadcaster_dev_or_editor_predicate": "Only broadcaster and 7tv editors.",
     "is_broadcaster_dev_editor_or_adder": (
         "Only broadcaster, 7tv editors and a person who added the emote."
     ),

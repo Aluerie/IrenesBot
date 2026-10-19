@@ -21,7 +21,7 @@
      This is normal, for some reason, human accounts also suffer from this restriction.
   5. You can check some commands from the table below.
 
-.. autochatcommand:: modules.public.mmrbot.MMRBot.steam_invite
+.. autochatcommand:: ext.public.mmrbot.MMRBot.steam_invite
 
 
 📚 Dota 2 Commands table

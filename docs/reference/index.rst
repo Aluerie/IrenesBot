@@ -13,13 +13,16 @@ Concepts
 Dota 2
 ######
 
-.. automodule:: shared.dota_apis.opendota
+.. automodule:: shared.apis.opendota
     :members:
 
-.. automodule:: shared.dota_apis.steam_web_api
+.. automodule:: shared.apis.steam_web
     :members:
 
-.. automodule:: shared.dota_apis.stratz
+.. automodule:: shared.apis.stratz
+    :members:
+
+.. automodule:: shared.apis.dota2com
     :members:
 
 Other Utilities
@@ -53,8 +56,6 @@ Fuzzy
 Seven TV
 ########
 
-.. automodule:: shared.seven_tv_gql.client
+.. automodule:: shared.apis.stv
     :members:
 
-.. automodule:: shared.seven_tv_gql.models
-    :members:

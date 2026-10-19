@@ -27,11 +27,11 @@ if TYPE_CHECKING:
 
 __all__ = (
     "is_online",
-    "is_vps",
+    "is_production",
 )
 
 
-def is_vps() -> Any:
+def is_production() -> Any:
     """Allow the command to be completed only on VPS machine.
 
     A bit niche, mainly used for developer commands to interact with VPS machine such as
@@ -40,7 +40,7 @@ def is_vps() -> Any:
 
     def predicate(ctx: IreContext) -> bool:
         # Still allow Irene to use the command during the testing;
-        if not ctx.bot.subset_mode or ctx.chatter.id == ctx.bot.owner_id:
+        if not ctx.bot.test or ctx.chatter.id == ctx.bot.owner_id:
             return True
         msg = f"Sorry, this command is currently disabled while Irene is testing some stuff {const.Ffz.peepoPolice}"
         raise errors.NotAllowedError(msg)

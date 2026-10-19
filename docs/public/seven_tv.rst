@@ -23,11 +23,11 @@ You can check general philosophy of how bot's channel point rewards related feat
       command to make the bot accept it.
    5. The commands ``!7tv editor <subcommand>`` below might be of help.
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_editor_guide
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_editor_guide
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_editor_accept
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_editor_accept
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_editor_status
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_editor_status
 
 
 📐 Linking bot 7tv features to an emote set
@@ -40,9 +40,9 @@ As it was mentioned above - if the streamer uses ``!7tv editor accept`` command 
 If, in future, the streamer decides to mess around with their 7tv emote sets, e.g. make a new one or select some other emote set as their active - 
 the commands here will help to reattach the bot to a proper emote set that the streamer wants the bot to manage.
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_emoteset_status
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_emoteset_status
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_emoteset_attach
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_emoteset_attach
 
 🚦 "Add Permanent Emote" Channel Reward
 #######################################
@@ -55,9 +55,9 @@ When a chatter redeems while specifying which emote to add - the bot adds the re
 
 The requested emote can be managed with ``!7tv rename/remove/replace`` commands (including the person who requested it).
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_permanent_create
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_permanent_create
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_permanent_status
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_permanent_status
 
 🚲 "Add Cycle Emote" Channel Reward
 #####################################
@@ -92,38 +92,38 @@ Here is a screenshot of how it works with ``emote_limit = 2``.
 Similarly to "Add Permanent Emote", the emotes added this way can be managed with ``!7tv rename/remove/replace`` commands 
 (including the person who requested it).
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_cycle_create
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_cycle_create
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_cycle_status
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_cycle_status
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_cycle_settings
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_cycle_settings
    
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_cycle_drop
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_cycle_drop
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_cycle_showemotes
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_cycle_showemotes
 
 🐦‍⬛ "Remove and Blacklist Emote" Channel Reward
 #################################################
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_blacklist_create
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_blacklist_create
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_blacklist_settings
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_blacklist_settings
 
 🤹🏻 Emote Management
 #####################
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_add
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_add
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_rename
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_rename
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_remove
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_remove
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_replace
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_replace
 
 ⚙️ Settings
 #####################
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_settings_allowcommonwords
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_settings_allowcommonwords
 
 🤣 Emote Stats
 ##############
@@ -133,4 +133,4 @@ Coming Soon
 🥸 7TV Editors 
 ###############
 
-.. autochatcommand:: modules.public.seven_tv.SevenTVPublic.stv_editors
+.. autochatcommand:: ext.public.seven_tv.SevenTVPublic.stv_editors

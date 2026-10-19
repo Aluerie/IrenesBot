@@ -1,4 +1,4 @@
-"""Template for `modules.beta` module.
+"""Template for `ext.beta` module.
 
 Just copy-paste it there without this docstring.
 Then you can beta-test some random code snippets with ease.
@@ -15,8 +15,7 @@ from beta_base import *
 
 
 class BetaTest(BetaCog):
-    @override
-    async def beta_test_task_count_1(self) -> None:
+    async def beta_test_task_count_1(self) -> None:  # ty: ignore[missing-override-decorator]
         pass
 
     @commands.command(name="test", aliases=["beta"])
