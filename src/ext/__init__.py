@@ -6,7 +6,7 @@ Notices
 * Copyright (C) 2020-present @Aluerie.
 """
 
-EXT_FOLDER = f"src/{__package__}"
+EXT_PACKAGE = str(__package__)
 DISABLED_EXTENSIONS = (
     # extensions that should not be loaded
     "ext.beta",

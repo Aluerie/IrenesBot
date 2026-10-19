@@ -22,7 +22,7 @@ from twitchio.ext import commands
 from twitchio.web import StarletteAdapter
 
 from config import env
-from ext import DISABLED_EXTENSIONS, EXT_FOLDER
+from ext import DISABLED_EXTENSIONS, EXT_PACKAGE
 from shared import clock, errors, fmt, globs
 from shared.apis import stv
 from shared.concepts import BotBase
@@ -192,7 +192,7 @@ class IreBot(BotBase, commands.AutoBot):
         self.scopes_only: bool = scopes_only
 
         self.extensions_to_load: tuple[str, ...] = self.get_extensions(
-            is_subset_mode=is_subset_mode, folder=EXT_FOLDER, disabled_extensions=DISABLED_EXTENSIONS
+            is_subset_mode=is_subset_mode, package=EXT_PACKAGE, disabled_extensions=DISABLED_EXTENSIONS
         )
 
         self.streamers: dict[str, Streamer] = {}

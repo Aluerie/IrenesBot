@@ -141,7 +141,7 @@ unfixable = [
 flake8-quotes.inline-quotes = "double"
 
 [tool.ruff.lint.per-file-ignores]
-"{src/modules/beta.py,templates/fresh_beta.py,src/alpha.py,src/zeta.py,*.ipynb}" = [
+"{src/ext/beta.py,templates/fresh_beta.py,src/alpha.py,src/zeta.py,*.ipynb}" = [
     # These files are my playground to mess around and test stuff.
     "ANN",
     "D", 
@@ -150,7 +150,7 @@ flake8-quotes.inline-quotes = "double"
     "unused-method-argument",
     "unused-noqa",
 ]
-"src/modules/*.py" = [
+"src/ext/*.py" = [
     "undocumented-param", # I don't want to document all the `ctx: IreContext`
 ]
 "tests/*.py" = [
