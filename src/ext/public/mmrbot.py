@@ -660,7 +660,7 @@ class MMRBot(IrePublicComponent):
         Since if the player already exists - it will just replace the entry - this command
         also works as `!npm rename` just fine (we don't need to raise anything)
         """
-        steam_id = await self.local_api.get_steam_user(friend_id)
+        steam_user = await self.local_api.get_steam_user(friend_id)
         query = """
             INSERT INTO ttv_dota_notable_players
             (friend_id, nickname)
@@ -668,8 +668,8 @@ class MMRBot(IrePublicComponent):
             ON CONFLICT (friend_id) DO
                 UPDATE SET nickname = $2;
         """
-        await self.bot.pool.execute(query, steam_id, name)
-        await ctx.send(f"Added/edited a notable player <friend_id={steam_id}, name={name}>")
+        await self.bot.pool.execute(query, steam_user.id, name)
+        await ctx.send(f"Added/edited a notable player <friend_id={steam_user.id}, name={name}>")
 
     @npm_dev.command(name="help")
     async def npm_dev_help(self, ctx: IreContext) -> None:

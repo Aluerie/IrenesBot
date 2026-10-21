@@ -23,7 +23,7 @@ from twitchio.web import StarletteAdapter
 
 from config import env
 from ext import DISABLED_EXTENSIONS, EXT_PACKAGE
-from shared import clock, errors, globs
+from shared import clock, errors, fmt, globs
 from shared.apis import stv
 from shared.concepts import BotBase
 from utils import const
@@ -233,7 +233,7 @@ class IreBot(BotBase, commands.AutoBot):
         else:
             should_respond = True
             notify = True
-            message = errors.SOMETHING_WENT_WRONG_MESSAGE
+            message = f"{errors.SOMETHING_WENT_WRONG_MESSAGE} {globs.TwitchEmote.CaitThinking}"
         if should_respond:
             with contextlib.suppress(Exception):
                 await respond(message)
@@ -321,9 +321,10 @@ class IreBot(BotBase, commands.AutoBot):
                     .set_author(name=f"Chatter {ctx.chatter.display_name}", icon_url=chatter_icon)
                     .set_footer(text=f"Broadcaster: {ctx.broadcaster.display_name}", icon_url=broadcaster_icon)
                 )
-                embed = self.add_codeblock_field(embed, data=ctx.kwargs, field_name="Command Args")
+                embed.add_field(name="Command Args", value=fmt.pformat_args(*ctx.args), inline=False)
+                embed.add_field(name="Command Kwargs", value=fmt.pformat_args(**ctx.kwargs), inline=False)
                 if isinstance(error, errors.BotError) and error.data:
-                    embed = self.add_codeblock_field(embed, data=error.data)
+                    embed.add_field(name="BotError Data", value=fmt.pformat_args(**error.data), inline=False)
                 await self.error_notification_manager.register(error, embed=embed)
 
     @override
@@ -361,7 +362,7 @@ class IreBot(BotBase, commands.AutoBot):
             broadcaster_icon = await self._get_profile_image(broadcaster)
             embed.set_footer(text=f"Broadcaster: {broadcaster.display_name}", icon_url=broadcaster_icon)
         if isinstance(error, errors.BotError) and error.data:
-            embed = self.add_codeblock_field(embed, data=error.data)
+            embed.add_field(name="BotError Data", value=fmt.pformat_args(**error.data), inline=False)
         await self.error_notification_manager.register(error, embed=embed)
 
     #########################################################################################################################
