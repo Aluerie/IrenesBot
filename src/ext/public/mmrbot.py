@@ -20,7 +20,7 @@ import operator
 import pprint
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict, override
+from typing import TYPE_CHECKING, Any, TypedDict
 from urllib import parse as url_parse
 
 import steam
@@ -369,7 +369,7 @@ class MMRBot(IrePublicComponent):
         if live_match.tag == "unsupported":
             msg = live_match.message
             raise errors.RespondWithError(msg)
-        if live_match.state == local.MatchState.ApiError:
+        if live_match.state == local.MatchState.GaveUp:
             msg = "I'm not able to fetch data for this match, sorry."
             raise errors.RespondWithError(msg)
         return live_match
@@ -935,19 +935,6 @@ class MMRBot(IrePublicComponent):
             f"Waiting 10 minutes for a friend request from {steam_user.name} ({steam_user.id}) "
             f"Please, add me asap {bot_profile_link}"
         )
-
-    #########################################################################################################################
-    # LAST TOUCH
-    #########################################################################################################################
-
-    @override
-    async def component_command_error(self, payload: commands.CommandErrorPayload) -> bool | None:
-        """Event called when an error occurs in a command in this Component."""
-        if isinstance(payload.exception, errors.ApiError):
-            msg = "I'm not able to fetch data for this match, sorry!"
-            await payload.context.send(msg)
-            return False
-        return None
 
 
 async def setup(bot: IreBot) -> None:
