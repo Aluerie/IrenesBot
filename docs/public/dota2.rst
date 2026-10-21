@@ -126,7 +126,7 @@ To make bot responses look like in the "Showcase" column you can add those emote
 the `Dota 2 hero icons emote set <https://7tv.app/emote-sets/01JS1XW1PAAKP34984FDYZVDR7>`_ using a tool/bot like `potat.app/help/mergeset <https://potat.app/help/mergeset>`_. 
 Some short instructions for :iconify:`logos:twitch` `@PotatBotat <https://www.twitch.tv/PotatBotat>`_ specifically:
 
-* Add :iconify:`logos:twitch` `@PotatBotat <https://www.twitch.tv/PotatBotat>`_ to your channel;
+* Add :iconify:`logos:twitch` `@PotatBotat <https://www.twitch.tv/PotatBotat>`_ to your channel by visiting https://potat.app/ and following the instructions there;
 * Give it 7tv editor role, allow it to ``Create Emote Sets`` in addition to default permissions;
 * Use ``#mergeset <Primary set ID> 01JS1XW1PAAKP34984FDYZVDR7`` where the second argument is the ID for the Dota 2 emote set from the showcase column;
 * You can find your ``<Primary set ID>`` (the first argument) by copying the last part of the URL to your own main emote set;

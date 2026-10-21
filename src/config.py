@@ -6,8 +6,6 @@ Notices
 * Copyright (C) 2020-present @Aluerie.
 """
 
-from __future__ import annotations
-
 import re
 
 from pydantic_settings import BaseSettings, SettingsConfigDict

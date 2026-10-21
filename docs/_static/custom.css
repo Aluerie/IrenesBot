@@ -49,6 +49,10 @@ h3 {
     display: none;
 } */
 
-#test-file > div > div > div:nth-child(1) > div > div {
-    color: red;
+div.sd-container-fluid.sd-sphinx-override.sd-mb-4.sd-p-0.surface.docutils>div>div:nth-child(1)>div>div {
+    background: #0f3543;
+}
+
+div.sd-container-fluid.sd-sphinx-override.sd-mb-4.sd-p-0.surface.docutils>div>div:nth-child(2)>div>div {
+    background: #442310;
 }

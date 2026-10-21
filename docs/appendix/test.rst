@@ -31,12 +31,12 @@ Todo: delete this lol
         Customize the colors to match your brand or personal preferences
         with radix colors.
 
-    .. grid-item-card:: :octicon:`beaker` Jupyter Integration
+    .. grid-item-card:: :octicon:`lock` Jupyter Integration
 
         Great CSS/UI for lots of Jupyter related extensions, enhance your
         AI documentation.
 
-    .. grid-item-card:: :octicon:`browser` Multiple Layouts
+    .. grid-item-card:: :octicon:`clock` Multiple Layouts
 
         Layouts of landing page, simple one page, and three-column
         documentation page.

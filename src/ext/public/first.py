@@ -8,8 +8,6 @@ Notices
 * Copyright (C) 2020-present @Aluerie.
 """
 
-from __future__ import annotations
-
 import contextlib
 import datetime as dt
 import logging

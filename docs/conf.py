@@ -1,7 +1,6 @@
 """Configuration file for the Sphinx documentation builder."""
 
 # -- Project information
-from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -98,7 +97,7 @@ templates_path = ["_templates"]
 epub_show_urls = "no"
 
 
-def remove_module_docstring(app: application.Sphinx, what: str, name: str, obj: Any, options: Any, lines: list[Any]) -> None:  # noqa: ARG001
+def remove_module_docstring(app: application.Sphinx, what: str, name: str, obj: Any, options: Any, lines: list[Any]) -> None:  # ruff: ignore[unused-function-argument]
     """Delete all module docstrings.
 
     Generally, We include license/copyright notions there so we don't want the documentation to be spammed with it.

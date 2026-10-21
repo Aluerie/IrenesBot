@@ -6,8 +6,6 @@ Notices
 * Copyright (C) 2020-present @Aluerie.
 """
 
-from __future__ import annotations
-
 import importlib.metadata
 import sys
 import unicodedata
