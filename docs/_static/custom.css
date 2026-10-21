@@ -48,3 +48,7 @@ h3 {
 /* div.hint.admonition > p.admonition-title {
     display: none;
 } */
+
+#test-file > div > div > div:nth-child(1) > div > div {
+    color: red;
+}

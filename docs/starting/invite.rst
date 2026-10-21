@@ -27,8 +27,8 @@ even pleb developers like me need to have a running web-app with a public facing
 A fancy looking domain costs some money, but as I said -  I'm a bit stingy.
 However, I assure you, it's safe to click. Me and a few people have already authorized the bot this way.
 
-So, the link will redirect you to a normal `twitch.tv <https://www.twitch.tv>`_ authorization page like a screenshot below. 
-Here, you read what permissions my bot is asking and press "Authorize" if you are okay with giving my bot those permissions.
+So, the link will redirect you to a normal :iconify:`logos:twitch` twitch.tv authorization page like shown in the screenshot below. 
+Here, you can read what permissions my bot is asking from you and press "Authorize" if you are okay with giving my bot those permissions.
 
 .. image:: /_static/images/authorize.png
     :align: center
@@ -54,7 +54,8 @@ In most cases - just contact me (:iconify:`logos:twitch` `@Irene_Adler__ <https:
 
 * If the page doesn't load at all - I probably turned off the web-app for some reason. Contact me.
 * If the page loads but it is showing some error (e.g. recently I stumbled upon ``ERR_NGROK_8012``) then also contact me.
-* If your browser shows something like "Secure Connection Failed", "PR_END_OF_FILE_ERROR" then you can try visiting the website with some VPN. 
+* If your browser shows something like "Secure Connection Failed", "PR_END_OF_FILE_ERROR" then 
+  you can try visiting the website with a different browser or with some VPN. 
   Probably, your provider blocks my suspiciously looking web-app.
 * If there is any problem with the bot after inviting it - also contact me.
 
