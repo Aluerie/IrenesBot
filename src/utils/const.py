@@ -8,6 +8,8 @@ Notices
 
 # ruff: file-ignore[mixed-case-variable-in-class-scope]
 
+from __future__ import annotations
+
 from enum import StrEnum
 
 __all__ = (
