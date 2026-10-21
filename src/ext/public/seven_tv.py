@@ -72,9 +72,6 @@ class Reward:
     cache: set[str] = field(default_factory=set)
 
 
-type PartialEmoteAndAlias = tuple[PartialEmote, str | None]
-
-
 class OwnershipEnum(StrEnum):
     """Emote ownership enum."""
 
@@ -220,9 +217,7 @@ def regex_to_emote(stv: StvGraphQLClient, emote_id_or_link: str) -> PartialEmote
     return stv.create_partial_emote(search["emote_id"])
 
 
-async def parse_or_search_emote(
-    stv: StvGraphQLClient, emote_id_link_or_name: str, broadcaster_id: str | None
-) -> PartialEmote:
+async def parse_emote(stv: StvGraphQLClient, emote_id_link_or_name: str, broadcaster_id: str | None = None) -> PartialEmote:
     """Parse or search."""
     try:
         # try parsing `emote_id`
@@ -237,9 +232,9 @@ async def parse_or_search_emote(
         return await stv.search_emote(emote_id_link_or_name)
 
 
-async def parse_add_rename_input(
+async def parse_add_rename_reward_input(
     stv: StvGraphQLClient, user_input: str, broadcaster_id: str | None = None
-) -> PartialEmoteAndAlias:
+) -> tuple[PartialEmote, str | None]:
     """Get emote_id from `user_input`.
 
     Parameters
@@ -267,11 +262,11 @@ async def parse_add_rename_input(
     except IndexError:
         emote_alias = None
 
-    emote = await parse_or_search_emote(stv, split[0], broadcaster_id)
+    emote = await parse_emote(stv, split[0], broadcaster_id)
     return (emote, emote_alias)
 
 
-async def parse_remove_input(stv: StvGraphQLClient, user_input: str, broadcaster_id: str) -> PartialEmote:
+async def parse_remove_reward_input(stv: StvGraphQLClient, user_input: str, broadcaster_id: str) -> PartialEmote:
     """Get emote_id from `user_input`."""
     split = user_input.split()
     if len(split) > 1:
@@ -281,7 +276,7 @@ async def parse_remove_input(stv: StvGraphQLClient, user_input: str, broadcaster
         msg = "Bad Input; why would you type an empty text?"
         raise errors.BadUserInputError(msg)
 
-    return await parse_or_search_emote(stv, split[0], broadcaster_id)
+    return await parse_emote(stv, split[0], broadcaster_id)
 
 
 #############################################################################################################################
@@ -289,21 +284,7 @@ async def parse_remove_input(stv: StvGraphQLClient, user_input: str, broadcaster
 #############################################################################################################################
 
 
-class RenameEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
-    """Seven TV Emote Converter.
-
-    Converts user_input from `str` type into 7TV emote_id.
-
-    Format: ``<user_emote_id_name_or_link> <new_alias>`` -> emote, alias
-    """
-
-    @override
-    async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # ty: ignore[invalid-method-override]
-        """Convert `user_input` to 7TV emote_id."""
-        return await parse_add_rename_input(ctx.bot.stv, user_input, ctx.broadcaster.id)
-
-
-class AddEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
+class SearchEmoteConverter(commands.Converter[PartialEmote]):
     """Seven TV Emote Converter.
 
     Converts user_input from `str` type into 7TV emote_id.
@@ -312,12 +293,12 @@ class AddEmoteConverter(commands.Converter[PartialEmoteAndAlias]):
     """
 
     @override
-    async def convert(self, ctx: IreContext, user_input: str) -> PartialEmoteAndAlias:  # ty: ignore[invalid-method-override]
+    async def convert(self, ctx: IreContext, emote_id_link_or_name: str) -> PartialEmote:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
-        return await parse_add_rename_input(ctx.bot.stv, user_input)
+        return await parse_emote(ctx.bot.stv, emote_id_link_or_name)
 
 
-class RemoveEmoteConverter(commands.Converter[PartialEmote]):
+class UserEmoteConverter(commands.Converter[PartialEmote]):
     """Seven TV Emote Converter.
 
     Converts user_input from `str` type into 7TV emote_id.
@@ -326,9 +307,9 @@ class RemoveEmoteConverter(commands.Converter[PartialEmote]):
     """
 
     @override
-    async def convert(self, ctx: IreContext, user_input: str) -> PartialEmote:  # ty: ignore[invalid-method-override]
+    async def convert(self, ctx: IreContext, emote_id_link_or_name: str) -> PartialEmote:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
-        return await parse_remove_input(ctx.bot.stv, user_input, ctx.broadcaster.id)
+        return await parse_emote(ctx.bot.stv, emote_id_link_or_name, ctx.broadcaster.id)
 
 
 #############################################################################################################################
@@ -908,7 +889,7 @@ class SevenTVPublic(IrePublicComponent):
 
         # Step 1. Parse User Input
 
-        emote, alias = await parse_add_rename_input(self.bot.stv, redemption.user_input)
+        emote, alias = await parse_add_rename_reward_input(self.bot.stv, redemption.user_input)
         log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
 
         # Step 2. Get Emote Set
@@ -1063,7 +1044,7 @@ class SevenTVPublic(IrePublicComponent):
     async def stv_cycle_drop(
         self,
         ctx: IreContext,
-        emote: Annotated[PartialEmote, RemoveEmoteConverter],
+        emote: Annotated[PartialEmote, UserEmoteConverter],
     ) -> None:
         """Drop an emote from the 'Add Cycle Emote' emotes list.
 
@@ -1127,7 +1108,7 @@ class SevenTVPublic(IrePublicComponent):
         )
 
         # Step 1. Parse User Input
-        emote, alias = await parse_add_rename_input(self.bot.stv, redemption.user_input)
+        emote, alias = await parse_add_rename_reward_input(self.bot.stv, redemption.user_input)
         log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
 
         # Step 2. Get Emote Set
@@ -1265,24 +1246,23 @@ class SevenTVPublic(IrePublicComponent):
     # 7TV EMOTE MANAGEMENT                                                                                                  #
     #########################################################################################################################
 
-    async def add_helper(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
+    async def add_helper(self, ctx: IreContext, emote: PartialEmote, alias: str | None) -> None:
         """Add 7TV emote helper.
 
         Note that this doesn't use `self.emote_set_add_with_validations` because "!7tv add" commands are
         supposed to be restricted to the broadcaster, developer and 7tv editors only.
         """
-        emote, alias = emote_and_alias
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
         await emote_set.add_emote(emote_id=emote.id, emote_alias=alias)
         await ctx.send("Added")
 
     @is_broadcaster_dev_or_editor()
-    @stv.command(name="add", extras={"usage": "!7tv add XDD XDD"})
+    @stv.command(name="add")
     async def stv_add(
         self,
         ctx: IreContext,
-        *,
-        emote_and_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
+        emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
+        alias: str | None = None,
     ) -> None:
         """Add 7TV emote.
 
@@ -1290,18 +1270,14 @@ class SevenTVPublic(IrePublicComponent):
 
         Parameters
         ----------
-        emote_and_alias
-            In the following format: ``<emote_name_link_or_id> <optional_emote_alias>``,
-            separated by space, 1 or 2 "words":
-
-            The 1st one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
+        emote_id_link_or_name
+            is supposed to be an emote identifier:
 
             * emote link (any link containing its ID, e.g. emote link or its CDN-link),
             * emote ID (characters sequence after the last "/" in the emote link)
             * or emote name that the bot will use to search the desired emote globally across 7TV.
-
-            The 2nd one (``<optional_emote_alias>``) is optional and
-            it can be an emote alias with which the emote will be added.
+        alias
+            Optional, if provided then the emote will be added under this alias.
 
         Examples
         --------
@@ -1311,7 +1287,7 @@ class SevenTVPublic(IrePublicComponent):
         * ``!7tv add https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH`` - adds it under "SMH" emote alias.
         * ``!7tv add smh`` - but it might add some other "smh" emote, if it's more popular.
         """
-        await self.add_helper(ctx, emote_and_alias)
+        await self.add_helper(ctx, emote_id_link_or_name, alias)
 
     @is_broadcaster_dev_or_editor()
     @commands.command(name="add")
@@ -1319,13 +1295,14 @@ class SevenTVPublic(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
+        emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
+        alias: str | None = None,
     ) -> None:
         """Add 7TV emote.
 
         Shortcut for ``!7tv add``. Consult the documentation for that command.
         """
-        await self.add_helper(ctx, emote_alias)
+        await self.add_helper(ctx, emote_id_link_or_name, alias)
 
     #########################################################################################################################
     # 7TV VIEWER (OR POSSIBLE VIEWER) COMMANDS                                                                              #
@@ -1358,13 +1335,8 @@ class SevenTVPublic(IrePublicComponent):
 
         return OwnershipEnum.chatter
 
-    async def rename_emote_worker(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
+    async def rename_emote_worker(self, ctx: IreContext, emote: PartialEmote, alias: str) -> None:
         """Rename 7TV emote helper."""
-        emote, alias = emote_and_alias
-        if alias is None:
-            msg = f"You need to provide a new emote alias when using 7tv rename command {self.EMOTE}"
-            raise errors.RespondWithError(msg)
-
         ownership_type = await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
         if ownership_type == OwnershipEnum.chatter:
@@ -1378,8 +1350,8 @@ class SevenTVPublic(IrePublicComponent):
     async def stv_rename(
         self,
         ctx: IreContext,
-        *,
-        emote_and_alias: Annotated[PartialEmoteAndAlias, RenameEmoteConverter],
+        emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
+        new_alias: str,
     ) -> None:
         """Rename 7TV emote.
 
@@ -1387,17 +1359,14 @@ class SevenTVPublic(IrePublicComponent):
 
         Parameters
         ----------
-        emote_and_alias
-            In the following format: ``<emote_name_link_or_id> <new_emote_alias>``,
-            separated by space, 1 or 2 "words":
-
-            The 1st one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
+        emote_id_link_or_name
+            is supposed to be an emote identifier:
 
             * emote link (any link containing its ID, e.g. emote link or its CDN-link),
             * emote ID (characters sequence after the last "/" in the emote link)
             * or emote name that the bot will use to search the desired emote globally across 7TV.
-
-            The 2nd one (``<new_emote_alias>``) is a new emote alias with which the emote will be renamed.
+        new_alias
+            New emote alias with which the emote will be renamed.
 
         Examples
         --------
@@ -1407,7 +1376,7 @@ class SevenTVPublic(IrePublicComponent):
         * ``!7tv rename https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF SMH``
         * ``!7tv rename smh SMH``
         """
-        await self.rename_emote_worker(ctx, emote_and_alias)
+        await self.rename_emote_worker(ctx, emote_id_link_or_name, new_alias)
 
     @is_broadcaster_dev_editor_or_adder()
     @commands.command(name="rename")
@@ -1415,13 +1384,14 @@ class SevenTVPublic(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_and_alias: Annotated[PartialEmoteAndAlias, RenameEmoteConverter],
+        emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
+        new_alias: str,
     ) -> None:
         """Rename 7TV emote.
 
         Shortcut for ``!7tv rename``. Consult the documentation for that command.
         """
-        await self.rename_emote_worker(ctx, emote_and_alias)
+        await self.rename_emote_worker(ctx, emote_id_link_or_name, new_alias)
 
     async def remove_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
         """Remove 7TV emote helper."""
@@ -1437,7 +1407,7 @@ class SevenTVPublic(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote: Annotated[PartialEmote, RemoveEmoteConverter],
+        emote: Annotated[PartialEmote, UserEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
@@ -1460,7 +1430,7 @@ class SevenTVPublic(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote: Annotated[PartialEmote, RemoveEmoteConverter],
+        emote: Annotated[PartialEmote, UserEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
@@ -1468,10 +1438,8 @@ class SevenTVPublic(IrePublicComponent):
         """
         await self.remove_emote_worker(ctx, emote)
 
-    async def replace_emote_worker(self, ctx: IreContext, emote_and_alias: PartialEmoteAndAlias) -> None:
+    async def replace_emote_worker(self, ctx: IreContext, emote: PartialEmote, alias: str | None) -> None:
         """Replace 7TV emote helper."""
-        emote, alias = emote_and_alias
-
         # Validate it's been 10 minutes
         query = """
             SELECT emote_id, added_at
@@ -1508,7 +1476,8 @@ class SevenTVPublic(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_and_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
+        emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
+        alias: str | None = None,
     ) -> None:
         """Replace 7TV emote.
 
@@ -1523,18 +1492,14 @@ class SevenTVPublic(IrePublicComponent):
 
         Parameters
         ----------
-        emote_and_alias
-            In the following format: ``<emote_name_link_or_id> <optional_emote_alias>``,
-            separated by space, 1 or 2 "words":
-
-            The 1st one (``<emote_name_link_or_id>``) is supposed to be an emote identifier:
+        emote_id_link_or_name
+            is supposed to be an emote identifier:
 
             * emote link (any link containing its ID, e.g. emote link or its CDN-link),
             * emote ID (characters sequence after the last "/" in the emote link)
             * or emote name that the bot will use to search the desired emote globally across 7TV.
-
-            The 2nd one (``<optional_emote_alias>``) is optional and
-            it can be an emote alias with which the emote will be added.
+        alias
+            Optional, if provided then the emote will be added under this alias.
 
         Examples
         --------
@@ -1547,7 +1512,7 @@ class SevenTVPublic(IrePublicComponent):
         * ``!7tv replace smh DuckSmh`` - the bot will search 7tv for "smh", note that the bot will still add the most popular
           one, so doing ``!replace smh`` after adding ``smh`` via redemption is pointless.
         """
-        await self.replace_emote_worker(ctx, emote_and_alias)
+        await self.replace_emote_worker(ctx, emote_id_link_or_name, alias)
 
     @is_broadcaster_dev_editor_or_adder()
     @commands.command(name="replace")
@@ -1555,13 +1520,14 @@ class SevenTVPublic(IrePublicComponent):
         self,
         ctx: IreContext,
         *,
-        emote_and_alias: Annotated[PartialEmoteAndAlias, AddEmoteConverter],
+        emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
+        alias: str | None = None,
     ) -> None:
         """Replace 7TV emote.
 
         Shortcut for ``!7tv replace``. Consult the documentation for that command.
         """
-        await self.replace_emote_worker(ctx, emote_and_alias)
+        await self.replace_emote_worker(ctx, emote_id_link_or_name, alias)
 
     #########################################################################################################################
     # BLACKLIST                                                                                                             #
@@ -1701,7 +1667,7 @@ class SevenTVPublic(IrePublicComponent):
             redemption.user_input,
         )
 
-        emote = await parse_remove_input(self.bot.stv, redemption.user_input, redemption.broadcaster.id)
+        emote = await parse_remove_reward_input(self.bot.stv, redemption.user_input, redemption.broadcaster.id)
         log.debug("Parsed user input: emote_id=%s", emote.id)
 
         emote_set = await self.select_emote_set(redemption.broadcaster.id)
@@ -1774,7 +1740,7 @@ class SevenTVPublic(IrePublicComponent):
         await ctx.send(f"Permanent emote: it was added by {display_name} {self.EMOTE}")
 
     @stv.command(name="who-added", aliases=["whoadded"])  # cSpell: words: whoadded
-    async def stv_who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
+    async def stv_who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, UserEmoteConverter]) -> None:
         """Get twitch user who added the emote via channel redemption.
 
         PS. This command also has a short version ``!who-added`` (so no need to type ``!7tv``).
@@ -1790,7 +1756,7 @@ class SevenTVPublic(IrePublicComponent):
         await self.get_who_added(ctx, emote)
 
     @commands.command(name="who-added", aliases=["whoadded"])
-    async def who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, RemoveEmoteConverter]) -> None:
+    async def who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, UserEmoteConverter]) -> None:
         """Get twitch user who added the emote via channel redemption.
 
         Shortcut for ``!7tv who-added``. Consult the documentation for that command.

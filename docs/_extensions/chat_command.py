@@ -8,8 +8,6 @@ Notices
 * Copyright (C) 2020-present @Aluerie.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, override
 
 from numpydoc.docscrape import NumpyDocString
@@ -44,41 +42,46 @@ class ChatCommandDocumenter(MethodDocumenter):
     directivetype = MethodDocumenter.objtype
     content_indent = ""
 
-    @override
-    def add_directive_header(self, sig: str) -> None:
+    def _emit(self, *lines: str) -> None:
         source = self.get_sourcename()
-        cmd: commands.Command[Any, Any] = self.parent.__dict__.get(self.object_name, self.object)
+        for line in lines:
+            self.add_line(line, source)
 
+    def _add_header(self, cmd: commands.Command[Any, Any]) -> None:
         command_name = f"{PREFIX}{cmd.qualified_name}"
-        self.add_line(command_name, source)
-        self.add_line("-" * len(command_name), source)
+        self._emit(
+            command_name,
+            "-" * len(command_name),
+        )
 
-        # Syntax
-        # self.add_line(".. rubric:: **Syntax**", sourcename)
-        # self.add_line("", sourcename)
-        self.add_line(".. code-block::", source)
-        self.add_line("   :caption: Usage Syntax", source)
-        self.add_line("", source)
+    def _add_syntax(self, cmd: commands.Command[Any, Any]) -> None:
+        command_name = f"{PREFIX}{cmd.qualified_name}"
         params = " " + " ".join(f"<{param}>" for param in cmd.parameters) if cmd.parameters else ""
-        self.add_line(f"   {command_name}{params}\n", source)
+        self._emit(
+            ".. code-block::",
+            "   :caption: Usage Syntax",
+            "",
+            f"   {command_name}{params}",
+            "",
+        )
+
+    def _add_aliases(self, cmd: commands.Command[Any, Any]) -> None:
+        to_emit: list[str] = []
         if cmd.aliases:
             parent = f"{cmd.full_parent_name} " if cmd.full_parent_name else ""
             aliases = ", ".join(f"``{PREFIX}{parent}{alias}``" for alias in cmd.aliases)
-            self.add_line(".. admonition:: Aliases", source)
-            self.add_line("   :class: dropdown", source)
-            self.add_line("", source)
-            self.add_line(f"   {aliases}", source)
-        self.add_line("", source)
+            to_emit += [
+                ".. admonition:: Aliases",
+                "   :class: dropdown",
+                "",
+                f"   {aliases}",
+            ]
+        to_emit.append("")
+        self._emit(*to_emit)
 
-        self.add_line(".. grid:: 1 1 2 3", source)
-        self.add_line("   :gutter: 2", source)
-        self.add_line("   :padding: 0", source)
-        self.add_line("   :class-container: surface", source)
-        self.add_line("", source)
-        self.add_line("   .. grid-item-card:: :octicon:`lock` Who can use", source)
-        self.add_line("", source)
-        permissions_line = (
-            "\n".join(
+    def _add_permissions_cooldown(self, cmd: commands.Command[Any, Any]) -> None:
+        permissions = (
+            "; ".join(
                 GUARD_NOTE_MAPPING.get(
                     guard_name := getattr(guard, "__qualname__", "unknown_guard").removesuffix(".<locals>.predicate"),
                     guard_name,
@@ -88,47 +91,75 @@ class ChatCommandDocumenter(MethodDocumenter):
             if cmd.guards
             else "Everybody"
         )
-        self.add_line(f"      {permissions_line}", source)
-        self.add_line("", source)
-        self.add_line("   .. grid-item-card:: :octicon:`clock` Cooldown", source)
-        self.add_line("", source)
-        self.add_line("      Will implement later", source)
-        self.add_line("", source)
+        self._emit(
+            ".. grid:: 1 1 2 3",
+            "   :gutter: 2",
+            "   :padding: 0",
+            "   :class-container: surface",
+            "",
+            "   .. grid-item-card:: :octicon:`lock` Who can use",
+            "",
+            f"      {permissions}",
+            "",
+            "   .. grid-item-card:: :octicon:`clock` Cooldown",
+            "",
+            "      Will implement later",
+            "",
+        )
 
-        self.add_line(".. admonition:: Description", source)
-        self.add_line("   :class: note", source)
-        self.add_line("", source)
+    def _add_description(self, doc: NumpyDocString) -> None:
+        summary, extended = doc["Summary"], doc["Extended Summary"]
+        body = [*summary, "", *extended] if extended else summary
+        self._emit(
+            ".. admonition:: Description",
+            "   :class: note",
+            "",
+            *(f"   {line}" for line in body),
+            "",
+        )
+
+    def _add_arguments(self, doc: NumpyDocString) -> None:
+        if not doc["Parameters"]:
+            return
+        lines = [
+            ".. admonition:: Arguments",
+            "   :class: tip",
+            "",
+        ]
+        for param in doc["Parameters"]:
+            first, *rest = param.desc or [""]
+            lines.append(f"   * ``<{param.name}>`` - {first}")
+            lines.extend(f"     {line}" for line in rest)
+            lines.append("")
+        self._emit(*lines)
+
+    def _add_examples(self, doc: NumpyDocString) -> None:
+        if not doc["Examples"]:
+            return
+        lines = [
+            ".. admonition:: Examples",
+            "   :class: caution",
+            "",
+        ]
+        lines.extend(f"   {line}" for line in doc["Examples"])
+        lines.append("")
+        self._emit(*lines)
+
+    @override
+    def add_directive_header(self, sig: str) -> None:
+        cmd: commands.Command[Any, Any] = self.parent.__dict__.get(self.object_name, self.object)
+
+        self._add_header(cmd)
+        self._add_syntax(cmd)
+        self._add_aliases(cmd)
+        self._add_permissions_cooldown(cmd)
+
         help_ = cmd.help or "No Description."
         doc = NumpyDocString(help_)
 
-        for line in doc["Summary"]:
-            self.add_line(f"   {line}", source)
-        self.add_line("", source)
-        for line in doc["Extended Summary"]:
-            self.add_line(f"   {line}", source)
-        self.add_line("", source)
-
-        if doc["Parameters"]:
-            # self.add_line(".. rubric:: Arguments", sourcename)
-            # self.add_line("", sourcename)
-            self.add_line(".. admonition:: Arguments", source)
-            self.add_line("   :class: tip", source)
-            self.add_line("", source)
-            for param in doc["Parameters"]:
-                first, *rest = param.desc or [""]
-                self.add_line(f"   * ``<{param.name}>`` - {first}", source)
-                for line in rest:
-                    self.add_line(f"     {line}", source)
-                self.add_line("", source)
-        if doc["Examples"]:
-            # self.add_line(".. rubric:: Examples", sourcename)
-            # self.add_line("", sourcename)
-            self.add_line(".. admonition:: Examples", source)
-            self.add_line("   :class: caution", source)
-            self.add_line("", source)
-            for line in doc["Examples"]:
-                self.add_line(f"   {line}", source)
-            self.add_line("", source)
+        self._add_description(doc)
+        self._add_arguments(doc)
+        self._add_examples(doc)
 
     @override
     def format_signature(self, **kwargs: Any) -> str:
