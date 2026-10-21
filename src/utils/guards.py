@@ -70,7 +70,7 @@ def is_owner_channel() -> Any:
         # `.component_before_invoke` after local decorators
         # so this workaround fixes that order
         msg = f"This command is allowed only in Irene's channel {const.Ffz.peepoPolice}"
-        raise errors.NotAllowedError(msg, behavior="silent")
+        raise errors.NotAllowedError(msg, policy=errors.SILENT)
 
     return commands.guard(predicate)
 

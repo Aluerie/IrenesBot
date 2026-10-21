@@ -1646,7 +1646,7 @@ class SevenTVPublic(IrePublicComponent):
         * ``!7tv blacklist --days 14`` - 2 weeks (14 days).
         * ``!7tv blacklist --remove_only yes``
         """
-        await self.validate_reward_exists(self.cycle, ctx.broadcaster.id)
+        await self.validate_reward_exists(self.blacklist, ctx.broadcaster.id)
 
         if all(x is None for x in (days, hours, remove_only)):
             # ``!7tv blacklist settings`` with no arguments: show current settings

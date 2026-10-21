@@ -23,7 +23,7 @@ from twitchio.web import StarletteAdapter
 
 from config import env
 from ext import DISABLED_EXTENSIONS, EXT_PACKAGE
-from shared import clock, errors, fmt, globs
+from shared import clock, errors, globs
 from shared.apis import stv
 from shared.concepts import BotBase
 from utils import const
@@ -35,7 +35,7 @@ from .subscriptions import get_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
     import datetime as dt
-    from collections.abc import Callable, Coroutine
+    from collections.abc import Awaitable, Callable
 
     from aiohttp import ClientSession
     from twitchio.user import PartialUser
@@ -207,6 +207,167 @@ class IreBot(BotBase, commands.AutoBot):
         self.launch_time: dt.datetime
         self.logs_via_webhook_handler: logging.Handler
 
+    #########################################################################################################################
+    # ERROR HANDLERS
+    # --------------
+    # Bot subclass contains error handlers for exceptions raised in event listeners and in ctx commands.
+    # Note, that the files `shared.concepts.tasks` also contain error handler for tasks.
+    #########################################################################################################################
+
+    async def _respond_per_policy(
+        self,
+        error: Exception,
+        respond: Callable[[str], Awaitable[object]],
+    ) -> bool:
+        """Respond to the user according to the error's policy.
+
+        Returns
+        -------
+        bool
+            Whether Irene should be notified.
+        """
+        if isinstance(error, errors.BotError):
+            should_respond = error.policy.respond
+            notify = error.policy.notify
+            message = error.response_msg
+        else:
+            should_respond = True
+            notify = True
+            message = errors.SOMETHING_WENT_WRONG_MESSAGE
+        if should_respond:
+            with contextlib.suppress(Exception):
+                await respond(message)
+        return notify
+
+    @staticmethod
+    async def _get_profile_image(user: twitchio.PartialUser) -> str | None:
+        """Return the user's profile image URL, or None if it can't be fetched."""
+        with contextlib.suppress(twitchio.HTTPException):
+            return (await user.user()).profile_image.url
+        return None
+
+    @override
+    async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
+        """Event called when an error happens during command invoking."""
+        command = payload.context.command
+        ctx: IreContext = payload.context  # ty: ignore[invalid-assignment] we do not use Channel Point commands.
+        error = payload.exception
+
+        if command and command.has_error and ctx.error_dispatched:
+            return
+
+        if isinstance(error, commands.CommandInvokeError) and error.original:
+            # we aren't interested in the chain traceback from invoking:
+            error = error.original
+        if isinstance(error, (commands.GuardFailure, commands.BadArgument)) and isinstance(error.__cause__, errors.BotError):
+            # We are interested in __cause__ when it's BotError.
+            error = error.__cause__
+
+        match error:
+            case commands.CommandNotFound():
+                if self.test:
+                    # if not `self.test` then we don't need to spam the logs with commands from other bots
+                    # for streams that use several bots with the same prefix.
+                    log.info("CommandNotFound: %s", error)
+                if ctx.broadcaster.id == self.owner_id:
+                    # TODO: fuzzy
+                    await ctx.send("Command not found.")
+            case commands.CommandOnCooldown():
+                command_name = f"{ctx.prefix}{command.name}" if command else "this command"
+                await ctx.send(
+                    f"Command {command_name} is on cooldown! Try again in {error.remaining:.0f} sec {const.Stv.Timeloth}",
+                )
+            case commands.GuardFailure():
+                # To make custom responses for default `twitchio` guards - need to cook a bit.
+                # (or make our own guards with the same predicates, not like it's anything complex)
+                guard_response = {
+                    "is_moderator": "Only moderators are allowed to use this command",
+                    "is_owner": "Only Irene_Adler__ is allowed to use this command",
+                    "is_broadcaster": "Only broadcaster is allowed to use this command",
+                }.get(
+                    # an example of `.__qualname__`: "is_moderator.<locals>.predicate"
+                    (
+                        guard_name := "Unknown Guard"
+                        if error.guard is None
+                        else error.guard.__qualname__.removesuffix(".<locals>.predicate")
+                    ),
+                    f'For some reason ("{guard_name}") you are not allowed to use this command',
+                )
+                await ctx.send(f"{guard_response} {const.Ffz.peepoPolice}")
+            case commands.MissingRequiredArgument():
+                await ctx.send(f'You need to provide "{error.param.name}" argument for this command {const.Ffz.peepoPolice}')
+            case commands.BadArgument():
+                log.error("%s: %s name=%s value=%s", type(error), error, error.name, error.value)
+                if cause := error.__cause__:
+                    log.error("%s: %s", type(cause), cause, exc_info=cause)
+                await ctx.send(
+                    content=(
+                        f"Couldn't convert value '{error.value}' for argument '{error.name}' "
+                        f"to required type/format {const.Stv.dankFix}"
+                    ),
+                )
+            case _:
+                if not await self._respond_per_policy(error, respond=ctx.send):
+                    return
+
+                chatter_icon = await self._get_profile_image(ctx.chatter)
+                broadcaster_icon = await self._get_profile_image(ctx.broadcaster)
+                embed = (
+                    discord
+                    .Embed(
+                        colour=ctx.chatter.colour.code if ctx.chatter.colour else 0x890620,
+                        title=f"Command Error: `!{getattr(ctx.command, 'name', '(unknown command)')}`",
+                    )
+                    .set_author(name=f"Chatter {ctx.chatter.display_name}", icon_url=chatter_icon)
+                    .set_footer(text=f"Broadcaster: {ctx.broadcaster.display_name}", icon_url=broadcaster_icon)
+                )
+                embed = self.add_codeblock_field(embed, data=ctx.kwargs, field_name="Command Args")
+                if isinstance(error, errors.BotError) and error.data:
+                    embed = self.add_codeblock_field(embed, data=error.data)
+                await self.error_notification_manager.register(error, embed=embed)
+
+    @override
+    async def event_error(self, payload: twitchio.EventErrorPayload) -> None:
+        """Event Error."""
+        error = payload.error
+        original = payload.original
+
+        notify = True
+        if isinstance(original, twitchio.ChannelPointsRedemptionAdd):
+            # Twitch channel point redeems are somewhat like commands
+            # So let's answer them in chat if any errors happened
+            # Other listeners probably don't need a response since they don't have a user waiting for it.
+            refunded = False
+            with contextlib.suppress(twitchio.HTTPException):
+                await original.refund(token_for=original.broadcaster.id)
+                refunded = True
+            suffix = " (refunded)" if refunded else ""
+
+            notify = await self._respond_per_policy(
+                error,
+                respond=lambda msg: original.respond(f"{msg} {globs.TwitchEmote.FeelsDankMan}{suffix}"),
+            )
+        elif isinstance(error, errors.BotError):
+            notify = error.policy.notify
+
+        if not notify:
+            return
+
+        embed = discord.Embed(title=f"Event Error: `{getattr(payload.listener, '__qualname__', 'unknown_event')}`")
+        if chatter := getattr(original, "user", None):
+            chatter_icon = await self._get_profile_image(chatter)
+            embed.set_author(name=f"Chatter {chatter.display_name}", icon_url=chatter_icon)
+        if broadcaster := getattr(original, "broadcaster", None):
+            broadcaster_icon = await self._get_profile_image(broadcaster)
+            embed.set_footer(text=f"Broadcaster: {broadcaster.display_name}", icon_url=broadcaster_icon)
+        if isinstance(error, errors.BotError) and error.data:
+            embed = self.add_codeblock_field(embed, data=error.data)
+        await self.error_notification_manager.register(error, embed=embed)
+
+    #########################################################################################################################
+    # STARTING THE BOT
+    #########################################################################################################################
+
     @override
     async def setup_hook(self) -> None:
         """Run setup hook. Method called after `.login` has been called but before the bot is ready.
@@ -331,201 +492,6 @@ class IreBot(BotBase, commands.AutoBot):
         if not hasattr(self, "launch_time"):
             # who knows maybe it triggers many times like `discord.py`
             self.launch_time = clock.utcnow()
-
-    SOMETHING_WENT_WRONG_MESSAGE = (
-        f"Something went wrong {globs.TwitchEmote.FeelsDankMan} "
-        f"but I've notified Irene about the error {globs.TwitchEmote.FeelsDankMan}"
-    )
-
-    async def handle_common_errors(
-        self,
-        error: BaseException | None,
-        respond: Callable[..., Coroutine[Any, Any, twitchio.SentMessage]],
-    ) -> bool:
-        """Handle known common error types.
-
-        Common in a sense that they can happen in commands, events, tasks, etc.
-        So all error handlers can use this function as a helper.
-        """
-        match error:
-            # MY CUSTOM ERRORS
-            case errors.BotError():
-                if error.behavior == "silent":
-                    return True
-                if error.behavior == "sww+notify":
-                    return False
-                if error.behavior == "respond":
-                    # Default
-                    await respond(error.response_message)
-                    return True
-                assert error.behavior == "respond+notify"
-                await respond(error.response_message)
-                return False
-            # 7TV
-            case stv.UnauthorizedError():
-                await respond("Ooups, 7TV logged me out; Irene needs to fix it (surely permanently this time)")
-                return False
-            case stv.InvokeQueryError():
-                await respond(error)
-                return False
-            case stv.SomethingWentWrongError():
-                return False
-            case stv.UnsatisfyingResultError():
-                await respond(error)
-                return True
-
-            # TWITCHIO ERRORS
-            # I don't think we should be sending those in chat?
-            # case twitchio.HTTPException():
-            #     await respond(
-            #         f"{error.__class__.__name__} - "
-            #         f"{error.extra.get('error', 'Error')} "
-            #         f"{error.extra.get('status', 'XXX')}: "
-            #         f"{error.extra.get('message') or 'Unknown'} {const.STV.dankFix} "
-            #         f"(Irene will surely fix it)"
-            #     )
-            # case twitchio.MessageRejectedError():
-            #     # This one is a annoying because it stops code execution
-            #     # let's at least send the response back
-            #     await respond(error.content + chr(32) + chr(917504))
-
-            case _:
-                return False
-        return True
-
-    @override
-    async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
-        """Event called when an error happens during command invoking."""
-        command = payload.context.command
-        ctx: IreContext = payload.context  # ty: ignore[invalid-assignment] we do not use Channel Point commands.
-        error = payload.exception
-
-        if command and command.has_error and ctx.error_dispatched:
-            return
-
-        # we aren't interested in the chain traceback from invoking:
-        error = error.original if isinstance(error, commands.CommandInvokeError) and error.original else error
-
-        # 1. Handle common error
-        if await self.handle_common_errors(error, ctx.send):
-            return
-
-        match error:
-            # 2. Handle command specific errors
-            case commands.CommandNotFound():
-                if self.test:
-                    # if not `self.test` then we don't need to spam the logs with commands from other bots
-                    # for streams that use several bots with the same prefix.
-                    log.info("CommandNotFound: %s", error)
-                if ctx.broadcaster.id == self.owner_id:
-                    # TODO: fuzzy
-                    await ctx.send("Command not found.")
-            case commands.CommandOnCooldown():
-                command_name = f"{ctx.prefix}{command.name}" if command else "this command"
-                await ctx.send(
-                    f"Command {command_name} is on cooldown! Try again in {error.remaining:.0f} sec {const.Stv.Timeloth}",
-                )
-            case commands.GuardFailure():
-                if await self.handle_common_errors(error.__cause__, ctx.send):
-                    # Guards raise `GuardFailure` errors while we're always interested in `__cause__`.
-                    return
-                # To make custom responses for default `twitchio` guards - need to cook a bit.
-                # (or make our own guards with the same predicates, not like it's anything complex)
-                guard_response = {
-                    "is_moderator": "Only moderators are allowed to use this command",
-                    "is_owner": "Only Irene_Adler__ is allowed to use this command",
-                    "is_broadcaster": "Only broadcaster is allowed to use this command",
-                }.get(
-                    # an example of `.__qualname__`: "is_moderator.<locals>.predicate"
-                    (
-                        guard_name := "Unknown Guard"
-                        if error.guard is None
-                        else error.guard.__qualname__.removesuffix(".<locals>.predicate")
-                    ),
-                    f'For some reason ("{guard_name}") you are not allowed to use this command',
-                )
-                await ctx.send(f"{guard_response} {const.Ffz.peepoPolice}")
-            case commands.MissingRequiredArgument():
-                await ctx.send(f'You need to provide "{error.param.name}" argument for this command {const.Ffz.peepoPolice}')
-            case commands.BadArgument():
-                cause = error.__cause__
-                if await self.handle_common_errors(cause, ctx.send):
-                    # Converters raise `BadArgument` Failed to convert "this" to <class 'typing._ProtocolMeta'>, which is not
-                    # exactly telling much. We are more interested in the original `__cause__`.
-                    return
-                log.error("%s: %s | error.name=%s | error.value=%s", type(error), error, error.name, error.value)
-                log.error("%s: %s", type(cause), cause, exc_info=cause)
-                await ctx.send(
-                    content=(
-                        f"Couldn't convert value `{error.value}` for argument `{error.name}` "
-                        f"to required type/format {const.Stv.dankFix}"
-                    ),
-                )
-            case _:
-                # 3. All other errors;
-                # SomethingWentWrongError also goes here (unlike how it was long ago).
-                await ctx.send(self.SOMETHING_WENT_WRONG_MESSAGE)
-                # await ctx.send(f"{error.__class__.__name__}: {replace_secrets(str(error))}")
-                command_name = getattr(ctx.command, "name", "unknown")
-                embed = (
-                    discord
-                    .Embed(
-                        colour=ctx.chatter.colour.code if ctx.chatter.colour else 0x890620,
-                        title=f"Command Error: `!{command_name}`",
-                    )
-                    .set_author(
-                        name=f"Chatter {ctx.chatter.display_name}",
-                        icon_url=(await ctx.chatter.user()).profile_image,
-                    )
-                    .set_footer(
-                        text=f"Channel: {ctx.broadcaster.display_name}",
-                        icon_url=(await ctx.broadcaster.user()).profile_image,
-                    )
-                    .add_field(name="Command Args", value=fmt.pformat_dict(ctx.kwargs), inline=False)
-                )
-                if debug_data := getattr(error, "debug_data", None):
-                    embed = self.add_codeblock_field(embed, data=debug_data)
-                await self.error_notification_manager.register(error, embed=embed)
-
-    @override
-    async def event_error(self, payload: twitchio.EventErrorPayload) -> None:
-        """Event Error."""
-        error = payload.error
-        original = payload.original
-
-        if isinstance(original, twitchio.ChannelPointsRedemptionAdd):
-            # Twitch channel point redeems are somewhat like commands
-            # So let's answer them in chat if any errors happened.
-            with contextlib.suppress(twitchio.HTTPException):
-                # let's be nice and refund channel points for failed redeems
-                await original.refund(token_for=original.broadcaster.id)
-
-            async def error_redemption_respond(content: str) -> twitchio.SentMessage:
-                """Add `(refunded)` to the response."""
-                return await original.respond(f"{content} {globs.TwitchEmote.FeelsDankMan} (refunded)")
-
-            if await self.handle_common_errors(error, error_redemption_respond):
-                # 1. Handle common error
-                return
-
-            if isinstance(error, errors.SomethingWentWrongError):
-                await original.respond(self.SOMETHING_WENT_WRONG_MESSAGE)
-
-        # 2. All other errors;
-        embed = discord.Embed(title=f"Event Error: `{getattr(payload.listener, '__qualname__', 'unknown_event')}`")
-        if broadcaster := getattr(original, "broadcaster", None):
-            embed.set_footer(
-                text=f"Channel: {broadcaster.display_name}",
-                icon_url=(await broadcaster.user()).profile_image,
-            )
-        if chatter := getattr(original, "user", None):
-            embed.set_author(
-                name=f"Chatter {chatter.display_name}",
-                icon_url=(await chatter.user()).profile_image,
-            )
-        if debug_data := getattr(error, "debug_data", None):
-            embed = self.add_codeblock_field(embed, data=debug_data)
-        await self.error_notification_manager.register(error, embed=embed)
 
     # SHORTCUTS AND UTILITIES
 

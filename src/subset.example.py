@@ -1,6 +1,6 @@
-"""Modules to load when `--subset-mode` CLI argument is used.
+"""Extensions to load when `--subset-mode` CLI argument is used.
 
-Rename this file to 'modules_subset.py' and choose modules you want to load when
+Rename this file to 'subset.py' and choose extensions you want to load when
 testing version of the bot (`--subset-mode`) is running.
 
 This is useful when we want to debug select features/modules of the bot without launching the whole thing.

@@ -30,7 +30,7 @@ from twitchio.ext import commands
 from config import env
 from core import IreContext, IrePublicComponent
 from shared import clock, errors, fmt, fuzzy
-from shared.apis import local, steam_web
+from shared.apis import dota2com, local, steam_web
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -318,7 +318,8 @@ class MMRBot(IrePublicComponent):
 
     def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
-        self.steam_web_api = steam_web.SteamWebAPIClient(api_key=env.STEAM_API_KEY, session=bot.session)
+        self.steam_web = steam_web.SteamWebAPIClient(api_key=env.STEAM_API_KEY, session=bot.session)
+        self.dota2com = dota2com.Dota2comClient(session=bot.session)
         self.local_api = local.LocalAPI(bot.session)
 
     #########################################################################################################################
@@ -475,15 +476,12 @@ class MMRBot(IrePublicComponent):
     # LIVE GAME THAT REQUIRE REAL TIME STATS
     #########################################################################################################################
 
-    async def get_real_time_stats(self, match: local.FriendLiveMatch) -> steam_web.RealTimeStats:
+    async def get_real_time_stats(self, match: local.FriendLiveMatch) -> dota2com.RealTimeStats:
         """Get Real time stats."""
-        if match.server_steam_id is None:
-            msg = "This match doesn't support real time stats"
-            raise errors.RespondWithError(msg)
         if match.lobby_type == LobbyType.NewPlayerMode:
             msg = "New Player Mode matches do not support real time stats."
             raise errors.RespondWithError(msg)
-        return await self.steam_web_api.get_real_time_stats(match.server_steam_id)
+        return await self.dota2com.real_time_stats(match.server_steam_id)
 
     @commands.command(aliases=["items", "kda"])
     async def stats(self, ctx: IreContext, *, player_slot_color_or_hero_name: str) -> None:
@@ -643,20 +641,6 @@ class MMRBot(IrePublicComponent):
     # NOTABLE PEOPLE MANAGEMENT
     #########################################################################################################################
 
-    async def get_id_convert(self, argument: str) -> int:
-        """Get minimal match."""
-        async with self.bot.session.get(f"http://127.0.0.1:8000/steam_id/{argument}") as resp:
-            try:
-                data = (await resp.json())["id"]
-            except KeyError:
-                msg = "Unsupported input - please use friend id / steam64 id format"
-                raise errors.RespondWithError(msg) from None
-            else:
-                if data is None:
-                    msg = "Could not parse steam id from the input"
-                    raise errors.RespondWithError(msg)
-                return data
-
     @is_allowed_to_add_notable()
     @guards.is_production()
     @commands.group(name="npm", aliases=["np-dev"], invoke_fallback=True)
@@ -669,14 +653,14 @@ class MMRBot(IrePublicComponent):
         await ctx.send(message)
 
     @npm_dev.command(name="add", aliases=["edit", "rename"])
-    async def npm_dev_add(self, ctx: IreContext, argument: str, *, name: str) -> None:
+    async def npm_dev_add(self, ctx: IreContext, friend_id: int, *, name: str) -> None:
         """Add a notable player to the database.
 
         This command is only available for certain group of people.
         Since if the player already exists - it will just replace the entry - this command
         also works as `!npm rename` just fine (we don't need to raise anything)
         """
-        steam_id = await self.get_id_convert(argument)
+        steam_id = await self.local_api.get_steam_user(friend_id)
         query = """
             INSERT INTO ttv_dota_notable_players
             (friend_id, nickname)
