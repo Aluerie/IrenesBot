@@ -1,25 +1,35 @@
 :iconify:`thesvg-color:dota-2` Dota 2 features
 ==============================================
 
+⚠️ Functionality restrictions reminder
+#############################################
+
+Unfortunately, due to implementation specifics and Valve being stupid - 
+currently for the :iconify:`thesvg-color:dota-2` Dota 2 features to work:
+
+1. You need to add the bot to your steam friends (read next section to learn how)
+2. Whiel playing Dota 2, you also need to be 🟢green-online in :iconify:`thesvg-color:dota-2` Dota 2 
+   (and have rich presence visible to friends in your privacy settings - so no activity hiding) 
+   for the bot to be able to see your status live.
+
+
 🫂 How to connect with the bot's Steam account
 ###############################################
 
-.. attention::
+1. Use ``!steam-invite <your_steam_id>`` command in your stream's channel, 
+    where ``<your_steam_id>`` can be either steam_id32 (so called friend_id) or steam_id64.
+2. The bot will start waiting for you to send a Steam friend request. 
+    So add :iconify:`bi:steam` `bot's steam account <https://steamcommunity.com/id/irenesbot>`_ to friends.
+    If you somehow don't manage to send a friend request within 10 minutes of using ``!steam-invite`` command then 
+    you will need to start over. The bot automatically rejects all other friend invites.
+3. Check if the bot accepted your friend request, just in case.
 
-  First of all, for bot's Dota 2 features to work - you need to add the bot to your steam friends.
-  This implementation relies on streamer being friends with the bot and being 🟢green-online in Dota 2 (so no activity hiding).
+.. caution::
 
-  1. Use ``!steam-invite <your_steam_id_or_link>`` command in your stream's channel, 
-     where ``<your_steam_id_or_link>`` can be either a link to your steam profile, friend_id (so called steam_id32) 
-     or account_id (so called steam_id64).
-  2. The bot will start waiting for you to send a Steam friend request. 
-     So add :iconify:`bi:steam` `bot's steam account <https://steamcommunity.com/id/irenesbot>`_ to friends.
-     If you somehow don't manage to send a friend request within 10 minutes of using ``!steam-invite`` command then you will need to start over.
-     The bot automatically rejects all other friend invites.
-  3. Check if the bot accepted your friend request, just in case.
-  4. Now, Valve™️ moment: the bot won't be able to see your online or your match history for about 24 hours from the moment of accepting the friend request.
-     This is normal, for some reason, human accounts also suffer from this restriction.
-  5. You can check some commands from the table below.
+   Valve™️ moment: the bot won't be able to see your online or your match history for about 24 hours from the moment of accepting the friend request.
+    This is normal, for some reason, human accounts also suffer from this restriction.
+
+You can check some commands below, from the table below and after it.
 
 .. autochatcommand:: ext.public.mmrbot.MMRBot.steam_invite
 
@@ -133,19 +143,8 @@ Some short instructions for :iconify:`logos:twitch` `@PotatBotat <https://www.tw
 * :iconify:`logos:twitch` `@PotatBotat <https://www.twitch.tv/PotatBotat>`_ will create a new emote set trying to merge the provided ones; if there is more then 1000 emotes in total - some emotes from the 2nd set won't make it;
 * Now you can switch between your main set and a merged version;
 
-⚠️ Functionality restrictions reminder
-#############################################
+🌈 In future
+#############
 
-I'm writing it again because why not.
-
-.. caution::
-    
-    Unfortunately, due to implementation specifics and Valve being stupid - currently for the Dota 2 features to work:
-
-1. You need to user add the .
-2. You also need to be green-online 🟢 in :iconify:`thesvg-color:dota-2` Dota 2 (and have rich presence visible to friends in your privacy settings) for the bot to be able to see your status live.
-
-.. note::
-    
-    PS. Another implementation for these features (using :iconify:`thesvg-color:dota-2` Dota 2 Game State Integration) is coming soon™️. 
-    It won't have mentioned restrictions but you will have to put a ``.cfg`` file into the :iconify:`thesvg-color:dota-2` Dota 2 directory.
+Hopefully, another implementation for these features (using :iconify:`thesvg-color:dota-2` Dota 2 Game State Integration) is coming soon™️. 
+It won't have mentioned restrictions but you will have to put a ``.cfg`` file into the :iconify:`thesvg-color:dota-2` Dota 2 directory.

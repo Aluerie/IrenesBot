@@ -35,7 +35,6 @@ from .subscriptions import get_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
     import datetime as dt
-    from collections.abc import Awaitable, Callable
 
     from aiohttp import ClientSession
     from twitchio.user import PartialUser
@@ -214,31 +213,6 @@ class IreBot(BotBase, commands.AutoBot):
     # Note, that the files `shared.concepts.tasks` also contain error handler for tasks.
     #########################################################################################################################
 
-    async def _respond_per_policy(
-        self,
-        error: Exception,
-        respond: Callable[[str], Awaitable[object]],
-    ) -> bool:
-        """Respond to the user according to the error's policy.
-
-        Returns
-        -------
-        bool
-            Whether Irene should be notified.
-        """
-        if isinstance(error, errors.BotError):
-            should_respond = error.policy.respond
-            notify = error.policy.notify
-            message = error.response_msg
-        else:
-            should_respond = True
-            notify = True
-            message = f"{errors.SOMETHING_WENT_WRONG_MESSAGE} {globs.TwitchEmote.CaitThinking}"
-        if should_respond:
-            with contextlib.suppress(Exception):
-                await respond(message)
-        return notify
-
     @staticmethod
     async def _get_profile_image(user: twitchio.PartialUser) -> str | None:
         """Return the user's profile image URL, or None if it can't be fetched."""
@@ -307,7 +281,11 @@ class IreBot(BotBase, commands.AutoBot):
                     ),
                 )
             case _:
-                if not await self._respond_per_policy(error, respond=ctx.send):
+                if not await self._respond_per_policy(
+                    error,
+                    respond=ctx.send,
+                    non_bot_error_message=f"{errors.SOMETHING_WENT_WRONG_MESSAGE} {globs.TwitchEmote.CaitThinking}",
+                ):
                     return
 
                 chatter_icon = await self._get_profile_image(ctx.chatter)
@@ -347,6 +325,7 @@ class IreBot(BotBase, commands.AutoBot):
             notify = await self._respond_per_policy(
                 error,
                 respond=lambda msg: original.respond(f"{msg} {globs.TwitchEmote.FeelsDankMan}{suffix}"),
+                non_bot_error_message=f"{errors.SOMETHING_WENT_WRONG_MESSAGE} {globs.TwitchEmote.FeelsDankMan}",
             )
         elif isinstance(error, errors.BotError):
             notify = error.policy.notify
