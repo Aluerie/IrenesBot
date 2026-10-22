@@ -160,7 +160,7 @@ class IreBot(BotBase, commands.AutoBot):
             client_secret = env.TEST_TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Test
             self.prefixes = ("%",)
-            ping_role_mention = "<@&1337106675433340990>"
+            dev_ping = "<@&1337106675433340990>"
         else:
             # production account
             self.test = False
@@ -168,11 +168,11 @@ class IreBot(BotBase, commands.AutoBot):
             client_secret = env.TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Bot
             self.prefixes = ("!", "?", "$")
-            ping_role_mention = "<@&1116171071528374394>"
+            dev_ping = "<@&1116171071528374394>"
 
         super().__init__(
             session,
-            ping_role_mention=ping_role_mention,
+            dev_ping=dev_ping,
             error_webhook_url=env.WEBHOOK_ERROR,
             notification_webhook_url=env.WEBHOOK_NOTIFICATION,
         )
@@ -219,6 +219,10 @@ class IreBot(BotBase, commands.AutoBot):
         with contextlib.suppress(twitchio.HTTPException):
             return (await user.user()).profile_image.url
         return None
+
+    SOMETHING_WENT_WRONG_MESSAGE = (
+        f"Something went wrong; Irene has been notified about this error {globs.TwitchEmote.CaitThinking}"
+    )
 
     @override
     async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
@@ -281,11 +285,7 @@ class IreBot(BotBase, commands.AutoBot):
                     ),
                 )
             case _:
-                if not await self._respond_per_policy(
-                    error,
-                    respond=ctx.send,
-                    non_bot_error_message=f"{errors.SOMETHING_WENT_WRONG_MESSAGE} {globs.TwitchEmote.CaitThinking}",
-                ):
+                if not await self._respond_per_policy(error, respond=ctx.send):
                     return
 
                 chatter_icon = await self._get_profile_image(ctx.chatter)
@@ -325,7 +325,6 @@ class IreBot(BotBase, commands.AutoBot):
             notify = await self._respond_per_policy(
                 error,
                 respond=lambda msg: original.respond(f"{msg} {globs.TwitchEmote.FeelsDankMan}{suffix}"),
-                non_bot_error_message=f"{errors.SOMETHING_WENT_WRONG_MESSAGE} {globs.TwitchEmote.FeelsDankMan}",
             )
         elif isinstance(error, errors.BotError):
             notify = error.policy.notify

@@ -314,7 +314,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
             partial_user = self.bot.create_partialuser(row["streamer_id"])
             first_reward = next(iter(await partial_user.fetch_custom_rewards(ids=[row["reward_id"]])))
             if not first_reward:
-                content = self.bot.ping_role_mention
+                content = self.bot.dev_ping
                 embed = Embed(
                     description=(
                         f"Looks like something wrong with streamer @{partial_user.name} ({row['streamer_id']}) "
