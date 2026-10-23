@@ -16,23 +16,23 @@ import discord
 from twitchio.ext import commands
 
 from config import env
-from core import IrePersonalComponent
+from core import PersonalComponent
 
 if TYPE_CHECKING:
     import twitchio
 
-    from core import IreBot
+    from core import Bot
 
 log = logging.getLogger(__name__)
 
 
-class DiscordNotifications(IrePersonalComponent):
+class DiscordNotifications(PersonalComponent):
     """Discord Notifications.
 
     Sends messages with @StreamerLover role ping in my small discord server.
     """
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
         # it's a list just in case my internet goes crazy and we trigger multiple notifications in a row;
         self.active_notification_messages: list[discord.WebhookMessage] = []
@@ -101,6 +101,6 @@ class DiscordNotifications(IrePersonalComponent):
             await message.edit(embed=embed)
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(DiscordNotifications(bot))

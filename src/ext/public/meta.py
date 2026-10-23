@@ -14,13 +14,13 @@ from typing import TYPE_CHECKING, Annotated, TypedDict
 import twitchio  # ruff: ignore[typing-only-third-party-import]
 from twitchio.ext import commands
 
-from core import IrePublicComponent
+from core import PublicComponent
 from shared import errors, globs, translate
 from utils import const, guards
 from utils.converters import TranslateArguments, TranslateConverter
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
     class RunDict(TypedDict):
         keywords: list[str]
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 __all__ = ("MetaCommands",)
 
 
-class MetaCommands(IrePublicComponent):
+class MetaCommands(PublicComponent):
     """Meta commands."""
 
     @commands.command()
@@ -398,6 +398,6 @@ class MetaCommands(IrePublicComponent):
         await ctx.send(answer)
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(MetaCommands(bot))

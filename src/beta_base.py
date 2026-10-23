@@ -30,24 +30,24 @@ import twitchio
 from twitchio.ext import commands
 
 from config import env
-from core import IreDevComponent
+from core import DevComponent
 from shared import clock, errors
 from shared.concepts import loop
 from utils import const
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
 log = logging.getLogger(__name__)
 
 
-class BetaCog(IreDevComponent):
+class BetaCog(DevComponent):
     """Base Class for BetaTest cog.
 
     Used to test random code snippets.
     """
 
-    def __init__(self, bot: IreBot) -> None:
+    def __init__(self, bot: Bot) -> None:
         super().__init__(bot)
         self.beta_test.start()
 

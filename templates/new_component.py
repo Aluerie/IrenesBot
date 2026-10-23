@@ -12,13 +12,13 @@ from typing import TYPE_CHECKING
 
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
 
-class NewCog(IrePersonalComponent):
+class NewCog(PersonalComponent):
     """New Cog."""
 
     @commands.command()
@@ -27,6 +27,6 @@ class NewCog(IrePersonalComponent):
         await ctx.send("Not implemented yet!")
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot's module. Framework of twitchio."""
     await bot.add_component(NewCog(bot))

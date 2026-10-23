@@ -23,7 +23,7 @@ import aiohttp
 import click
 
 from config import env
-from core import AdapterEnum, IreBot, get_eventsub_subscriptions
+from core import AdapterEnum, Bot, get_eventsub_subscriptions
 from shared import ut
 from shared.concepts import db, logs
 
@@ -60,7 +60,7 @@ async def start_the_bot(
     async with (
         aiohttp.ClientSession() as session,
         pool as pool,
-        IreBot(
+        Bot(
             session=session,
             pool=pool,
             subscriptions=await get_eventsub_subscriptions(pool, test_account=is_test_account),

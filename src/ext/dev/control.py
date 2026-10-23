@@ -15,12 +15,12 @@ from typing import TYPE_CHECKING, Annotated, override
 import discord
 from twitchio.ext import commands
 
-from core import IreDevComponent
+from core import DevComponent
 from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
 log = logging.getLogger(__name__)
 
@@ -37,10 +37,10 @@ class ExtConverter(commands.Converter[str]):
         return f"ext.{arg}"
 
 
-class Control(IreDevComponent):
+class Control(DevComponent):
     """Dev Only Commands."""
 
-    def __init__(self, bot: IreBot) -> None:
+    def __init__(self, bot: Bot) -> None:
         super().__init__(bot)
         self.heartbeat_task.add_exception_type(discord.HTTPException)
 
@@ -137,6 +137,6 @@ class Control(IreDevComponent):
         await self.bot.heartbeat_webhook.send("Alive")
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(Control(bot))

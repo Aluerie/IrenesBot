@@ -15,11 +15,11 @@ from typing import TYPE_CHECKING, TypedDict
 
 from twitchio.ext import commands
 
-from core import IreDevComponent
+from core import DevComponent
 from shared import clock, globs
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
     class RunDict(TypedDict):
         keywords: list[str]
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 __all__ = ("OtherDevCommands",)
 
 
-class OtherDevCommands(IreDevComponent):
+class OtherDevCommands(DevComponent):
     """Other Dev Commands."""
 
     @commands.command(aliases=["char"])
@@ -97,6 +97,6 @@ class OtherDevCommands(IreDevComponent):
         await ctx.send(content)
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(OtherDevCommands(bot))

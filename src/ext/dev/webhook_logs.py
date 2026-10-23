@@ -14,27 +14,27 @@ from typing import TYPE_CHECKING, override
 from twitchio.ext import commands
 
 from config import env
-from core import IreDevComponent
+from core import DevComponent
 from shared import gh
 from shared.concepts.discord_logs import DiscordWebhookLogs
 from utils import const
 
 if TYPE_CHECKING:
-    from core import IreBot
+    from core import Bot
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
-class LogsViaWebhook(DiscordWebhookLogs, IreDevComponent):
+class LogsViaWebhook(DiscordWebhookLogs, DevComponent):
     """Mirroring logs to discord webhook messages.
 
     This cog is responsible for rate-limiting, formatting, fine-tuning and sending the log messages.
     """
 
-    def __init__(self, bot: IreBot) -> None:
+    def __init__(self, bot: Bot) -> None:
         super().__init__(env.WEBHOOK_LOGGER, bot.session)
-        super(IreDevComponent, self).__init__(bot)
+        super(DevComponent, self).__init__(bot)
 
         self.extra_exact_avatar_mapping: dict[str, str] = {
             "core.bot": "https://i.imgur.com/6XZ8Roa.png",  # lady Noir
@@ -60,6 +60,6 @@ class LogsViaWebhook(DiscordWebhookLogs, IreDevComponent):
         )
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(LogsViaWebhook(bot))

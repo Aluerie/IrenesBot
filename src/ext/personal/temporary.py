@@ -14,12 +14,12 @@ from typing import TYPE_CHECKING, TypedDict
 
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import errors
 from utils import const
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
     class RunDict(TypedDict):
         keywords: list[str]
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 __all__ = ("TemporaryCommands",)
 
 
-class TemporaryCommands(IrePersonalComponent):
+class TemporaryCommands(PersonalComponent):
     """Miscellaneous commands.
 
     Commands that are likely to be removed in future.
@@ -151,6 +151,6 @@ class TemporaryCommands(IrePersonalComponent):
         await ctx.send(f"!chat {argument}")
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(TemporaryCommands(bot))

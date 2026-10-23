@@ -15,13 +15,13 @@ from typing import TYPE_CHECKING, Any, TypedDict
 import twitchio
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import clock
 from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
     class Tracked(TypedDict):
         game: str
@@ -46,7 +46,7 @@ GAME_KEYWORDS = {
 }
 
 
-class StreamInformation(IrePersonalComponent):
+class StreamInformation(PersonalComponent):
     """Commands replicating "Edit Stream Information" window.
 
     Such as
@@ -55,7 +55,7 @@ class StreamInformation(IrePersonalComponent):
     The commands are designed to be a little bit smart.
     """
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
 
         self.game: str = "idk"
@@ -194,6 +194,6 @@ class StreamInformation(IrePersonalComponent):
         await ctx.send(f"Successfully created a marker. {const.Stv.DankApprove}")
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(StreamInformation(bot))

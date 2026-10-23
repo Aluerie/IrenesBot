@@ -16,14 +16,14 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import clock
 from utils import const
 
 if TYPE_CHECKING:
     import twitchio
 
-    from core import IreBot
+    from core import Bot
 
     class KeywordDict(TypedDict):
         aliases: list[str]
@@ -34,13 +34,13 @@ if TYPE_CHECKING:
 __all__ = ("Keywords",)
 
 
-class Keywords(IrePersonalComponent):
+class Keywords(PersonalComponent):
     """React to specific key word / key phrases with bot's own messages.
 
     Mostly used to make a small feeling of a crowd - something like many users are Pog-ing.
     """
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
         self.cooldown_dt = clock.utcnow() - dt.timedelta(hours=1)
 
@@ -79,6 +79,6 @@ class Keywords(IrePersonalComponent):
             self.cooldown_dt = now
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(Keywords(bot))

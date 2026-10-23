@@ -20,13 +20,13 @@ import twitchio
 from discord import Embed
 from twitchio.ext import commands
 
-from core import IrePublicComponent
+from core import PublicComponent
 from shared import clock, errors, fmt, globs
 from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
     class FirstRedeemsRow(TypedDict):
         user_id: str
@@ -46,7 +46,7 @@ __all__ = ("FirstChatterChannelRewardManagement",)
 DEFAULT_FIRST_REWARD_TITLE = "First!"
 
 
-class FirstChatterChannelRewardManagement(IrePublicComponent):
+class FirstChatterChannelRewardManagement(PublicComponent):
     """Track some silly number counters of how many times this or that happened."""
 
     @override
@@ -361,6 +361,6 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
         await ctx.send(content)
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(FirstChatterChannelRewardManagement(bot))

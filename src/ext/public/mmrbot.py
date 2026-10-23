@@ -28,13 +28,13 @@ from steam.ext.dota2 import Hero, LobbyType, MatchOutcome
 from twitchio.ext import commands
 
 from config import env
-from core import Context, IrePublicComponent
+from core import Context, PublicComponent
 from shared import clock, errors, fmt, fuzzy
 from shared.apis import dota2com, local, steam_web
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import IreBot
+    from core import Bot
 
     #########################################################################################################################
     # DATABASE QUERIES
@@ -313,10 +313,10 @@ def is_allowed_to_add_notable() -> Any:
     return commands.guard(predicate)
 
 
-class MMRBot(IrePublicComponent):
+class MMRBot(PublicComponent):
     """MMR Bot."""
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
         self.steam_web = steam_web.SteamWebAPIClient(api_key=env.STEAM_API_KEY, session=bot.session)
         self.dota2com = dota2com.Dota2comClient(session=bot.session)
@@ -943,6 +943,6 @@ class MMRBot(IrePublicComponent):
         )
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(MMRBot(bot))

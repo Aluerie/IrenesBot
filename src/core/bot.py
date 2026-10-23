@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "AdapterEnum",
-    "IreBot",
+    "Bot",
     "Streamer",
 )
 
@@ -74,36 +74,18 @@ class AdapterEnum(enum.Enum):
     remote = enum.auto()
 
 
-class IreBot(BotBase, commands.AutoBot):
-    """Main class for IreBot.
+class Bot(BotBase, commands.AutoBot):
+    """Main class for IrenesBot.
 
     Essentially subclass over TwitchIO's Client.
     Used to interact with the Twitch API, EventSub and more.
     Includes TwitchIO's `ext.commands` extension to organize components/commands framework.
 
-    Note on the name
-    ----------------
-    The name `IrenesBot` is used mainly for display purposes here:
-        * the bot's twitch account user name (just so it's clear that it's Irene's bot);
-        * the bot's Steam account's display name;
-
-    Name `IreBot` is pretty much used elsewhere:
-        * the GitHub repository name and `README.md` file.
-        * class name;
-        * folder name;
-        * systemd service name;
-        * discord notifications webhook names;
-        * category name in my own ToDo list;
-        * etc.
-
-    Maybe I will change this in future to be less confusing, but I think current situation is fine.
-
     """
 
     if TYPE_CHECKING:
-        # it's "str | None" in twitchio, but we do supply it directly
-        owner_id: str  # pyright: ignore[reportIncompatibleMethodOverride]
-        user: twitchio.User  # pyright: ignore[reportIncompatibleMethodOverride]
+        owner_id: str
+        user: twitchio.User
 
     def __init__(
         self,
@@ -288,7 +270,7 @@ class IreBot(BotBase, commands.AutoBot):
                     ),
                 )
             case _:
-                if not await self._respond_per_policy(error, respond=ctx.send):
+                if not await self.respond_per_policy(error, respond=ctx.send):
                     return
 
                 chatter_icon = await self._get_profile_image(ctx.chatter)
@@ -302,10 +284,10 @@ class IreBot(BotBase, commands.AutoBot):
                     .set_author(name=f"Chatter {ctx.chatter.display_name}", icon_url=chatter_icon)
                     .set_footer(text=f"Broadcaster: {ctx.broadcaster.display_name}", icon_url=broadcaster_icon)
                 )
-                embed.add_field(name="Command Args", value=fmt.pformat_args(*ctx.args), inline=False)
-                embed.add_field(name="Command Kwargs", value=fmt.pformat_args(**ctx.kwargs), inline=False)
+                fmt.add_args_field(embed, "Command Args", *ctx.args)
+                fmt.add_mapping_field(embed, "Command Kwargs", ctx.kwargs)
                 if isinstance(error, errors.BotError) and error.data:
-                    embed.add_field(name="BotError Data", value=fmt.pformat_args(**error.data), inline=False)
+                    fmt.add_mapping_field(embed, "BotError Data", error.data)
                 await self.error_notification_manager.register(error, embed=embed)
 
     @override
@@ -325,7 +307,7 @@ class IreBot(BotBase, commands.AutoBot):
                 refunded = True
             suffix = " (refunded)" if refunded else ""
 
-            notify = await self._respond_per_policy(
+            notify = await self.respond_per_policy(
                 error,
                 respond=lambda msg: original.respond(f"{msg} {globs.TwitchEmote.FeelsDankMan}{suffix}"),
             )

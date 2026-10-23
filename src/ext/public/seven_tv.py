@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, TypedDict, 
 import twitchio
 from twitchio.ext import commands
 
-from core import IreDevComponent, IrePublicComponent
+from core import DevComponent, PublicComponent
 from shared import clock, errors, globs, ut
 from shared.apis.stv import EmoteNotFoundError, PartialEmote, PartialEmoteSet, StvGraphQLClient, UnsatisfyingResultError
 from shared.concepts import PrefixLoggerAdapter, loop
@@ -30,7 +30,7 @@ from utils import const, guards
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from core import Context, IreBot
+    from core import Bot, Context
 
     #########################################################################################################################
     # DATABASE QUERY ROW TYPE-HINTS
@@ -379,12 +379,12 @@ def is_broadcaster_dev_editor_or_adder() -> Any:
 #############################################################################################################################
 
 
-class SevenTVPublic(IrePublicComponent):
+class SevenTVPublic(PublicComponent):
     """Cycling Emotes."""
 
     EMOTE = globs.TwitchEmote.FeelsDankMan
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
 
         # Supported Rewards
@@ -1872,7 +1872,7 @@ class SevenTVPublic(IrePublicComponent):
         await ctx.send(f"Changed allow-common-words setting to '{new_state!s}' {self.EMOTE}")
 
 
-class SevenTVDevOnly(IreDevComponent):
+class SevenTVDevOnly(DevComponent):
     """Developer Only commands related to SevenTV features.
 
     Just some easy testing commands.
@@ -1921,7 +1921,7 @@ class SevenTVDevOnly(IreDevComponent):
         await ctx.send(f"Done {const.Stv.DonkCrayon}")
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(SevenTVPublic(bot))
     await bot.add_component(SevenTVDevOnly(bot))

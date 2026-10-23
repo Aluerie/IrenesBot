@@ -17,19 +17,19 @@ import twitchio  # ruff: ignore[typing-only-third-party-import]
 from twitchio.ext import commands
 
 from config import env
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import clock, globs
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class StableCommands(IrePersonalComponent):
+class StableCommands(PersonalComponent):
     """Stable commands.
 
     Stable in a sense that unlike commands in `temporary.py`
@@ -40,7 +40,7 @@ class StableCommands(IrePersonalComponent):
     * Commands in this file are sorted alphabetically.
     """
 
-    def __init__(self, bot: IreBot) -> None:
+    def __init__(self, bot: Bot) -> None:
         super().__init__(bot)
         self.yt_music_on: asyncio.Event = asyncio.Event()
 
@@ -356,6 +356,6 @@ class StableCommands(IrePersonalComponent):
         await ctx.send(f"youtube.com/@AluerieVODS/ {const.Stv.Cinema}")
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(StableCommands(bot))

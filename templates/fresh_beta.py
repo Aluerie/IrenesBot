@@ -27,5 +27,5 @@ class BetaTest(BetaCog):
         pass
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     await bot.add_component(BetaTest(bot))

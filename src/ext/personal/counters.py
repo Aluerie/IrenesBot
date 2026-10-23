@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import clock
 from utils import const
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     import twitchio
 
-    from core import Context, IreBot
+    from core import Bot, Context
 
     class FirstRedeemsRow(TypedDict):
         user_name: str
@@ -34,10 +34,10 @@ if TYPE_CHECKING:
 __all__ = ("Counters",)
 
 
-class Counters(IrePersonalComponent):
+class Counters(PersonalComponent):
     """Track some silly number counters of how many times this or that happened."""
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
         self.last_erm_notification: dt.datetime = clock.utcnow()
 
@@ -85,6 +85,6 @@ class Counters(IrePersonalComponent):
         await ctx.send(f"{value} {const.Stv.Erm} in chat.")
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(Counters(bot))

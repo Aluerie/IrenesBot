@@ -14,14 +14,14 @@ from typing import TYPE_CHECKING, TypedDict, override
 
 from twitchio.ext import commands
 
-from core import IreDevComponent, Streamer
+from core import DevComponent, Streamer
 from shared import clock
 from shared.concepts import loop
 
 if TYPE_CHECKING:
     import twitchio
 
-    from core import IreBot
+    from core import Bot
 
     class StreamersUserQueryRow(TypedDict):
         user_id: str
@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
-class StreamerIndexManagement(IreDevComponent):
+class StreamerIndexManagement(DevComponent):
     """Component managing `self.bot.streamers` index.
 
     This index is used to cache some information about streamers
@@ -44,7 +44,7 @@ class StreamerIndexManagement(IreDevComponent):
     This class is an attempt to reduce amount of `.fetch_streams` API calls across the bot.
     """
 
-    def __init__(self, bot: IreBot) -> None:
+    def __init__(self, bot: Bot) -> None:
         super().__init__(bot)
 
     @override
@@ -112,6 +112,6 @@ class StreamerIndexManagement(IreDevComponent):
                 await self.bot.pool.execute(query, user.display_name, user.id)
 
 
-async def setup(bot: IreBot) -> None:
-    """Load IreBot module. Framework of twitchio."""
+async def setup(bot: Bot) -> None:
+    """Load the extension (twitchio entry point)."""
     await bot.add_component(StreamerIndexManagement(bot))

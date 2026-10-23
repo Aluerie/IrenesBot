@@ -13,12 +13,12 @@ from typing import TYPE_CHECKING, TypedDict
 import asyncpg
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import errors
 from utils import const
 
 if TYPE_CHECKING:
-    from core import Context, IreBot
+    from core import Bot, Context
 
     class TagQueryRow(TypedDict):
         tag_name: str
@@ -34,7 +34,7 @@ NO_TAG_MESSAGE_FMT = "There is no tag with name '{tag_name}' {emote}".format(
 )
 
 
-class Tags(IrePersonalComponent):
+class Tags(PersonalComponent):
     """Commands to fetch something by a tag name."""
 
     @commands.group(invoke_fallback=True, name="tag", aliases=["tags", "t"])
@@ -158,6 +158,6 @@ class Tags(IrePersonalComponent):
             await ctx.send(f"{const.Stv.uuhAcktshucally} {tag_row['tag_name']}: {tag_row['tag_content']}")
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(Tags(bot))

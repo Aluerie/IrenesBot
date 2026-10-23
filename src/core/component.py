@@ -16,28 +16,32 @@ from shared import errors
 from utils import const
 
 if TYPE_CHECKING:
-    from . import Context, IreBot
+    from . import Bot, Context
 
 
-__all__ = ("IreDevComponent", "IrePersonalComponent", "IrePublicComponent")
+__all__ = (
+    "DevComponent",
+    "PersonalComponent",
+    "PublicComponent",
+)
 
 
-class IreComponent(commands.Component):
+class ComponentBase(commands.Component):
     """Base component to use within IreBot."""
 
-    def __init__(self, bot: IreBot) -> None:
-        self.bot: IreBot = bot
+    def __init__(self, bot: Bot) -> None:
+        self.bot: Bot = bot
 
     def is_dev(self, user_id: str) -> bool:
         """Check whether the user is a bot owner."""
         return user_id == self.bot.owner_id
 
 
-class IrePublicComponent(IreComponent):
+class PublicComponent(ComponentBase):
     """Base component to use for public components."""
 
 
-class IrePersonalComponent(IreComponent):
+class PersonalComponent(ComponentBase):
     """Base component to use for personal components.
 
     Features in personal components are only available in Irene's main and secondary twitch channels.
@@ -50,7 +54,7 @@ class IrePersonalComponent(IreComponent):
             raise errors.NotAllowedError(msg, policy=errors.SILENT)
 
 
-class IreDevComponent(IreComponent):
+class DevComponent(ComponentBase):
     """Base component to use for developer components.
 
     Double-ensures that commands have owner-only check.

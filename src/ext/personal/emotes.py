@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, override
 from discord import Embed
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import clock
 from shared.concepts import loop
 from utils import const
@@ -25,19 +25,19 @@ from utils import const
 if TYPE_CHECKING:
     from enum import StrEnum
 
-    from core import Context, IreBot
+    from core import Bot, Context
 
 log = logging.getLogger(__name__)
 
 
-class EmoteChecker(IrePersonalComponent):
+class EmoteChecker(PersonalComponent):
     """Check if emotes from 3rd party services like 7TV, FFZ, BTTV are valid.
 
     Usable in case I remove an emote that is used in bot's responses.
     Bot will notify me that emote was used so I can make adjustments.
     """
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
 
     @override
@@ -109,6 +109,6 @@ class EmoteChecker(IrePersonalComponent):
         await ctx.send(f'(#)mergeset {const.StvID.IRENE_EMOTE_SET} 01JS1XW1PAAKP34984FDYZVDR7 as:"Default but Dota 2"')
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(EmoteChecker(bot))

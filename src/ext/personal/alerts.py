@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import clock, fmt
 from shared.concepts import loop
 from utils import const
@@ -23,18 +23,18 @@ from utils import const
 if TYPE_CHECKING:
     import twitchio
 
-    from core import IreBot
+    from core import Bot
 
 log = logging.getLogger(__name__)
 
 
-class Alerts(IrePersonalComponent):
+class Alerts(PersonalComponent):
     """Twitch Chat Alerts.
 
     Mostly, EventSub events that are nice to have a notification in twitch chat for.
     """
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
         self.ban_list: set[str] = set()
 
@@ -251,6 +251,6 @@ class Alerts(IrePersonalComponent):
         )
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(Alerts(bot))

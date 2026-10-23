@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 from twitchio.ext import commands
 
-from core import IrePersonalComponent
+from core import PersonalComponent
 from shared import clock
 from shared.concepts import loop
 from utils import const
@@ -23,7 +23,7 @@ from utils import const
 if TYPE_CHECKING:
     import twitchio
 
-    from core import IreBot
+    from core import Bot
 
 MESSAGES: list[str] = [
     f"FIX YOUR POSTURE {const.Bttv.weirdChamp}",
@@ -56,10 +56,10 @@ MIN_WAIT_TIME = 51
 RANDOM_WAIT_TIME = 61 * 60
 
 
-class Timers(IrePersonalComponent):
+class Timers(PersonalComponent):
     """Periodic messages/announcements in Aluerie's channel."""
 
-    def __init__(self, bot: IreBot, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
 
         self.lines_count: int = 0
@@ -140,6 +140,6 @@ class Timers(IrePersonalComponent):
         )
 
 
-async def setup(bot: IreBot) -> None:
+async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
     await bot.add_component(Timers(bot))
