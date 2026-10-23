@@ -184,7 +184,7 @@ class Bot(BotBase, commands.AutoBot):
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
 
-        self.stv: stv.StvGraphQLClient = stv.StvGraphQLClient(
+        self.stv: stv.StvClient = stv.StvClient(
             bearer_token=env.SEVEN_TV_BEARER,
             bot_7tv_user_id=const.StvID.BOT,
         )

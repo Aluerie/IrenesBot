@@ -23,7 +23,7 @@ from twitchio.ext import commands
 
 from core import DevComponent, PublicComponent
 from shared import clock, errors, globs, ut
-from shared.apis.stv import EmoteNotFoundError, PartialEmote, PartialEmoteSet, StvGraphQLClient, UnsatisfyingResultError
+from shared.apis.stv import EmoteNotFoundError, PartialEmote, PartialEmoteSet, StvClient, UnsatisfyingResultError
 from shared.concepts import PrefixLoggerAdapter, loop
 from utils import const, guards
 
@@ -187,7 +187,7 @@ COMMON_WORDS = frozenset((
 #############################################################################################################################
 
 
-def regex_to_emote(stv: StvGraphQLClient, emote_id_or_link: str) -> PartialEmote:
+def regex_to_emote(stv: StvClient, emote_id_or_link: str) -> PartialEmote:
     """Convert a string containing 7TV emote id or link to `PartialEmote`.
 
     Does not do anything if the user input is already an emote_id.
@@ -228,9 +228,7 @@ def regex_to_emote(stv: StvGraphQLClient, emote_id_or_link: str) -> PartialEmote
     return stv.create_partial_emote(search["emote_id"])
 
 
-async def parse_emote(
-    stv: StvGraphQLClient, emote_id_link_or_name: str, broadcaster_id: str | None = None
-) -> PartialEmote:
+async def parse_emote(stv: StvClient, emote_id_link_or_name: str, broadcaster_id: str | None = None) -> PartialEmote:
     """Parse or search."""
     try:
         # try parsing `emote_id`
@@ -246,7 +244,7 @@ async def parse_emote(
 
 
 async def parse_add_rename_reward_input(
-    stv: StvGraphQLClient, user_input: str, broadcaster_id: str | None = None
+    stv: StvClient, user_input: str, broadcaster_id: str | None = None
 ) -> tuple[PartialEmote, str | None]:
     """Get emote_id from `user_input`.
 
@@ -280,7 +278,7 @@ async def parse_add_rename_reward_input(
     return (emote, emote_alias)
 
 
-async def parse_remove_reward_input(stv: StvGraphQLClient, user_input: str, broadcaster_id: str) -> PartialEmote:
+async def parse_remove_reward_input(stv: StvClient, user_input: str, broadcaster_id: str) -> PartialEmote:
     """Get emote_id from `user_input`."""
     split = user_input.split()
     if len(split) > 1:
@@ -1599,7 +1597,11 @@ class SevenTVPublic(PublicComponent):
     @is_broadcaster_dev_or_editor()
     @stv_blacklist.command(name="settings")
     async def stv_blacklist_settings(
-        self, ctx: Context, days: int | None, hours: int | None, remove_only: bool | None  # ruff: ignore[boolean-type-hint-positional-argument]
+        self,
+        ctx: Context,
+        days: int | None,
+        hours: int | None,
+        remove_only: bool | None,  # ruff: ignore[boolean-type-hint-positional-argument]
     ) -> None:
         """Show or change settings related to 'Blacklist/Remove Emote' channel points reward.
 
@@ -1778,9 +1780,7 @@ class SevenTVPublic(PublicComponent):
         await self.get_who_added(ctx, emote_id_link_or_name)
 
     @commands.command(name="who-added", aliases=["whoadded"])
-    async def who_added(
-        self, ctx: Context, emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter]
-    ) -> None:
+    async def who_added(self, ctx: Context, emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter]) -> None:
         """Get twitch user who added the emote via channel redemption.
 
         Shortcut for ``!7tv who-added``. Consult the documentation for that command.
