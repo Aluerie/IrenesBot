@@ -74,6 +74,13 @@ class AdapterEnum(enum.Enum):
     remote = enum.auto()
 
 
+async def _get_profile_image(user: twitchio.PartialUser) -> str | None:
+    """Return the user's profile image URL, or None if it can't be fetched."""
+    with contextlib.suppress(twitchio.HTTPException):
+        return (await user.user()).profile_image.url
+    return None
+
+
 class Bot(BotBase, commands.AutoBot):
     """Main class for IrenesBot.
 
@@ -193,13 +200,6 @@ class Bot(BotBase, commands.AutoBot):
     # Note, that the files `shared.concepts.tasks` also contain error handler for tasks.
     #########################################################################################################################
 
-    @staticmethod
-    async def _get_profile_image(user: twitchio.PartialUser) -> str | None:
-        """Return the user's profile image URL, or None if it can't be fetched."""
-        with contextlib.suppress(twitchio.HTTPException):
-            return (await user.user()).profile_image.url
-        return None
-
     SOMETHING_WENT_WRONG_MESSAGE = (
         f"Something went wrong; Irene has been notified about this error {globs.TwitchEmote.CaitThinking}"
     )
@@ -273,8 +273,8 @@ class Bot(BotBase, commands.AutoBot):
                 if not await self.respond_per_policy(error, respond=ctx.send):
                     return
 
-                chatter_icon = await self._get_profile_image(ctx.chatter)
-                broadcaster_icon = await self._get_profile_image(ctx.broadcaster)
+                chatter_icon = await _get_profile_image(ctx.chatter)
+                broadcaster_icon = await _get_profile_image(ctx.broadcaster)
                 embed = (
                     discord
                     .Embed(
@@ -319,13 +319,13 @@ class Bot(BotBase, commands.AutoBot):
 
         embed = discord.Embed(title=f"Event Error: `{getattr(payload.listener, '__qualname__', 'unknown_event')}`")
         if chatter := getattr(original, "user", None):
-            chatter_icon = await self._get_profile_image(chatter)
+            chatter_icon = await _get_profile_image(chatter)
             embed.set_author(name=f"Chatter {chatter.display_name}", icon_url=chatter_icon)
         if broadcaster := getattr(original, "broadcaster", None):
-            broadcaster_icon = await self._get_profile_image(broadcaster)
+            broadcaster_icon = await _get_profile_image(broadcaster)
             embed.set_footer(text=f"Broadcaster: {broadcaster.display_name}", icon_url=broadcaster_icon)
         if isinstance(error, errors.BotError) and error.data:
-            embed.add_field(name="BotError Data", value=fmt.pformat_args(**error.data), inline=False)
+            fmt.add_mapping_field(embed, "BotError Data", error.data)
         await self.error_notification_manager.register(error, embed=embed)
 
     #########################################################################################################################
