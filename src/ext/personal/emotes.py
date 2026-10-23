@@ -25,7 +25,7 @@ from utils import const
 if TYPE_CHECKING:
     from enum import StrEnum
 
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
 log = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class EmoteChecker(IrePersonalComponent):
             await self.cross_check_emotes(bttv_emote_list, const.Bttv, 0xD50014)
 
     @commands.command(aliases=["potatbotat"])
-    async def potat(self, ctx: IreContext) -> None:
+    async def potat(self, ctx: Context) -> None:
         """Get a note on what command to use when merging 7tv sets using @PotatBotat tool.
 
         Link to the tool: https://potat.app/help/mergeset.

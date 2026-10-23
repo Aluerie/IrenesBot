@@ -137,9 +137,9 @@ async def get_eventsub_subscriptions(
 def get_oauth_urls(domain: str) -> str:
     """Get all oauth urls.
 
-    In order to add the bot to their channels - users need to authorize the bot via twitch oauth link with proper scopes.
-    This is required for Twitch Eventsub events and API requests (such as helix) to work an overall a standard permissions
-    kinda system.
+    In order to add the bot to their channels - users need to authorize the bot via twitch oauth link with proper
+    scopes. This is required for Twitch Eventsub events and API requests (such as helix) to work an overall a
+    standard permissions kinda system.
 
     Currently, I divide the bot's feature set into 2 categories:
     * Public - for general public, features ready and useful for general public.

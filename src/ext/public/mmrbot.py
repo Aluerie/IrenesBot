@@ -28,7 +28,7 @@ from steam.ext.dota2 import Hero, LobbyType, MatchOutcome
 from twitchio.ext import commands
 
 from config import env
-from core import IreContext, IrePublicComponent
+from core import Context, IrePublicComponent
 from shared import clock, errors, fmt, fuzzy
 from shared.apis import dota2com, local, steam_web
 from utils import const, guards
@@ -302,7 +302,7 @@ class Score:
 def is_allowed_to_add_notable() -> Any:
     """Allow !npm add/remove/rename to only be invoked by certain people."""
 
-    def predicate(ctx: IreContext) -> bool:
+    def predicate(ctx: Context) -> bool:
         # Maybe we will edit this to be some proper dynamic database thing;
         allowed_ids = (const.UserID.Irene, const.UserID.Xas)
         if ctx.chatter.id in allowed_ids:
@@ -374,13 +374,13 @@ class MMRBot(IrePublicComponent):
             raise errors.RespondWithError(msg)
         return live_match
 
-    async def send_with_tag(self, ctx: IreContext, match: local.FriendLiveMatch, content: str) -> None:
+    async def send_with_tag(self, ctx: Context, match: local.FriendLiveMatch, content: str) -> None:
         """Send with tag."""
         prefix = "[Spectating] " if match.tag == "spectating" else ""
         await ctx.send(f"{prefix}{content}")
 
     @commands.command()
-    async def server_steam_id(self, ctx: IreContext) -> None:
+    async def server_steam_id(self, ctx: Context) -> None:
         """Show server steam id for the match.
 
         Useful if I want to manually request `GetRealTimeStats`.
@@ -389,14 +389,14 @@ class MMRBot(IrePublicComponent):
         await ctx.send(content=str(match.server_steam_id))
 
     @commands.command(aliases=["matchid"])
-    async def match_id(self, ctx: IreContext) -> None:
+    async def match_id(self, ctx: Context) -> None:
         """Show match ID for the current match."""
         match = await self.get_live_match(ctx.broadcaster.id)
         content = str(match.id)
         await self.send_with_tag(ctx, match, content)
 
     @commands.command(aliases=["gm"])
-    async def game_medals(self, ctx: IreContext) -> None:
+    async def game_medals(self, ctx: Context) -> None:
         """Fetch each player rank medals in the current game."""
         match = await self.get_live_match(ctx.broadcaster.id)
         if not match.players:
@@ -408,7 +408,7 @@ class MMRBot(IrePublicComponent):
         await self.send_with_tag(ctx, match, content)
 
     @commands.command()
-    async def ranked(self, ctx: IreContext) -> None:
+    async def ranked(self, ctx: Context) -> None:
         """Show whether the current game is ranked or not."""
         match = await self.get_live_match(ctx.broadcaster.id)
         if match.lobby_type is None or match.game_mode is None:
@@ -419,7 +419,7 @@ class MMRBot(IrePublicComponent):
         await self.send_with_tag(ctx, match, content)
 
     @commands.command(aliases=["lifetime"])
-    async def smurfs(self, ctx: IreContext) -> None:
+    async def smurfs(self, ctx: Context) -> None:
         """Show amount of total games each player has on their accounts.
 
         Not really a "smurf detector", but it's quite good initial metric.
@@ -436,7 +436,7 @@ class MMRBot(IrePublicComponent):
         await self.send_with_tag(ctx, match, content)
 
     @commands.command(name="notable", aliases=["np"])
-    async def notable_players(self, ctx: IreContext) -> None:
+    async def notable_players(self, ctx: Context) -> None:
         """List notable players for the current match."""
         match = await self.get_live_match(ctx.broadcaster.id)
         if not match.players:
@@ -457,7 +457,7 @@ class MMRBot(IrePublicComponent):
         await self.send_with_tag(ctx, match, content)
 
     @commands.command(aliases=["player"])
-    async def profile(self, ctx: IreContext, *, player_slot_color_or_hero_name: str) -> None:
+    async def profile(self, ctx: Context, *, player_slot_color_or_hero_name: str) -> None:
         """Get a link to player stats profile.
 
         `argument` can be a hero name, hero alias, player slot or colour.
@@ -484,7 +484,7 @@ class MMRBot(IrePublicComponent):
         return await self.dota2com.real_time_stats(match.server_steam_id)
 
     @commands.command(aliases=["items", "kda"])
-    async def stats(self, ctx: IreContext, *, player_slot_color_or_hero_name: str) -> None:
+    async def stats(self, ctx: Context, *, player_slot_color_or_hero_name: str) -> None:
         """Fetch items and some profile data about a certain player in the game.
 
         `argument` can be a hero name, hero alias, player slot or colour.
@@ -517,7 +517,9 @@ class MMRBot(IrePublicComponent):
             player_items_dict: dict[int, str] = {
                 r["item_id"]: r["display_name"] for r in await self.bot.pool.fetch(query, api_player.items)
             }
-            items: str = ", ".join([player_items_dict.get(item, "Unknown Item") for item in api_player.items if item != -1])
+            items: str = ", ".join([
+                player_items_dict.get(item, "Unknown Item") for item in api_player.items if item != -1
+            ])
 
         response_parts = (
             f"{'[2m delay] ' if match.tag == 'playing' else ''}{api_player.name}",
@@ -543,7 +545,7 @@ class MMRBot(IrePublicComponent):
             raise payload.exception
 
     @commands.command()
-    async def lead(self, ctx: IreContext) -> None:
+    async def lead(self, ctx: Context) -> None:
         """Show which team has a gold lead and by how much."""
         match = await self.get_live_match(ctx.broadcaster.id)
         stats = await self.get_real_time_stats(match)
@@ -586,7 +588,7 @@ class MMRBot(IrePublicComponent):
         return row["friend_id"], row["hero_id"], last_game
 
     @commands.command(name="played", aliases=["last_game", "lg", "lm"])
-    async def played_with(self, ctx: IreContext) -> None:
+    async def played_with(self, ctx: Context) -> None:
         """List recurring players from the last game present in the current match."""
         match = await self.get_live_match(ctx.broadcaster.id)
         if not match.players:
@@ -614,7 +616,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(content)
 
     @commands.command(aliases=["pm"])
-    async def previous_match(self, ctx: IreContext, index: int = 0) -> None:
+    async def previous_match(self, ctx: Context, index: int = 0) -> None:
         """Show summary stats for the previous match."""
         if not 0 <= index < 20:
             msg = "`index` argument should integer and be 0 <= index < 20"
@@ -624,7 +626,9 @@ class MMRBot(IrePublicComponent):
         match = await self.local_api.get_previous_match(friend_id)
 
         minimal = await self.local_api.get_minimal_match(match.id)
-        slot, player = next(iter((s, p) for s, p in enumerate(minimal.players) if p.hero.id == match.hero.id), (None, None))
+        slot, player = next(
+            iter((s, p) for s, p in enumerate(minimal.players) if p.hero.id == match.hero.id), (None, None)
+        )
         if slot is None or player is None:
             msg = "Somehow can't find streamer's account in their previous match uuh weird"
             raise errors.SomethingWentWrongError(msg)
@@ -644,7 +648,7 @@ class MMRBot(IrePublicComponent):
     @is_allowed_to_add_notable()
     @guards.is_production()
     @commands.group(name="npm", aliases=["np-dev"], invoke_fallback=True)
-    async def npm_dev(self, ctx: IreContext) -> None:
+    async def npm_dev(self, ctx: Context) -> None:
         """Group command for the bot developer to manage list of notable players in the database."""
         message = (
             '"!npm" is a group command: use it together with its subcommands (add, help, remove, find), "'
@@ -653,7 +657,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(message)
 
     @npm_dev.command(name="add", aliases=["edit", "rename"])
-    async def npm_dev_add(self, ctx: IreContext, friend_id: int, *, name: str) -> None:
+    async def npm_dev_add(self, ctx: Context, friend_id: int, *, name: str) -> None:
         """Add a notable player to the database.
 
         This command is only available for certain group of people.
@@ -672,7 +676,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(f"Added/edited a notable player <friend_id={steam_user.id}, name={name}>")
 
     @npm_dev.command(name="help")
-    async def npm_dev_help(self, ctx: IreContext) -> None:
+    async def npm_dev_help(self, ctx: Context) -> None:
         """Show small help for !np-dev commands."""
         response = (
             "!npm add 123 Arteezy \N{BULLET} "
@@ -684,7 +688,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(response)
 
     @npm_dev.command(name="remove")
-    async def npm_dev_remove(self, ctx: IreContext, friend_id: int) -> None:
+    async def npm_dev_remove(self, ctx: Context, friend_id: int) -> None:
         """Add a notable player to the database.
 
         This command is only available for certain group of people.
@@ -698,7 +702,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(f"Removed player <friend_id={friend_id}, name={name}> from notable players.")
 
     @npm_dev.command(name="find")
-    async def npm_dev_find(self, ctx: IreContext, *, name: str) -> None:
+    async def npm_dev_find(self, ctx: Context, *, name: str) -> None:
         """Find a notable player from the database.
 
         This command is only available for certain group of people.
@@ -720,14 +724,14 @@ class MMRBot(IrePublicComponent):
     #########################################################################################################################
 
     @commands.command(aliases=["rank", "medal"])
-    async def mmr(self, ctx: IreContext) -> None:
+    async def mmr(self, ctx: Context) -> None:
         """Show streamer's mmr on the current account."""
         friend_id = await self.get_friend_id(ctx.broadcaster.id)
         profile_card = await self.local_api.get_profile_card(friend_id)
         await ctx.send(profile_card.rank_display_name)
 
     @commands.command(aliases=["stratz", "opendota"])
-    async def dotabuff(self, ctx: IreContext) -> None:
+    async def dotabuff(self, ctx: Context) -> None:
         """Show stats service profile link for the streamer, i.e. dotabuff / stratz / opendota."""
         friend_id = await self.get_friend_id(ctx.broadcaster.id)
         if (invoked := ctx.invoked_with) is None:
@@ -735,7 +739,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(content=f"{invoked}.com/players/{friend_id}")
 
     @commands.command(aliases=["lastseen"])
-    async def status(self, ctx: IreContext) -> None:
+    async def status(self, ctx: Context) -> None:
         """Show the steam account the bot has seen you last online on.
 
         This account is considered to be queried against for the bot's commands.
@@ -752,7 +756,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(response)
 
     @commands.command()
-    async def party(self, ctx: IreContext) -> None:
+    async def party(self, ctx: Context) -> None:
         """Show notable players in the current party."""
         streamer = await self.get_friend(ctx.broadcaster.id)
         party = streamer.raw_rich_presence.get("party")
@@ -870,11 +874,13 @@ class MMRBot(IrePublicComponent):
             else next(iter(response_parts.values()))
         )
         if not stream_started_at:
-            response = f"[Offline, {clock.human_timedelta(clock.utcnow() - gaming_session_dt, mode='short')} ago] {response}"
+            response = (
+                f"[Offline, {clock.human_timedelta(clock.utcnow() - gaming_session_dt, mode='short')} ago] {response}"
+            )
         return response
 
     @commands.group(aliases=["wl", "winloss"], invoke_fallback=True)
-    async def score(self, ctx: IreContext) -> None:
+    async def score(self, ctx: Context) -> None:
         """Show streamer's Win - Loss score ratio during the stream."""
         friend = self.bot.get_streamer(ctx.broadcaster.id)
         if not friend.online:
@@ -884,7 +890,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(content=response)
 
     @score.command()
-    async def offline(self, ctx: IreContext) -> None:
+    async def offline(self, ctx: Context) -> None:
         """Show streamer's Win - Loss score ratio during their last gaming session.
 
         Unlike !wl without any argument - this command counts games that were played off stream.
@@ -895,7 +901,7 @@ class MMRBot(IrePublicComponent):
         await ctx.send(content=response)
 
     @commands.command(name="d2pt")
-    async def dota2protracker_hero_page(self, ctx: IreContext) -> None:
+    async def dota2protracker_hero_page(self, ctx: Context) -> None:
         """Show Dota 2 Pro Tracker page for the currently played hero."""
         friend = await self.get_friend(ctx.broadcaster.id)
         npc_hero_name = friend.raw_rich_presence.get("param2")
@@ -908,7 +914,7 @@ class MMRBot(IrePublicComponent):
 
     @commands.is_owner()
     @commands.command(name="raw_rp")
-    async def send_raw_rich_presence(self, ctx: IreContext) -> None:
+    async def send_raw_rich_presence(self, ctx: Context) -> None:
         """Send current rich presence state to @irene for debugging reasons."""
         friend = await self.get_friend(ctx.broadcaster.id)
         to_send = fmt.codeblock(pprint.pformat(friend.raw_rich_presence), "json")
@@ -917,7 +923,7 @@ class MMRBot(IrePublicComponent):
 
     @commands.is_broadcaster()
     @commands.command(name="steam-invite")
-    async def steam_invite(self, ctx: IreContext, friend_id: int) -> None:
+    async def steam_invite(self, ctx: Context, friend_id: int) -> None:
         """Accept steam invite.
 
         Parameters

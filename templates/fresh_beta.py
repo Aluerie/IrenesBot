@@ -19,7 +19,7 @@ class BetaTest(BetaCog):
         pass
 
     @commands.command(name="test", aliases=["beta"])
-    async def test(self, ctx: IreContext) -> None:
+    async def test(self, ctx: Context) -> None:
         await ctx.send("test")
 
     @commands.Component.listener(name="custom_redemption_add")

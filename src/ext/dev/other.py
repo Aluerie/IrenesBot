@@ -19,7 +19,7 @@ from core import IreDevComponent
 from shared import clock, globs
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
     class RunDict(TypedDict):
         keywords: list[str]
@@ -34,7 +34,7 @@ class OtherDevCommands(IreDevComponent):
     """Other Dev Commands."""
 
     @commands.command(aliases=["char"])
-    async def charinfo(self, ctx: IreContext, *, characters: str) -> None:
+    async def charinfo(self, ctx: Context, *, characters: str) -> None:
         """Show information about character(-s).
 
         Only up to a 10 characters at a time though.
@@ -56,7 +56,7 @@ class OtherDevCommands(IreDevComponent):
         await ctx.send(names)
 
     @commands.command()
-    async def say(self, ctx: IreContext, *, message: str) -> None:
+    async def say(self, ctx: Context, *, message: str) -> None:
         """Make the bot repeat your message.
 
         Useful for making showcase of bot commands with slight edits.
@@ -64,7 +64,7 @@ class OtherDevCommands(IreDevComponent):
         await ctx.send(message)
 
     @commands.command()  # maybe the name "since" isn't the best but "uptime", "online" are already taken
-    async def since(self, ctx: IreContext) -> None:
+    async def since(self, ctx: Context) -> None:
         """🔬 Get the bot's uptime.
 
         Uptime is time for which the bot has been online without any crashes or reboots.
@@ -75,7 +75,7 @@ class OtherDevCommands(IreDevComponent):
         )
 
     @commands.command(aliases=["version", "packages", "libraries"])
-    async def versions(self, ctx: IreContext) -> None:
+    async def versions(self, ctx: Context) -> None:
         """🔬 Get info bot's main Python Packages."""
         curious_packages = ["twitchio"]  # list of packages versions of which I'm interested the most
         pv = sys.version_info  # python version
@@ -86,7 +86,7 @@ class OtherDevCommands(IreDevComponent):
         )
 
     @commands.command()
-    async def test_digits(self, ctx: IreContext) -> None:
+    async def test_digits(self, ctx: Context) -> None:
         """Test digit emotes in twitch chat.
 
         At the point of writing this function - the number emotes like :one: were not working

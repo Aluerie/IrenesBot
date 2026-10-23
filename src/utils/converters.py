@@ -16,7 +16,7 @@ from twitchio.ext import commands
 from shared import errors
 
 if TYPE_CHECKING:
-    from core import IreContext
+    from core import Context
 
 __all__ = (
     "TranslateArguments",
@@ -46,7 +46,8 @@ def flag_parser(
     user_input
         User Input.
     flags
-        The list of flags. User will be able to use them in their user input, e.g. "!translate Je t'aime to: en from: fr"
+        The list of flags. User will be able to use them in their user input,
+        e.g. "!translate Je t'aime to: en from: fr"
         has two flags: ``to`` and ``from``
     positional
         Whether the user input includes positional argument in the beginning of the string.
@@ -124,7 +125,7 @@ class TranslateConverter(commands.Converter[TranslateArguments]):
     """Translate Converter."""
 
     @override
-    async def convert(self, _: IreContext, user_input: str) -> TranslateArguments:  # ty: ignore[invalid-method-override]
+    async def convert(self, _: Context, user_input: str) -> TranslateArguments:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
         flags = flag_parser(user_input, flags=["to", "from"])
         if "_positional" not in flags or flags["_positional"] is None:

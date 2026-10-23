@@ -17,10 +17,10 @@ from twitchio.ext import commands
 from shared import errors
 
 if TYPE_CHECKING:
-    from core import IreBot  # ruff: ignore[unused-import]
+    from .bot import IreBot  # ruff: ignore[unused-import]
 
 
-class IreContext(commands.Context["IreBot"]):
+class Context(commands.Context["IreBot"]):
     """My custom context."""
 
     if TYPE_CHECKING:

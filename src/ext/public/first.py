@@ -26,7 +26,7 @@ from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
     class FirstRedeemsRow(TypedDict):
         user_id: str
@@ -65,7 +65,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
 
     @guards.is_broadcaster_or_dev()
     @commands.command()
-    async def setup_first_reward(self, ctx: IreContext) -> None:
+    async def setup_first_reward(self, ctx: Context) -> None:
         """Set up First Chatter Channel Reward in the broadcaster channel."""
         query = """
             SELECT COUNT(1)
@@ -103,7 +103,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
 
     @guards.is_broadcaster_or_dev()
     @commands.command()
-    async def fix_first_reward(self, ctx: IreContext) -> None:
+    async def fix_first_reward(self, ctx: Context) -> None:
         """Set up First Chatter Channel Reward in the broadcaster channel."""
         if (reward_row := await self.fetch_reward(ctx.broadcaster.id)) is None:
             msg = (
@@ -183,7 +183,9 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
             await reward.respond(msg)
             return
         if reward.max_per_stream.value != 1:
-            msg = get_response(f"Are you sure you want `Limit Redemptions Per Stream` to be {reward.max_per_stream.value}.")
+            msg = get_response(
+                f"Are you sure you want `Limit Redemptions Per Stream` to be {reward.max_per_stream.value}."
+            )
             await reward.respond(msg)
             return
 
@@ -327,7 +329,7 @@ class FirstChatterChannelRewardManagement(IrePublicComponent):
     # USER COMMANDS
 
     @commands.command(aliases=["first"])
-    async def firsts(self, ctx: IreContext) -> None:
+    async def firsts(self, ctx: Context) -> None:
         """Get top5 first redeemers."""
         query = """--sql
             SELECT user_id, first_times

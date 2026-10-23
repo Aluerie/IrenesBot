@@ -36,7 +36,7 @@ from shared.concepts import loop
 from utils import const
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
 log = logging.getLogger(__name__)
 

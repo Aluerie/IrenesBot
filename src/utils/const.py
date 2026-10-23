@@ -186,9 +186,7 @@ class BotsLowerName(StrEnum):
 class Logo(StrEnum):
     """Images for brands and logos."""
 
-    Twitch = (
-        "https://cdn3.iconfinder.com/data/icons/social-messaging-ui-color-shapes-2-free/128/social-twitch-circle-512.png"
-    )
+    Twitch = "https://cdn3.iconfinder.com/data/icons/social-messaging-ui-color-shapes-2-free/128/social-twitch-circle-512.png"
 
 
 class StvID(StrEnum):

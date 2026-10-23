@@ -245,7 +245,8 @@ class Alerts(IrePersonalComponent):
             return
 
         await subscription_message.respond(
-            f"{subscription_message.user.mention} just subscribed for {fmt.ordinal(subscription_message.months)} months "
+            f"{subscription_message.user.mention} just subscribed for "
+            f"{fmt.ordinal(subscription_message.months)} months "
             f"{const.Stv.Donki} thanks a lot"
         )
 

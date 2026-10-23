@@ -16,7 +16,7 @@ from shared import errors
 from utils import const
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from . import Context, IreBot
 
 
 __all__ = ("IreDevComponent", "IrePersonalComponent", "IrePublicComponent")
@@ -44,7 +44,7 @@ class IrePersonalComponent(IreComponent):
     """
 
     @override
-    async def component_before_invoke(self, ctx: IreContext) -> None:  # ty: ignore[invalid-method-override]
+    async def component_before_invoke(self, ctx: Context) -> None:  # ty: ignore[invalid-method-override]
         if not self.is_dev(ctx.broadcaster.id):
             msg = "Command is not allowed anywhere except Irene's channel"
             raise errors.NotAllowedError(msg, policy=errors.SILENT)
@@ -57,7 +57,7 @@ class IreDevComponent(IreComponent):
     """
 
     @override
-    async def component_before_invoke(self, ctx: IreContext) -> None:  # ty: ignore[invalid-method-override]
+    async def component_before_invoke(self, ctx: Context) -> None:  # ty: ignore[invalid-method-override]
         if ctx.chatter.id != ctx.bot.owner_id:
             msg = f"Command is not allowed by anybody else except Irene {const.Ffz.peepoPolice}"
             if ctx.broadcaster.id == ctx.bot.owner_id:

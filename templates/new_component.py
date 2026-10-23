@@ -15,14 +15,14 @@ from twitchio.ext import commands
 from core import IrePersonalComponent
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
 
 class NewCog(IrePersonalComponent):
     """New Cog."""
 
     @commands.command()
-    async def new_command(self, ctx: IreContext) -> None:
+    async def new_command(self, ctx: Context) -> None:
         """Send this."""
         await ctx.send("Not implemented yet!")
 

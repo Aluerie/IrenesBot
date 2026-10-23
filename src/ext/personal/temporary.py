@@ -19,7 +19,7 @@ from shared import errors
 from utils import const
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
     class RunDict(TypedDict):
         keywords: list[str]
@@ -37,7 +37,7 @@ class TemporaryCommands(IrePersonalComponent):
     """
 
     @commands.group(invoke_fallback=True)
-    async def gunfort(self, ctx: IreContext) -> None:
+    async def gunfort(self, ctx: Context) -> None:
         """Commands to count my successful and failed Yolo Gunfort attempts."""
         query = "SELECT value FROM ttv_counters WHERE name = $1;"
         success: int = await self.bot.pool.fetchval(query, "gunfort_success")
@@ -49,7 +49,7 @@ class TemporaryCommands(IrePersonalComponent):
 
     @commands.is_owner()
     @gunfort.command()
-    async def no(self, ctx: IreContext) -> None:
+    async def no(self, ctx: Context) -> None:
         """Count a failed Yolo Gunfort attempt in."""
         query = "SELECT value FROM ttv_counters WHERE name = $1;"
         success: int = await self.bot.pool.fetchval(query, "gunfort_success")
@@ -61,7 +61,7 @@ class TemporaryCommands(IrePersonalComponent):
 
     @commands.is_owner()
     @gunfort.command()
-    async def yes(self, ctx: IreContext) -> None:
+    async def yes(self, ctx: Context) -> None:
         """Count a successful Yolo Gunfort attempt in."""
         query = "UPDATE ttv_counters SET value = value + 1 WHERE name = $1 RETURNING value;"
         success: int = await self.bot.pool.fetchval(query, "gunfort_success")
@@ -72,7 +72,7 @@ class TemporaryCommands(IrePersonalComponent):
         await ctx.send(f"Yolo Gunfort is easy {const.Stv.EZdodge} {stats} {const.Stv.buenoSuccess}")
 
     @commands.command(name="is")
-    async def immortal_severance(self, ctx: IreContext) -> None:
+    async def immortal_severance(self, ctx: Context) -> None:
         """Print a proper speed-run order for IS dialog."""
         msg = (
             "👶 Kuro: "
@@ -90,13 +90,13 @@ class TemporaryCommands(IrePersonalComponent):
         await ctx.send(msg)
 
     @commands.command(name="iss")
-    async def immortal_severance_short(self, ctx: IreContext) -> None:
+    async def immortal_severance_short(self, ctx: Context) -> None:
         """Print a proper speed-run order for IS dialog."""
         msg = "Kuro: 1️⃣🟥2️⃣🟩🌸🟩3️⃣🟩4️⃣🟥5️⃣🟩 → Emma:🟥3x → Kuro:1️⃣🟥2️⃣🔥🟩 "
         await ctx.send(msg)
 
     @commands.command()
-    async def abc(self, ctx: IreContext) -> None:
+    async def abc(self, ctx: Context) -> None:
         """Send all possible *uh emotes to the chat."""
         # fmt: off
         alphabet = [
@@ -108,7 +108,7 @@ class TemporaryCommands(IrePersonalComponent):
         await ctx.send(text)
 
     @commands.command()
-    async def based(self, ctx: IreContext) -> None:
+    async def based(self, ctx: Context) -> None:
         """Sword based."""
         msg = (
             "Sword ✨ BASED ✨ is my vision of how 'Sword Damage Only' restriction "
@@ -120,7 +120,7 @@ class TemporaryCommands(IrePersonalComponent):
         await ctx.send(msg)
 
     @commands.command()
-    async def run(self, ctx: IreContext) -> None:
+    async def run(self, ctx: Context) -> None:
         """My run."""
         msg = (
             "All Unique Bosses, which means I need to kill at least one boss from the same 'type', "
@@ -132,7 +132,7 @@ class TemporaryCommands(IrePersonalComponent):
 
     @commands.cooldown(rate=1, per=dt.timedelta(seconds=60), key=commands.BucketType.channel)
     @commands.command()
-    async def chat(self, ctx: IreContext, *, argument: str) -> None:
+    async def chat(self, ctx: Context, *, argument: str) -> None:
         """Repeat chatter's request.
 
         This is useful to bypass mod-only restriction of cyan-chat.

@@ -21,7 +21,7 @@ from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
     class Tracked(TypedDict):
         game: str
@@ -79,7 +79,7 @@ class StreamInformation(IrePersonalComponent):
         self.title = channel_info.title
 
     @commands.command(name="game", aliases=["category"])
-    async def game_command(self, ctx: IreContext, *, game_name: str | None = None) -> None:
+    async def game_command(self, ctx: Context, *, game_name: str | None = None) -> None:
         """Either get current channel game or update it."""
         if game_name is None:
             # 1. No argument
@@ -122,7 +122,7 @@ class StreamInformation(IrePersonalComponent):
         await broadcaster.modify_channel(title=title)
 
     @commands.group(name="title", invoke_fallback=True)
-    async def title_group(self, ctx: IreContext, *, title: str = "") -> None:
+    async def title_group(self, ctx: Context, *, title: str = "") -> None:
         """Title group commands.
 
         Can be used with subcommands. But when used on its - it either shows the title or updates it,
@@ -149,7 +149,7 @@ class StreamInformation(IrePersonalComponent):
 
     @commands.is_moderator()
     @title_group.command(name="set")
-    async def title_set(self, ctx: IreContext, *, title: str) -> None:
+    async def title_set(self, ctx: Context, *, title: str) -> None:
         """Set the title for the stream."""
         await self.update_title(ctx.broadcaster, title=title)
         await ctx.send(f'{const.Stv.donkHappy} Set title to "{title}"')
@@ -185,7 +185,7 @@ class StreamInformation(IrePersonalComponent):
     @guards.is_online()
     @commands.cooldown(rate=1, per=60, key=commands.BucketType.channel)
     @commands.command()
-    async def marker(self, ctx: IreContext, description: str) -> None:
+    async def marker(self, ctx: Context, description: str) -> None:
         """Create a stream marker.
 
         Stream marker is a just a timestamp to mark in Twitch.tv Video Highlighter.

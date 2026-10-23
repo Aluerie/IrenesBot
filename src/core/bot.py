@@ -28,9 +28,7 @@ from shared.apis import stv
 from shared.concepts import BotBase
 from utils import const
 
-from .bases import IreContext
-
-# from .error_manager import ErrorManager
+from .context import Context
 from .subscriptions import get_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
@@ -228,7 +226,7 @@ class IreBot(BotBase, commands.AutoBot):
     async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
         """Event called when an error happens during command invoking."""
         command = payload.context.command
-        ctx: IreContext = payload.context  # ty: ignore[invalid-assignment] we do not use Channel Point commands.
+        ctx: Context = payload.context  # ty: ignore[invalid-assignment] we do not use Channel Point commands.
         error = payload.exception
 
         if command and command.has_error and ctx.error_dispatched:
@@ -237,7 +235,9 @@ class IreBot(BotBase, commands.AutoBot):
         if isinstance(error, commands.CommandInvokeError) and error.original:
             # we aren't interested in the chain traceback from invoking:
             error = error.original
-        if isinstance(error, (commands.GuardFailure, commands.BadArgument)) and isinstance(error.__cause__, errors.BotError):
+        if isinstance(error, (commands.GuardFailure, commands.BadArgument)) and isinstance(
+            error.__cause__, errors.BotError
+        ):
             # We are interested in __cause__ when it's BotError.
             error = error.__cause__
 
@@ -253,7 +253,8 @@ class IreBot(BotBase, commands.AutoBot):
             case commands.CommandOnCooldown():
                 command_name = f"{ctx.prefix}{command.name}" if command else "this command"
                 await ctx.send(
-                    f"Command {command_name} is on cooldown! Try again in {error.remaining:.0f} sec {const.Stv.Timeloth}",
+                    f"Command {command_name} is on cooldown! "
+                    "Try again in {error.remaining:.0f} sec {const.Stv.Timeloth}",
                 )
             case commands.GuardFailure():
                 # To make custom responses for default `twitchio` guards - need to cook a bit.
@@ -273,7 +274,9 @@ class IreBot(BotBase, commands.AutoBot):
                 )
                 await ctx.send(f"{guard_response} {const.Ffz.peepoPolice}")
             case commands.MissingRequiredArgument():
-                await ctx.send(f'You need to provide "{error.param.name}" argument for this command {const.Ffz.peepoPolice}')
+                await ctx.send(
+                    f'You need to provide "{error.param.name}" argument for this command {const.Ffz.peepoPolice}'
+                )
             case commands.BadArgument():
                 log.error("%s: %s name=%s value=%s", type(error), error, error.name, error.value)
                 if cause := error.__cause__:
@@ -458,8 +461,8 @@ class IreBot(BotBase, commands.AutoBot):
         self,
         payload: twitchio.ChatMessage | twitchio.ChannelPointsRedemptionAdd | twitchio.ChannelPointsRedemptionUpdate,
         *,
-        cls: Any = IreContext,
-    ) -> IreContext:
+        cls: Any = Context,
+    ) -> Context:
         # they have channel points commands but I'm not using it (yet)
         return super().get_context(payload, cls=cls)
 

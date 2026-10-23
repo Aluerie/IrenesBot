@@ -1,4 +1,10 @@
-"""Configuration file for the Sphinx documentation builder."""
+"""Configuration file for the Sphinx documentation builder.
+
+Notices
+-------
+* MPL-2.0 License, see LICENSE file for more details.
+* Copyright (C) 2020-present @Aluerie.
+"""
 
 # -- Project information
 
@@ -97,7 +103,14 @@ templates_path = ["_templates"]
 epub_show_urls = "no"
 
 
-def remove_module_docstring(app: application.Sphinx, what: str, name: str, obj: Any, options: Any, lines: list[Any]) -> None:  # ruff: ignore[unused-function-argument]
+def remove_module_docstring(
+    app: application.Sphinx,  # ruff: ignore[unused-function-argument]
+    what: str,
+    name: str,  # ruff: ignore[unused-function-argument]
+    obj: Any,  # ruff: ignore[unused-function-argument]
+    options: Any,  # ruff: ignore[unused-function-argument]
+    lines: list[Any],
+) -> None:
     """Delete all module docstrings.
 
     Generally, We include license/copyright notions there so we don't want the documentation to be spammed with it.
@@ -107,7 +120,7 @@ def remove_module_docstring(app: application.Sphinx, what: str, name: str, obj: 
     * https://stackoverflow.com/a/18031024/19217368
     """
     if what == "module":
-        del lines[:]
+        del lines[:]  # ruff: ignore[delete-full-slice]
 
 
 def setup(app: application.Sphinx) -> None:

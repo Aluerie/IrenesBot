@@ -18,7 +18,7 @@ from shared import errors
 from utils import const
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
     class TagQueryRow(TypedDict):
         tag_name: str
@@ -38,7 +38,7 @@ class Tags(IrePersonalComponent):
     """Commands to fetch something by a tag name."""
 
     @commands.group(invoke_fallback=True, name="tag", aliases=["tags", "t"])
-    async def tag_group(self, ctx: IreContext, tag_name: str) -> None:
+    async def tag_group(self, ctx: Context, tag_name: str) -> None:
         """Group command for `!tag`.
 
         Without a subcommand this fetches a tag.
@@ -52,7 +52,7 @@ class Tags(IrePersonalComponent):
 
     @commands.is_moderator()
     @tag_group.command(name="add", aliases=["a", "create"])
-    async def tag_add(self, ctx: IreContext, tag_name: str, *, tag_content: str) -> None:
+    async def tag_add(self, ctx: Context, tag_name: str, *, tag_content: str) -> None:
         """Add a new tag.
 
         Parameters
@@ -84,7 +84,7 @@ class Tags(IrePersonalComponent):
 
     @commands.is_moderator()
     @tag_group.command(name="delete", aliases=["del", "remove", "d"])
-    async def tag_delete(self, ctx: IreContext, tag_name: str) -> None:
+    async def tag_delete(self, ctx: Context, tag_name: str) -> None:
         """Delete tag by name."""
         query = """
             DELETE FROM ttv_tags
@@ -100,7 +100,7 @@ class Tags(IrePersonalComponent):
 
     @commands.is_moderator()
     @tag_group.command(name="edit", aliases=["e"])
-    async def tag_edit(self, ctx: IreContext, tag_name: str, *, tag_content: str) -> None:
+    async def tag_edit(self, ctx: Context, tag_name: str, *, tag_content: str) -> None:
         """Edit tag."""
         query = """
             UPDATE ttv_tags
@@ -117,7 +117,7 @@ class Tags(IrePersonalComponent):
 
     @commands.is_moderator()
     @tag_group.command(name="rename", aliases=["r"])
-    async def tag_rename(self, ctx: IreContext, tag_name: str, new_tag_name: str) -> None:
+    async def tag_rename(self, ctx: Context, tag_name: str, new_tag_name: str) -> None:
         """Rename tag."""
         query = """
             UPDATE ttv_tags
@@ -133,7 +133,7 @@ class Tags(IrePersonalComponent):
         )
 
     @tag_group.command(name="names", aliases=["n"])
-    async def tag_names(self, ctx: IreContext) -> None:
+    async def tag_names(self, ctx: Context) -> None:
         """Tag names list."""
         query = """
             SELECT tag_name FROM ttv_tags;
@@ -146,7 +146,7 @@ class Tags(IrePersonalComponent):
         )
 
     @tag_group.command(name="list", aliases=["l", "all"])
-    async def tag_list(self, ctx: IreContext) -> None:
+    async def tag_list(self, ctx: Context) -> None:
         """Tag list."""
         query = """
             SELECT tag_name, tag_content FROM ttv_tags;

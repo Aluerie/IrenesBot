@@ -23,7 +23,7 @@ from shared import errors
 from . import const
 
 if TYPE_CHECKING:
-    from core import IreContext
+    from core import Context
 
 __all__ = (
     "is_online",
@@ -38,7 +38,7 @@ def is_production() -> Any:
     kill the bot process or reboot it.
     """
 
-    def predicate(ctx: IreContext) -> bool:
+    def predicate(ctx: Context) -> bool:
         # Still allow Irene to use the command during the testing;
         if not ctx.bot.test or ctx.chatter.id == ctx.bot.owner_id:
             return True
@@ -51,7 +51,7 @@ def is_production() -> Any:
 def is_online() -> Any:
     """Allow the command to be completed only when Irene's stream is online."""
 
-    def predicate(ctx: IreContext) -> bool:
+    def predicate(ctx: Context) -> bool:
         if ctx.bot.is_online(ctx.broadcaster.id):
             return True
         msg = f"This commands is allowed only during online streams {const.Ffz.peepoPolice}"
@@ -63,7 +63,7 @@ def is_online() -> Any:
 def is_owner_channel() -> Any:
     """Allow the command to be completed only in Irene's stream channel."""
 
-    def predicate(ctx: IreContext) -> bool:
+    def predicate(ctx: Context) -> bool:
         if ctx.channel.id == ctx.bot.owner_id:
             return True
         # decorators order in twitchio performs
@@ -81,7 +81,7 @@ def is_broadcaster_or_dev() -> Any:
     Similar to `@commands.is_broadcaster` but includes Irene too.
     """
 
-    def predicate(ctx: IreContext) -> bool:
+    def predicate(ctx: Context) -> bool:
         if ctx.chatter.id in {ctx.broadcaster.id, ctx.bot.owner_id}:
             return True
         msg = f"Sorry, this command can only be used by the streamer {const.Ffz.peepoPolice}"
@@ -96,7 +96,7 @@ def is_dev() -> Any:
     Similar to `@commands.is_owner`.
     """
 
-    def predicate(ctx: IreContext) -> bool:
+    def predicate(ctx: Context) -> bool:
         if ctx.chatter.id == ctx.bot.owner_id:
             return True
         msg = f"Sorry, this command can only be used by Irene {const.Ffz.peepoPolice}"

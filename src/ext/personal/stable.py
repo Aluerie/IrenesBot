@@ -22,7 +22,7 @@ from shared import clock, globs
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
 
 log = logging.getLogger(__name__)
@@ -45,17 +45,17 @@ class StableCommands(IrePersonalComponent):
         self.yt_music_on: asyncio.Event = asyncio.Event()
 
     @commands.group(name="ads", aliases=["ad", "commercial"])
-    async def ads_group(self, ctx: IreContext) -> None:
+    async def ads_group(self, ctx: Context) -> None:
         """Ads group command."""
 
     @ads_group.command(name="start", aliases=["run"])
-    async def ads_start(self, ctx: IreContext, length: int = 180) -> None:
+    async def ads_start(self, ctx: Context, length: int = 180) -> None:
         """Run ads."""
         await ctx.broadcaster.start_commercial(length=length)
         await ctx.send("Running ads in 3 2 1 (if possible)")
 
     @ads_group.command(name="snooze")
-    async def ads_snooze(self, ctx: IreContext) -> None:
+    async def ads_snooze(self, ctx: Context) -> None:
         """Snooze next ad."""
         await ctx.broadcaster.snooze_next_ad()
         await ctx.send(f"Snoozing next ad for 5 min {const.Stv.DankApprove}")
@@ -63,33 +63,33 @@ class StableCommands(IrePersonalComponent):
     @commands.cooldown(rate=1, per=60, key=commands.BucketType.channel)
     @guards.is_owner_channel()
     @commands.command()
-    async def boink(self, ctx: IreContext) -> None:
+    async def boink(self, ctx: Context) -> None:
         """Send an announcement for an obligatory boink."""
         await ctx.send_announcement(content=f"it's time to boink {const.Stv.Boink}", color="purple")
 
     @commands.command()
-    async def controller(self, ctx: IreContext) -> None:
+    async def controller(self, ctx: Context) -> None:
         """Get Irene's current controller model."""
         await ctx.send("Razer Wolverine V3 Tournament Edition Xbox Black")
 
     @commands.command()
-    async def discord(self, ctx: IreContext) -> None:
+    async def discord(self, ctx: Context) -> None:
         """Link to my discord community server."""
         await ctx.send(f"{const.Stv.discord} discord.gg/K8FuDeP")
 
     @commands.command()
-    async def donate(self, ctx: IreContext) -> None:
+    async def donate(self, ctx: Context) -> None:
         """Link to my Donation page."""
         await ctx.send("donationalerts.com/r/irene_adler__")  # cSpell: ignore donationalerts
 
     @commands.command()
-    async def followage(self, ctx: IreContext) -> None:  # cSpell: ignore followage
+    async def followage(self, ctx: Context) -> None:  # cSpell: ignore followage
         """Get your follow age."""
         # just a small joke to teach people
         await ctx.send("Just click your name 4Head")
 
     @commands.command(aliases=["lorem", "ipsum"])
-    async def loremipsum(self, ctx: IreContext) -> None:
+    async def loremipsum(self, ctx: Context) -> None:
         """Lorem ipsum."""
         await ctx.send(  # cSpell:disable
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. "
@@ -101,7 +101,7 @@ class StableCommands(IrePersonalComponent):
         )  # cSpell:enable
 
     @commands.command()
-    async def love(self, ctx: IreContext, *, arg: str) -> None:
+    async def love(self, ctx: Context, *, arg: str) -> None:
         """Measure love between chatter and `arg`.
 
         arg can be a user or anything else.
@@ -135,12 +135,12 @@ class StableCommands(IrePersonalComponent):
             await ctx.send(f"{love}% love between {ctx.chatter.mention} and {arg} {emote}")
 
     @commands.command()
-    async def lurk(self, ctx: IreContext) -> None:
+    async def lurk(self, ctx: Context) -> None:
         """Make it clear to the chat that you are lurking."""
         await ctx.send(f"{ctx.chatter.mention} is now lurking {const.Stv.DankLurk} Have fun {const.Stv.donkHappy}")
 
     @commands.command(name="decide", aliases=["ball", "8ball", "answer", "question", "yesno"])
-    async def magic_ball(self, ctx: IreContext, *, text: str | None = None) -> None:
+    async def magic_ball(self, ctx: Context, *, text: str | None = None) -> None:
         """Get a random answer from a Magic Ball.
 
         Better than ChatGPT.
@@ -194,12 +194,12 @@ class StableCommands(IrePersonalComponent):
         await ctx.send(random.choice(options))
 
     @commands.command()
-    async def nomic(self, ctx: IreContext) -> None:
+    async def nomic(self, ctx: Context) -> None:
         """No mic."""
         await ctx.send("Please read info below the stream, specifically, FAQ")
 
     @commands.command()
-    async def oversight(self, ctx: IreContext) -> None:
+    async def oversight(self, ctx: Context) -> None:
         """Give me the famous Oversight Dark Willow copypaste."""
         await ctx.send(
             "The biggest🙌💯oversight🔭🔍with Dark✊🏾Willow🌳is that she's unbelievably sexy🤤💦🍆. "
@@ -210,19 +210,19 @@ class StableCommands(IrePersonalComponent):
         )
 
     @commands.command(aliases=["pcparts", "specs"])  # cSpell: ignore pcparts
-    async def pc(self, ctx: IreContext) -> None:
+    async def pc(self, ctx: Context) -> None:
         """Get Irene's current PC setup."""
         await ctx.send("pcpartpicker.com/user/aluerie/saved/dY497P")  # cSpell: ignore pcpartpicker
 
     @commands.command()
-    async def playlist(self, ctx: IreContext) -> None:
+    async def playlist(self, ctx: Context) -> None:
         """Get the link to my Spotify playlist."""
         await ctx.send("open.spotify.com/playlist/7fVAcuDPLVAUL8555vy8Kz?si=b26cecab2cf24608")  # cSpell: ignore DPLVAUL
 
     @commands.cooldown(rate=1, per=60, key=commands.BucketType.channel)
     @guards.is_owner_channel()
     @commands.command(aliases=["rr", "russianroulette"])  # cSpell: ignore russianroulette
-    async def roulette(self, ctx: IreContext) -> None:
+    async def roulette(self, ctx: Context) -> None:
         """Play russian roulette."""
         mention = ctx.chatter.mention
 
@@ -251,7 +251,7 @@ class StableCommands(IrePersonalComponent):
     @commands.is_moderator()
     @guards.is_owner_channel()
     @commands.command(aliases=["so"])
-    async def shoutout(self, ctx: IreContext, user: twitchio.User) -> None:
+    async def shoutout(self, ctx: Context, user: twitchio.User) -> None:
         """Do /shoutout to a user."""
         await ctx.broadcaster.send_shoutout(to_broadcaster=user.id, moderator=const.UserID.Bot)
 
@@ -273,14 +273,16 @@ class StableCommands(IrePersonalComponent):
         else:
             self.yt_music_on.set()
 
-    async def check_spotify(self, ctx: IreContext) -> None:
+    async def check_spotify(self, ctx: Context) -> None:
         """Check irene's spotify status, if there is none - it tries to wait for YT Music status."""
         url = f"https://spotify.aidenwallis.co.uk/u/{env.SPOTIFY_AIDENWALLIS}"
         async with self.bot.session.get(url) as resp:
             resp_text = await resp.text()
 
         if not resp.ok:
-            await ctx.send(f"{const.Stv.Spotify} Irene needs to login + authorize for the tool to work {const.Stv.dankFix}")
+            await ctx.send(
+                f"{const.Stv.Spotify} Irene needs to login + authorize for the tool to work {const.Stv.dankFix}"
+            )
             return
 
         if resp_text.startswith("Error:"):
@@ -316,7 +318,7 @@ class StableCommands(IrePersonalComponent):
     # @commands.cooldown(rate=1, per=10, key=commands.BucketType.channel)
     @guards.is_owner_channel()
     @commands.command()
-    async def song(self, ctx: IreContext) -> None:
+    async def song(self, ctx: Context) -> None:
         """Get currently played song on Spotify."""
         self.yt_music_on.clear()
         await asyncio.gather(
@@ -325,7 +327,7 @@ class StableCommands(IrePersonalComponent):
         )
 
     @commands.command()
-    async def uptime(self, ctx: IreContext) -> None:
+    async def uptime(self, ctx: Context) -> None:
         """Get stream uptime."""
         stream = next(iter(await self.bot.fetch_streams(user_ids=[ctx.broadcaster.id])), None)
         if stream is None:
@@ -335,7 +337,7 @@ class StableCommands(IrePersonalComponent):
             await ctx.send(f"{clock.human_timedelta(uptime)} {const.Stv.peepoDapper}")
 
     @commands.command(aliases=["seppuku"])
-    async def vanish(self, ctx: IreContext) -> None:
+    async def vanish(self, ctx: Context) -> None:
         """Vanish from the chat by time-outing yourself."""
         if ctx.chatter.moderator:
             if "seppuku" in ctx.message.text:
@@ -349,7 +351,7 @@ class StableCommands(IrePersonalComponent):
             )
 
     @commands.command()
-    async def vods(self, ctx: IreContext) -> None:
+    async def vods(self, ctx: Context) -> None:
         """Get the link to youtube vods archive."""
         await ctx.send(f"youtube.com/@AluerieVODS/ {const.Stv.Cinema}")
 

@@ -20,7 +20,7 @@ from shared.concepts import loop
 from utils import const, guards
 
 if TYPE_CHECKING:
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class ExtConverter(commands.Converter[str]):
     """
 
     @override
-    async def convert(self, ctx: IreContext, arg: str) -> str:  # ty: ignore[invalid-method-override]
+    async def convert(self, ctx: Context, arg: str) -> str:  # ty: ignore[invalid-method-override]
         # TODO: do somwething like where "stv" and "public.stv" are allowed to be used
         return f"ext.{arg}"
 
@@ -42,9 +42,6 @@ class Control(IreDevComponent):
 
     def __init__(self, bot: IreBot) -> None:
         super().__init__(bot)
-        # I'm not sure if it's the right way but one day our 10 minutes loop task
-        # got rate-limited with
-        # `discord.errors.HTTPException: 429 Too Many Requests (error code: 40062): Service resource is being rate limited`
         self.heartbeat_task.add_exception_type(discord.HTTPException)
 
     @override
@@ -59,7 +56,7 @@ class Control(IreDevComponent):
 
     @guards.is_production()
     @commands.command(aliases=["kill"])
-    async def maintenance(self, ctx: IreContext) -> None:
+    async def maintenance(self, ctx: Context) -> None:
         """Kill the bot process on VPS.
 
         Usable for bot testing so I don't have double responses.
@@ -77,7 +74,7 @@ class Control(IreDevComponent):
 
     @guards.is_production()
     @commands.command(aliases=["restart"])
-    async def reboot(self, ctx: IreContext) -> None:
+    async def reboot(self, ctx: Context) -> None:
         """Restart the bot process on VPS.
 
         Usable to restart the bot without logging to VPS machine or committing something.
@@ -92,28 +89,28 @@ class Control(IreDevComponent):
             await ctx.send("Something went wrong.")
 
     @commands.command()
-    async def unload(self, ctx: IreContext, *, modules: Annotated[str, ExtConverter]) -> None:
+    async def unload(self, ctx: Context, *, modules: Annotated[str, ExtConverter]) -> None:
         """Unload the modules (I also call them 'extensions')."""
         await self.bot.unload_module(modules)
         log.info("!unload - unloaded %s", modules)
         await ctx.send(f"{const.Stv.DankApprove} unloaded {modules}")
 
     @commands.command()
-    async def reload(self, ctx: IreContext, *, modules: Annotated[str, ExtConverter]) -> None:
+    async def reload(self, ctx: Context, *, modules: Annotated[str, ExtConverter]) -> None:
         """Reload the modules (I also call them 'extensions')."""
         await self.bot.reload_module(modules)
         log.info("!reload - reloaded %s", modules)
         await ctx.send(f"{const.Stv.DankApprove} reloaded {modules}")
 
     @commands.command()
-    async def load(self, ctx: IreContext, *, modules: Annotated[str, ExtConverter]) -> None:
+    async def load(self, ctx: Context, *, modules: Annotated[str, ExtConverter]) -> None:
         """Load the modules (I also call them 'extensions')."""
         await self.bot.load_module(modules)
         log.info("!load - loaded %s", modules)
         await ctx.send(f"{const.Stv.DankApprove} loaded {modules}")
 
     @commands.command(name="modules", aliases=["extensions", "components"])  # module != component but whatever
-    async def list_modules(self, ctx: IreContext) -> None:
+    async def list_modules(self, ctx: Context) -> None:
         """List modules that are currently loaded by the bot.
 
         Examples

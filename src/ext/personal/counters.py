@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     import twitchio
 
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
     class FirstRedeemsRow(TypedDict):
         user_name: str
@@ -78,7 +78,7 @@ class Counters(IrePersonalComponent):
             return
 
     @commands.command(aliases=["erm"])
-    async def erms(self, ctx: IreContext) -> None:
+    async def erms(self, ctx: Context) -> None:
         """Get an erm_counter value."""
         query = "SELECT value FROM ttv_counters WHERE name = $1"
         value: int = await self.bot.pool.fetchval(query, "erm")

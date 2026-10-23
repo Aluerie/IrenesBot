@@ -30,7 +30,7 @@ from utils import const, guards
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from core import IreBot, IreContext
+    from core import Context, IreBot
 
     #########################################################################################################################
     # DATABASE QUERY ROW TYPE-HINTS
@@ -80,94 +80,105 @@ class OwnershipEnum(StrEnum):
 
 
 # fmt: off
-# taken and edited from https://github.com/FrankerFaceZ/Add-Ons/blob/master/src/no-bad-emotes/common.json
-# Removed: boat
-# Added: color
-# You can use pprint to print the list in a shortened way:
-#     import pprint
-#     pprint.pprint(COMMON_WORDS, width=125, compact=True)
+"""
+Common Words
+------------
+* taken and edited from https://github.com/FrankerFaceZ/Add-Ons/blob/master/src/no-bad-emotes/common.json
+* Removed: boat
+* Added: color
+* You can use ``pprint`` to print the list in a shortened way:
+
+.. code-block:: alpha.py
+
+    import pprint
+    from ext.public.seven_tv import COMMON_WORDS
+    pprint.pprint(tuple(COMMON_WORDS), width=120, compact=True)
+"""
 COMMON_WORDS = frozenset((
-'a', 'able', 'about', 'absolute', 'accept', 'account', 'achieve', 'across', 'act', 'active', 'actual', 'add', 'address',
-'admit', 'advertise', 'affect', 'afford', 'after', 'afternoon', 'again', 'against', 'age', 'agent', 'ago', 'agree', 'air',
-'all', 'allow', 'almost', 'along', 'already', 'alright', 'also', 'although', 'always', 'america', 'amount', 'and', 'ant',
-'antenna', 'another', 'answer', 'any', 'angry', 'apart', 'apparent', 'appear', 'apply', 'appoint', 'approach',
-'appropriate', 'area', 'argue', 'arm', 'around', 'arrange', 'art', 'as', 'ask', 'associate', 'assume', 'at', 'attend',
-'authority', 'available', 'aware', 'away', 'awful', 'baby', 'back', 'bad', 'bag', 'balance', 'ball', 'bank', 'bar', 'base',
-'basis', 'be', 'bear', 'beat', 'beauty', 'because', 'become', 'bed', 'before', 'begin', 'behind', 'believe', 'benefit',
-'best', 'bet', 'between', 'big', 'bill', 'binoculars', 'birth', 'bit', 'black', 'bloke', 'blood', 'blow', 'blue', 'board',
-'body', 'book', 'both', 'bother', 'bottle', 'bottom', 'box', 'boy', 'break', 'brief', 'brilliant', 'bring', 'britain',
-'brother', 'budget', 'build', 'bus', 'business', 'busy', 'but', 'buy', 'by', 'bye', 'cake', 'call', 'can', 'car', 'card',
-'care', 'carry', 'case', 'cat', 'catch', 'cause', 'cent', 'centre', 'certain', 'chair', 'chairman', 'chance', 'change',
-'chap', 'character', 'charge', 'cheap', 'check', 'chicken', 'child', 'choice', 'choose', 'christ', 'christmas', 'church',
-'city', 'claim', 'class', 'classic', 'clean', 'clear', 'client', 'clock', 'close', 'closes', 'clothe', 'club', 'coffee',
-'cold', 'colleague', 'collect', 'college', 'color', 'colour', 'come', 'comment', 'commit', 'committee', 'common',
-'community', 'company', 'compare', 'complete', 'compute', 'concern', 'conch', 'condition', 'confer', 'consider', 'consult',
-'contact', 'continue', 'contract', 'control', 'converse', 'cook', 'copy', 'corner', 'correct', 'cost', 'could', 'council',
-'count', 'country', 'county', 'couple', 'course', 'court', 'cover', 'create', 'cross', 'cup', 'current', 'cut', 'dad',
-'danger', 'date', 'day', 'dead', 'deal', 'dear', 'debate', 'decide', 'decision', 'deep', 'definite', 'degree', 'department',
-'depend', 'describe', 'design', 'detail', 'develop', 'die', 'difference', 'difficult', 'dinner', 'direct', 'disbelief',
-'discuss', 'district', 'divide', 'do', 'doctor', 'document', 'dog', 'door', 'double', 'doubt', 'down', 'draw', 'dress',
-'drink', 'drive', 'drop', 'dry', 'due', 'during', 'each', 'early', 'east', 'easy', 'eat', 'economy', 'educate', 'effect',
-'egg', 'eight', 'either', 'elect', 'electric', 'eleven', 'else', 'employ', 'encourage', 'end', 'engine', 'english', 'enjoy',
-'enough', 'enter', 'environment', 'equal', 'especial', 'europe', 'even', 'evening', 'ever', 'every', 'evidence', 'exact',
-'example', 'except', 'excuse', 'exercise', 'exist', 'expect', 'expense', 'experience', 'explain', 'express', 'exquisite',
-'extra', 'eye', 'face', 'fact', 'fair', 'fall', 'family', 'far', 'farm', 'fast', 'father', 'favour', 'feed', 'feel', 'few',
-'field', 'fight', 'figure', 'file', 'fill', 'film', 'final', 'finance', 'find', 'fine', 'finish', 'fire', 'first', 'fish',
-'fishing', 'fit', 'five', 'flat', 'flash', 'flashback', 'flirt', 'floor', 'fly', 'follow', 'food', 'foot', 'for', 'force',
-'forget', 'form', 'fortune', 'forward', 'four', 'france', 'free', 'friday', 'friend', 'from', 'front', 'full', 'fun',
-'function', 'fund', 'further', 'future', 'game', 'garden', 'gas', 'gaze', 'general', 'germany', 'get', 'girl', 'give',
-'glass', 'go', 'god', 'good', 'goodbye', 'govern', 'grand', 'grant', 'great', 'green', 'ground', 'group', 'grow', 'guess',
-'guy', 'hack', 'hacking', 'hair', 'half', 'hall', 'hand', 'hang', 'happen', 'happy', 'hard', 'hate', 'have', 'he', 'head',
-'health', 'hear', 'heart', 'heat', 'heavy', 'hell', 'hello', 'help', 'here', 'hi', 'high', 'history', 'hit', 'hold',
-'holiday', 'home', 'honest', 'hope', 'horse', 'hospital', 'hot', 'hour', 'house', 'how', 'however', 'hullo', 'hundred',
-'husband', 'idea', 'identify', 'idiot', 'if', 'imagine', 'important', 'improve', 'in', 'include', 'income', 'increase',
-'indeed', 'individual', 'industry', 'inform', 'inside', 'instead', 'insure', 'interest', 'into', 'intro', 'introduce',
-'invest', 'involve', 'issue', 'it', 'item', 'jesus', 'job', 'join', 'judge', 'jump', 'just', 'keep', 'key', 'kid', 'kill',
-'kind', 'king', 'kitchen', 'knock', 'know', 'labour', 'lad', 'lady', 'land', 'language', 'large', 'last', 'late', 'laugh',
-'law', 'lay', 'lead', 'learn', 'leave', 'left', 'leg', 'less', 'let', 'letter', 'level', 'lie', 'life', 'light', 'like',
-'likely', 'limit', 'line', 'link', 'list', 'listen', 'listening', 'little', 'live', 'load', 'local', 'lock', 'london',
-'long', 'look', 'lord', 'lose', 'lot', 'love', 'low', 'luck', 'lunch', 'machine', 'main', 'major', 'make', 'man', 'manage',
-'many', 'mark', 'market', 'marry', 'match', 'matter', 'maw', 'may', 'maybe', 'mean', 'meaning', 'measure', 'meow', 'meet',
-'member', 'mention', 'middle', 'might', 'mile', 'milk', 'million', 'mind', 'minister', 'minus', 'minute', 'miss', 'mister',
-'mitosis', 'mod', 'mods', 'modding', 'moderator', 'moderators', 'moment', 'monday', 'money', 'month', 'more', 'morning',
-'most', 'mother', 'motion', 'move', 'mrs', 'much', 'music', 'must', 'name', 'nation', 'nature', 'near', 'necessary', 'need',
-'never', 'new', 'news', 'next', 'nice', 'night', 'nine', 'no', 'non', 'none', 'normal', 'north', 'not', 'note', 'notes',
-'notice', 'now', 'number', 'observe', 'observing', 'obvious', 'occasion', 'odd', 'of', 'off', 'offer', 'office', 'often',
-'ok', 'okay', 'old', 'on', 'once', 'one', 'only', 'open', 'operate', 'opportunity', 'oppose', 'or', 'orange', 'order',
-'organize', 'original', 'other', 'otherwise', 'ought', 'out', 'over', 'own', 'pack', 'pain', 'page', 'paint', 'pair',
-'panic', 'paper', 'paragraph', 'pardon', 'parent', 'park', 'part', 'particular', 'party', 'pass', 'past', 'pay', 'pence',
-'pension', 'people', 'per', 'percent', 'perfect', 'perhaps', 'period', 'person', 'photograph', 'pick', 'picture', 'piece',
-'place', 'plan', 'play', 'please', 'plus', 'point', 'police', 'policy', 'politic', 'poor', 'position', 'positive',
-'possible', 'post', 'pound', 'power', 'practice', 'practise', 'prepare', 'present', 'press', 'pressure', 'presume', 'pretty',
-'previous', 'price', 'prince', 'princess', 'print', 'private', 'probable', 'problem', 'proceed', 'process', 'produce',
-'product', 'programme', 'project', 'proper', 'propose', 'protect', 'provide', 'public', 'pull', 'purpose', 'push', 'put',
-'quality', 'quarter', 'question', 'quick', 'quid', 'quiet', 'quite', 'radio', 'rail', 'raise', 'range', 'rate', 'rather',
-'react', 'reacting', 'read', 'ready', 'real', 'realise', 'realize', 'really', 'reason', 'receive', 'recent', 'reckon',
-'recognize', 'recommend', 'record', 'recording', 'red', 'reduce', 'refer', 'regard', 'region', 'regret', 'relation',
-'remember', 'report', 'represent', 'require', 'research', 'resource', 'respect', 'responsible', 'rest', 'result', 'return',
-'rid', 'right', 'ring', 'rise', 'road', 'role', 'roll', 'room', 'round', 'rule', 'run', 'safe', 'sale', 'same', 'saturday',
-'save', 'say', 'scare', 'scared', 'scheme', 'school', 'science', 'score', 'scotland', 'seat', 'second', 'secretary',
-'section', 'secure', 'see', 'seem', 'self', 'sell', 'send', 'sense', 'separate', 'serious', 'serve', 'service', 'set',
-'settle', 'seven', 'sex', 'shall', 'share', 'she', 'sheet', 'shoe', 'shoot', 'shop', 'short', 'should', 'show', 'shut',
-'sick', 'side', 'sign', 'similar', 'simple', 'since', 'sing', 'single', 'sir', 'sister', 'sit', 'sitting', 'site', 'situate',
-'six', 'size', 'sleep', 'slight', 'slow', 'small', 'smoke', 'sneak', 'sneaking', 'so', 'social', 'society', 'some', 'son',
-'soon', 'sorry', 'sort', 'sound', 'south', 'space', 'speak', 'special', 'specific', 'speed', 'spell', 'spend', 'square',
-'staff', 'stage', 'stairs', 'stand', 'standard', 'start', 'state', 'station', 'stay', 'step', 'stick', 'still', 'stop',
-'story', 'straight', 'strategy', 'street', 'strike', 'strong', 'structure', 'student', 'study', 'stuff', 'stupid', 'subject',
-'succeed', 'such', 'sudden', 'suggest', 'suit', 'summer', 'sun', 'sunday', 'supply', 'support', 'suppose', 'sure',
-'surprise', 'switch', 'system', 'table', 'take', 'talk', 'tape', 'tax', 'tea', 'teach', 'team', 'telephone', 'television',
-'tell', 'ten', 'tend', 'term', 'terrible', 'test', 'than', 'thank', 'the', 'then', 'there', 'therefore', 'they', 'thing',
-'think', 'thirteen', 'thirty', 'this', 'thou', 'though', 'thousand', 'three', 'through', 'throw', 'thursday', 'tie', 'time',
-'timeout', 'to', 'today', 'together', 'tomorrow', 'tonight', 'too', 'top', 'total', 'touch', 'toward', 'town', 'trade',
-'traffic', 'train', 'transport', 'travel', 'treat', 'tree', 'trouble', 'true', 'trust', 'try', 'tuesday', 'turn', 'twelve',
-'twenty', 'two', 'type', 'under', 'understand', 'union', 'unit', 'unite', 'university', 'unless', 'until', 'up', 'upon',
-'use', 'usual', 'value', 'various', 'very', 'vibe', 'vibing', 'video', 'view', 'village', 'visit', 'voice', 'voices',
-'vote', 'wage', 'wait', 'waiting', 'walk', 'walking', 'wall', 'want', 'war', 'warm', 'warn', 'warning', 'wash', 'waste',
-'watch', 'watching', 'water', 'way', 'we', 'wear', 'wednesday', 'wee', 'week', 'weigh', 'welcome', 'well', 'west', 'what',
-'when', 'where', 'whether', 'which', 'while', 'white', 'who', 'whole', 'why', 'wide', 'wife', 'will', 'win', 'wind',
-'window', 'wish', 'with', 'within', 'without', 'woman', 'wonder', 'wood', 'woof', 'word', 'work', 'world', 'worry', 'worse',
-'worth', 'would', 'wow', 'write', 'wrong', 'year', 'yes', 'yesterday', 'yet', 'yellow', 'yo', 'you', 'young',)
-)
+'weigh', 'instead', 'cover', 'five', 'politic', 'telephone', 'real', 'otherwise', 'pain', 'rather', 'waste', 'do',
+ 'once', 'near', 'die', 'ought', 'serious', 'percent', 'unless', 'wash', 'collect', 'rid', 'video', 'scared', 'car',
+ 'parent', 'believe', 'old', 'operate', 'pass', 'smoke', 'warm', 'want', 'first', 'east', 'test', 'lead', 'so', 'thing',
+ 'mother', 'village', 'home', 'suit', 'city', 'hand', 'score', 'see', 'employ', 'enjoy', 'achieve', 'hello', 'welcome',
+ 'each', 'over', 'yellow', 'clean', 'case', 'blue', 'already', 'idiot', 'leg', 'lord', 'ant', 'doubt', 'hour', 'enter',
+ 'every', 'present', 'beat', 'round', 'letter', 'sneak', 'run', 'result', 'than', 'contact', 'spell', 'start', 'bed',
+ 'horse', 'window', 'although', 'america', 'grant', 'long', 'say', 'set', 'quality', 'number', 'drop', 'chair', 'ten',
+ 'evening', 'orange', 'sign', 'wonder', 'authority', 'side', 'ground', 'thank', 'intro', 'bottom', 'maybe', 'receive',
+ 'motion', 'refer', 'why', 'bother', 'honest', 'price', 'community', 'mile', 'ring', 'sit', 'guess', 'money', 'note',
+ 'thirty', 'trouble', 'admit', 'match', 'affect', 'paper', 'safe', 'positive', 'report', 'into', 'new', 'drive',
+ 'fortune', 'hi', 'continue', 'if', 'street', 'friday', 'either', 'invest', 'eleven', 'lunch', 'big', 'recent', 'make',
+ 'involve', 'sale', 'usual', 'surprise', 'tonight', 'be', 'sex', 'end', 'therefore', 'commit', 'draw', 'because',
+ 'meow', 'put', 'simple', 'twelve', 'bank', 'dad', 'consult', 'throw', 'budget', 'one', 'then', 'choice', 'out', 'or',
+ 'fun', 'value', 'argue', 'attend', 'behind', 'child', 'definite', 'mention', 'sleep', 'question', 'improve', 'favour',
+ 'moderator', 'dog', 'wait', 'voices', 'sister', 'waiting', 'reduce', 'cheap', 'light', 'flat', 'game', 'decision',
+ 'laugh', 'agree', 'minister', 'matter', 'during', 'to', 'europe', 'exist', 'relation', 'cross', 'process', 'time',
+ 'heavy', 'radio', 'check', 'hell', 'mitosis', 'remember', 'visit', 'join', 'aware', 'yet', 'proper', 'role',
+ 'function', 'away', 'paint', 'quick', 'paragraph', 'sheet', 'sneaking', 'farm', 'far', 'whether', 'off', 'scotland',
+ 'trade', 'necessary', 'document', 'agent', 'quite', 'walking', 'find', 'appropriate', 'environment', 'lose', 'need',
+ 'bill', 'should', 'week', 'air', 'voice', 'shall', 'meaning', 'non', 'reacting', 'own', 'history', 'maw',
+ 'responsible', 'early', 'ago', 'limit', 'black', 'pretty', 'low', 'order', 'tea', 'beauty', 'business', 'grand',
+ 'none', 'staff', 'advertise', 'classic', 'form', 'wife', 'current', 'couple', 'pull', 'structure', 'morning', 'actual',
+ 'feed', 'comment', 'else', 'road', 'since', 'two', 'flash', 'vote', 'proceed', 'stay', 'extra', 'catch', 'union',
+ 'great', 'may', 'mark', 'hit', 'clear', 'sick', 'today', 'term', 'secretary', 'town', 'friend', 'evidence', 'bottle',
+ 'father', 'propose', 'poor', 'brother', 'deal', 'middle', 'call', 'stupid', 'protect', 'per', 'park', 'shoe',
+ 'suggest', 'company', 'pack', 'regard', 'seat', 'little', 'resource', 'think', 'must', 'hair', 'science', 'cake',
+ 'any', 'fall', 'doctor', 'space', 'flirt', 'sound', 'degree', 'left', 'alright', 'moment', 'with', 'plus', 'shop',
+ 'down', 'brief', 'card', 'general', 'buy', 'man', 'mind', 'save', 'supply', 'reason', 'project', 'full', 'count',
+ 'dress', 'wee', 'day', 'switch', 'word', 'gas', 'quid', 'level', 'person', 'look', 'inform', 'mod', 'glass', 'girl',
+ 'class', 'act', 'night', 'settle', 'conch', 'worse', 'equal', 'move', 'print', 'world', 'could', 'depend', 'large',
+ 'as', 'listening', 'load', 'tree', 'strong', 'listen', 'bad', 'ever', 'sense', 'heart', 'germany', 'television',
+ 'policy', 'change', 'wide', 'blood', 'angry', 'church', 'except', 'wall', 'ok', 'way', 'post', 'flashback', 'base',
+ 'university', 'very', 'wow', 'share', 'for', 'fight', 'learn', 'react', 'about', 'power', 'rate', 'effect', 'benefit',
+ 'news', 'send', 'type', 'allow', 'teach', 'bear', 'talk', 'tape', 'door', 'yes', 'life', 'separate', 'sing', 'water',
+ 'nation', 'come', 'include', 'princess', 'break', 'white', 'it', 'kid', 'study', 'subject', 'realize', 'part', 'small',
+ 'million', 'figure', 'key', 'original', 'jesus', 'even', 'team', 'without', 'picture', 'cut', 'still', 'up', 'common',
+ 'elect', 'mean', 'explain', 'prince', 'issue', 'situate', 'toward', 'high', 'sorry', 'difficult', 'minute', 'pence',
+ 'centre', 'happy', 'hard', 'color', 'tomorrow', 'lot', 'binoculars', 'second', 'available', 'transport', 'until',
+ 'bus', 'six', 'might', 'three', 'not', 'apply', 'meet', 'social', 'represent', 'income', 'easy', 'young', 'expect',
+ 'last', 'amount', 'local', 'fact', 'cat', 'oppose', 'district', 'due', 'hospital', 'absolute', 'ball', 'antenna',
+ 'hundred', 'idea', 'across', 'educate', 'forward', 'introduce', 'nice', 'too', 'against', 'department', 'face',
+ 'consider', 'board', 'region', 'insure', 'spend', 'step', 'can', 'increase', 'hear', 'hullo', 'marry', 'section',
+ 'special', 'try', 'machine', 'presume', 'add', 'table', 'exact', 'future', 'music', 'fish', 'okay', 'private', 'raise',
+ 'woman', 'year', 'right', 'walk', 'dinner', 'school', 'film', 'labour', 'just', 'fire', 'range', 'sun', 'really',
+ 'discuss', 'late', 'trust', 'four', 'half', 'other', 'lie', 'force', 'dear', 'best', 'month', 'unite', 'watching',
+ 'apart', 'associate', 'bar', 'boy', 'such', 'art', 'balance', 'begin', 'self', 'electric', 'nature', 'corner',
+ 'quarter', 'vibe', 'client', 'rail', 'short', 'together', 'important', 'baby', 'occasion', 'detail', 'free', 'south',
+ 'recording', 'follow', 'london', 'tax', 'luck', 'much', 'ask', 'eye', 'well', 'help', 'build', 'wood', 'choose',
+ 'modding', 'problem', 'thirteen', 'total', 'pardon', 'by', 'chap', 'english', 'fly', 'care', 'keep', 'back', 'product',
+ 'warning', 'answer', 'service', 'correct', 'character', 'place', 'charge', 'stuff', 'bet', 'jump', 'imagine', 'read',
+ 'grow', 'thou', 'upon', 'engine', 'suppose', 'a', 'tell', 'shut', 'show', 'scare', 'normal', 'express', 'govern',
+ 'fit', 'bag', 'fast', 'quiet', 'member', 'christ', 'fill', 'club', 'give', 'job', 'hack', 'rest', 'some', 'worry',
+ 'group', 'wage', 'press', 'court', 'support', 'concern', 'egg', 'divide', 'appear', 'people', 'god', 'identify',
+ 'here', 'compare', 'size', 'perfect', 'britain', 'opportunity', 'stairs', 'touch', 'few', 'arm', 'country', 'plan',
+ 'committee', 'on', 'watch', 'thursday', 'disbelief', 'account', 'industry', 'let', 'wish', 'blow', 'main', 'seem',
+ 'turn', 'unit', 'create', 'bloke', 'open', 'have', 'please', 'tie', 'practise', 'probable', 'work', 'summer',
+ 'research', 'same', 'along', 'sell', 'copy', 'terrible', 'west', 'lay', 'more', 'chicken', 'mrs', 'you', 'lady',
+ 'assume', 'major', 'finish', 'recognize', 'soon', 'various', 'cook', 'kind', 'practice', 'nine', 'stop', 'shoot',
+ 'warn', 'county', 'reckon', 'awful', 'knock', 'good', 'yesterday', 'before', 'red', 'chance', 'slow', 'tuesday', 'law',
+ 'past', 'sure', 'body', 'woof', 'hall', 'file', 'student', 'condition', 'and', 'complete', 'would', 'house', 'almost',
+ 'odd', 'treat', 'now', 'date', 'pick', 'minus', 'they', 'birth', 'another', 'list', 'whole', 'family', 'many',
+ 'record', 'will', 'love', 'sir', 'regret', 'age', 'exquisite', 'chairman', 'within', 'compute', 'able', 'food',
+ 'scheme', 'heat', 'photograph', 'clothe', 'garden', 'point', 'kitchen', 'speak', 'strike', 'at', 'eight', 'name',
+ 'next', 'danger', 'colour', 'final', 'often', 'what', 'get', 'most', 'arrange', 'all', 'feel', 'never', 'take',
+ 'under', 'he', 'drink', 'book', 'notes', 'previous', 'lad', 'tend', 'active', 'contract', 'travel', 'claim', 'expense',
+ 'sudden', 'vibing', 'goodbye', 'dry', 'sunday', 'leave', 'interest', 'hacking', 'ready', 'wear', 'system', 'line',
+ 'decide', 'society', 'design', 'happen', 'become', 'field', 'describe', 'how', 'dead', 'stage', 'pair', 'secure',
+ 'standard', 'state', 'fine', 'son', 'twenty', 'pay', 'converse', 'go', 'timeout', 'individual', 'period', 'hot',
+ 'wind', 'enough', 'indeed', 'straight', 'husband', 'develop', 'sort', 'clock', 'stand', 'christmas', 'offer', 'afford',
+ 'play', 'observing', 'prepare', 'item', 'measure', 'through', 'programme', 'war', 'respect', 'return', 'appoint',
+ 'always', 'double', 'cause', 'moderators', 'difference', 'closes', 'who', 'less', 'finance', 'there', 'only', 'of',
+ 'cent', 'purpose', 'realise', 'apparent', 'story', 'bit', 'busy', 'though', 'while', 'cost', 'however', 'slight',
+ 'speed', 'page', 'use', 'stick', 'push', 'win', 'around', 'confer', 'obvious', 'where', 'land', 'hang', 'view',
+ 'inside', 'miss', 'piece', 'kill', 'seven', 'train', 'which', 'mister', 'north', 'france', 'like', 'colleague',
+ 'holiday', 'top', 'accept', 'single', 'milk', 'council', 'particular', 'true', 'mods', 'cup', 'address', 'king',
+ 'likely', 'both', 'require', 'she', 'market', 'rule', 'wednesday', 'write', 'organize', 'area', 'experience',
+ 'succeed', 'understand', 'this', 'further', 'hope', 'encourage', 'economy', 'exercise', 'similar', 'fund', 'example',
+ 'gaze', 'health', 'guy', 'from', 'head', 'language', 'monday', 'saturday', 'also', 'basis', 'position', 'hate', 'roll',
+ 'site', 'cold', 'foot', 'bring', 'floor', 'possible', 'direct', 'pound', 'college', 'when', 'deep', 'manage', 'judge',
+ 'office', 'between', 'station', 'traffic', 'we', 'no', 'hold', 'forget', 'room', 'fair', 'lock', 'perhaps', 'link',
+ 'pressure', 'produce', 'course', 'serve', 'know', 'strategy', 'brilliant', 'provide', 'bye', 'after', 'the', 'panic',
+ 'approach', 'eat', 'close', 'control', 'notice', 'excuse', 'again', 'certain', 'live', 'party', 'thousand', 'wrong',
+ 'but', 'square', 'recommend', 'rise', 'specific', 'yo', 'police', 'public', 'sitting', 'front', 'in', 'especial',
+ 'box', 'coffee', 'carry', 'green', 'debate', 'worth', 'pension', 'observe', 'fishing', 'afternoon'))
 # fmt: on
 
 
@@ -217,7 +228,9 @@ def regex_to_emote(stv: StvGraphQLClient, emote_id_or_link: str) -> PartialEmote
     return stv.create_partial_emote(search["emote_id"])
 
 
-async def parse_emote(stv: StvGraphQLClient, emote_id_link_or_name: str, broadcaster_id: str | None = None) -> PartialEmote:
+async def parse_emote(
+    stv: StvGraphQLClient, emote_id_link_or_name: str, broadcaster_id: str | None = None
+) -> PartialEmote:
     """Parse or search."""
     try:
         # try parsing `emote_id`
@@ -244,7 +257,8 @@ async def parse_add_rename_reward_input(
     user_input
         User input
     broadcaster_id
-        If provided then the 7tv client will search for the emote within the user emotes, if not - it will search globally.
+        If provided then the 7tv client will search for the emote within the user emotes,
+        if not - it will search globally.
     """
     split = user_input.split()
     if len(split) > 2:
@@ -293,7 +307,7 @@ class SearchEmoteConverter(commands.Converter[PartialEmote]):
     """
 
     @override
-    async def convert(self, ctx: IreContext, emote_id_link_or_name: str) -> PartialEmote:  # ty: ignore[invalid-method-override]
+    async def convert(self, ctx: Context, emote_id_link_or_name: str) -> PartialEmote:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
         return await parse_emote(ctx.bot.stv, emote_id_link_or_name)
 
@@ -307,7 +321,7 @@ class UserEmoteConverter(commands.Converter[PartialEmote]):
     """
 
     @override
-    async def convert(self, ctx: IreContext, emote_id_link_or_name: str) -> PartialEmote:  # ty: ignore[invalid-method-override]
+    async def convert(self, ctx: Context, emote_id_link_or_name: str) -> PartialEmote:  # ty: ignore[invalid-method-override]
         """Convert `user_input` to 7TV emote_id."""
         return await parse_emote(ctx.bot.stv, emote_id_link_or_name, ctx.broadcaster.id)
 
@@ -317,7 +331,7 @@ class UserEmoteConverter(commands.Converter[PartialEmote]):
 #############################################################################################################################
 
 
-async def _is_broadcaster_dev_or_editor_predicate(ctx: IreContext) -> Literal[True]:
+async def _is_broadcaster_dev_or_editor_predicate(ctx: Context) -> Literal[True]:
     if ctx.chatter.id in {ctx.broadcaster.id, ctx.bot.owner_id}:
         return True
 
@@ -354,7 +368,7 @@ def is_broadcaster_dev_editor_or_adder() -> Any:
     This guard is needed solely for documentation quirks purposes.
     """
 
-    def predicate(_: IreContext) -> Literal[True]:
+    def predicate(_: Context) -> Literal[True]:
         return True
 
     return commands.guard(predicate)
@@ -596,7 +610,7 @@ class SevenTVPublic(IrePublicComponent):
             msg = self.NO_REWARD_ERROR_MSG.format(reward.name)
             raise errors.RespondWithError(msg)
 
-    async def validate_editor_status(self, ctx: IreContext) -> None:
+    async def validate_editor_status(self, ctx: Context) -> None:
         """Validate whether the bot is currently a 7TV editor for the ctx.broadcaster."""
         partial_user = ctx.bot.stv.create_partial_user(ctx.broadcaster.id)
         editor_for = await partial_user.check_bot_editor()
@@ -666,7 +680,7 @@ class SevenTVPublic(IrePublicComponent):
     async def validate_is_emote_alias_a_common_word(
         self, broadcaster_id: str, emote_id: str, emote_alias: str | None = None
     ) -> Literal[True]:
-        """Validate whether the emote alias is a common word (if common words are not allowed to be used as emote aliases).
+        """Validate whether the emote alias is a common word.
 
         Internally, this just checks against a list of common words.
         Only lowercase strings are not allowed.
@@ -709,7 +723,7 @@ class SevenTVPublic(IrePublicComponent):
 
     async def create_custom_reward_helper(
         self,
-        ctx: IreContext,
+        ctx: Context,
         *,
         reward: Reward,
         reward_title: str,
@@ -752,7 +766,9 @@ class SevenTVPublic(IrePublicComponent):
 
         # Validate same title
         streamer_rewards = await ctx.broadcaster.fetch_custom_rewards()
-        same_title_reward = next((r for r in streamer_rewards if r.title == reward_title and r.id != old_reward_id), None)
+        same_title_reward = next(
+            (r for r in streamer_rewards if r.title == reward_title and r.id != old_reward_id), None
+        )
         if same_title_reward is not None:
             msg = (
                 f"This channel already has a channel points reward with a title '{reward_title}'? "
@@ -806,7 +822,7 @@ class SevenTVPublic(IrePublicComponent):
     #########################################################################################################################
 
     @commands.group(name="7tv", aliases=["stv"], invoke_fallback=True)
-    async def stv(self, ctx: IreContext) -> None:
+    async def stv(self, ctx: Context) -> None:
         """Group command for `!7tv`.
 
         Without a subcommand this lists subcommands.
@@ -818,7 +834,7 @@ class SevenTVPublic(IrePublicComponent):
     #########################################################################################################################
 
     @stv.group(name="permanent", invoke_fallback=True)
-    async def stv_permanent(self, ctx: IreContext) -> None:
+    async def stv_permanent(self, ctx: Context) -> None:
         """Group command for `!7tv permanent`.
 
         These commands manage "Add Permanent Emote" channel points reward.
@@ -830,7 +846,7 @@ class SevenTVPublic(IrePublicComponent):
     # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_permanent.command(name="create")
-    async def stv_permanent_create(self, ctx: IreContext, *, recreate: str = "") -> None:
+    async def stv_permanent_create(self, ctx: Context, *, recreate: str = "") -> None:
         """Create 'Add Permanent Emote' channel points reward.
 
         The bot will listen to the redemptions of this reward and process them to add permanent 7tv emotes.
@@ -857,7 +873,7 @@ class SevenTVPublic(IrePublicComponent):
         )
 
     @stv_permanent.command(name="status")
-    async def stv_permanent_status(self, ctx: IreContext) -> None:
+    async def stv_permanent_status(self, ctx: Context) -> None:
         """Get some information about 'Add Permanent Emote' channel points reward's status."""
         custom_reward = await self.get_custom_reward(self.permanent, ctx.broadcaster)
         status = " \N{BULLET} ".join([
@@ -899,7 +915,9 @@ class SevenTVPublic(IrePublicComponent):
 
         # Step 3. Add the requested emote
 
-        await self.run_add_emote_validators(emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias)
+        await self.run_add_emote_validators(
+            emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias
+        )
         await emote_set.add_emote(emote_id=emote.id, emote_alias=alias)
         log.debug("Added #%s", emote.id)
 
@@ -920,7 +938,8 @@ class SevenTVPublic(IrePublicComponent):
     async def double_check_cycle_emotes_existence(self) -> None:
         """Double check database's data.
 
-        For example, if the streamer manually deleted emotes while the bot is offline - then database might have wrong data.
+        For example, if the streamer manually deleted emotes while the bot is offline -
+        then database might have wrong data.
         """
         query = "SELECT emote_id, emote_set_id FROM ttv_stv_cycle_emotes"
         emote_sets = defaultdict[str, list[str]](list)
@@ -944,7 +963,7 @@ class SevenTVPublic(IrePublicComponent):
     #########################################################################################################################
 
     @stv.group(name="cycle", invoke_fallback=True)
-    async def stv_cycle(self, ctx: IreContext) -> None:
+    async def stv_cycle(self, ctx: Context) -> None:
         """Group command for `!7tv cycle`.
 
         These commands manage 7tv cycle channel points reward and related emotes.
@@ -956,7 +975,7 @@ class SevenTVPublic(IrePublicComponent):
     # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="create")
-    async def stv_cycle_create(self, ctx: IreContext, *, recreate: str = "") -> None:
+    async def stv_cycle_create(self, ctx: Context, *, recreate: str = "") -> None:
         """Create 'Add Cycle Emote' channel points reward, redeems for which will be and process to add/remove emotes.
 
         A few notes about the created channel points reward:
@@ -980,7 +999,7 @@ class SevenTVPublic(IrePublicComponent):
         )
 
     @stv_cycle.command(name="status")
-    async def stv_cycle_status(self, ctx: IreContext) -> None:
+    async def stv_cycle_status(self, ctx: Context) -> None:
         """Get some information about 'Add Cycle Emote' channel points reward's status."""
         custom_reward = await self.get_custom_reward(self.cycle, ctx.broadcaster)
         query = """
@@ -1008,7 +1027,7 @@ class SevenTVPublic(IrePublicComponent):
     # TODO: Wait for FlagConverter
     @is_broadcaster_dev_or_editor()
     @stv_cycle.command(name="settings")
-    async def stv_cycle_settings(self, ctx: IreContext, emote_limit: int | None = None) -> None:
+    async def stv_cycle_settings(self, ctx: Context, emote_limit: int | None = None) -> None:
         """Change 'Add Cycle Emote' channel points reward's settings.
 
         Parameters
@@ -1043,8 +1062,8 @@ class SevenTVPublic(IrePublicComponent):
     @stv_cycle.command(name="drop")
     async def stv_cycle_drop(
         self,
-        ctx: IreContext,
-        emote: Annotated[PartialEmote, UserEmoteConverter],
+        ctx: Context,
+        emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
     ) -> None:
         """Drop an emote from the 'Add Cycle Emote' emotes list.
 
@@ -1054,8 +1073,8 @@ class SevenTVPublic(IrePublicComponent):
 
         Parameters
         ----------
-        emote
-            ``<emote_name_link_or_id>`` which is supposed to be an emote identifier:
+        emote_id_link_or_name
+            is supposed to be an emote identifier:
 
             * emote link (any link containing its ID, e.g. emote link or its CDN-link),
             * emote ID (characters sequence after the last "/" in the emote link)
@@ -1070,14 +1089,14 @@ class SevenTVPublic(IrePublicComponent):
         * ``!7tv cycle drop https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF``
         """
         query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND broadcaster_id = $2 RETURNING emote_id"
-        emote_id: str | None = await self.bot.pool.fetchval(query, emote.id, ctx.broadcaster.id)
+        emote_id: str | None = await self.bot.pool.fetchval(query, emote_id_link_or_name.id, ctx.broadcaster.id)
         if emote_id is None:
             msg = "This emote is not related to 'Add Cycle Emote' reward."
             raise errors.RespondWithError(msg)
-        await ctx.send(f"'{emote.id}' was removed from the cycling emote list {self.EMOTE}")
+        await ctx.send(f"'{emote_id_link_or_name:.id}' was removed from the cycling emote list {self.EMOTE}")
 
     @stv_cycle.command(name="show-emotes", aliases=["all-emotes"])
-    async def stv_cycle_showemotes(self, ctx: IreContext) -> None:
+    async def stv_cycle_showemotes(self, ctx: Context) -> None:
         """Show all emotes that were added with 'Add Cycle Emote' channel points reward redemptions."""
         query = "SELECT emote_id FROM ttv_stv_cycle_emotes WHERE broadcaster_id = $1;"
         emote_ids = [e for (e,) in await self.bot.pool.fetch(query, ctx.broadcaster.id)]
@@ -1116,7 +1135,9 @@ class SevenTVPublic(IrePublicComponent):
         log.debug("Operating on emote_set #%s", emote_set.id)
 
         # Step 3. Need to validate the emote before attempting to remove
-        await self.run_add_emote_validators(emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias)
+        await self.run_add_emote_validators(
+            emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias
+        )
 
         # Step 4. Remove emote(-s) if above the limit
         query = """
@@ -1164,28 +1185,28 @@ class SevenTVPublic(IrePublicComponent):
         """Somebody redeemed a custom channel points reward."""
         await self.process_cycle_redemption(redemption)
 
-    #########################################################################################################################
-    # DEVELOPER TESTING COMMANDS                                                                                            #
-    #########################################################################################################################
+    ####################################################################################################################
+    # DEVELOPER TESTING COMMANDS
+    ####################################################################################################################
 
-    #########################################################################################################################
-    # 7TV EDITOR STATUS / ACCEPT                                                                                            #
-    #########################################################################################################################
+    ####################################################################################################################
+    # 7TV EDITOR STATUS / ACCEPT
+    ####################################################################################################################
 
     @stv.group(name="editor", invoke_fallback=True)
-    async def stv_editor(self, ctx: IreContext) -> None:
+    async def stv_editor(self, ctx: Context) -> None:
         """Editor Group."""
         await ctx.group_default_response()
 
     @stv_editor.command(name="status", aliases=["check"])
-    async def stv_editor_status(self, ctx: IreContext) -> None:
+    async def stv_editor_status(self, ctx: Context) -> None:
         """Show some debug information about state of 7TV editor request for the streamer."""
         await self.validate_editor_status(ctx)
         content = f"7tv editor invite is accepted and permissions are good {self.EMOTE}"
         await ctx.send(content)
 
     @stv_editor.command(name="guide")
-    async def stv_editor_guide(self, ctx: IreContext) -> None:
+    async def stv_editor_guide(self, ctx: Context) -> None:
         """Send a small guide on how to make the bot your 7TV editor.
 
         Practically a TL;DR of the "Attention" admonition from above.
@@ -1200,7 +1221,7 @@ class SevenTVPublic(IrePublicComponent):
 
     @guards.is_broadcaster_or_dev()
     @stv_editor.command(name="accept")
-    async def stv_editor_accept(self, ctx: IreContext) -> None:
+    async def stv_editor_accept(self, ctx: Context) -> None:
         """Make the bot accept a pending 7TV editor request from the streamer.
 
         Invoking this command also makes the bot attach to your currently active 7tv emote set.
@@ -1212,41 +1233,41 @@ class SevenTVPublic(IrePublicComponent):
         content = f"Just {res.lower()} your 7TV editor request; also {insert_response} {self.EMOTE}"
         await ctx.send(content)
 
-    #########################################################################################################################
-    # 7TV EMOTESET                                                                                                          #
-    #########################################################################################################################
+    ####################################################################################################################
+    # 7TV EMOTESET
+    ####################################################################################################################
 
     @stv.group(name="emoteset", invoke_fallback=True)
-    async def stv_emoteset(self, ctx: IreContext) -> None:
+    async def stv_emoteset(self, ctx: Context) -> None:
         """Emote Set Group."""
         await ctx.group_default_response()
 
     @guards.is_broadcaster_or_dev()
     @stv_emoteset.command(name="attach")
-    async def stv_emoteset_attach(self, ctx: IreContext, emote_set_id: str | None = None) -> None:
+    async def stv_emoteset_attach(self, ctx: Context, emote_set_id: str | None = None) -> None:
         """Attach bot's 7tv features to the emote set.
 
         Parameters
         ----------
         emote_set_id
             Optional, 7TV emote set id for the bot to attach to.
-            If not provided - the bot will attach to streamer's currently active emote set.
-            Due to my laziness this doesn't accept emote set links, so please, copy only ID part form the emote set's URL.
+            If not provided - the bot will attach to streamer's currently active emote set. Due to my laziness
+            this doesn't accept emote set links, so please, copy only ID part form the emote set's URL.
         """
         insert_response = await self.insert_into_stv_users(ctx.broadcaster.id, emote_set_id=emote_set_id)
         await ctx.send(f"Successfully {insert_response}")
 
     @stv_emoteset.command(name="status")
-    async def stv_emoteset_status(self, ctx: IreContext) -> None:
+    async def stv_emoteset_status(self, ctx: Context) -> None:
         """Show some debug information about currently attached 7tv emote set."""
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
         await ctx.send(f"{emote_set!r} {self.EMOTE}")
 
-    #########################################################################################################################
-    # 7TV EMOTE MANAGEMENT                                                                                                  #
-    #########################################################################################################################
+    ####################################################################################################################
+    # 7TV EMOTE MANAGEMENT
+    ####################################################################################################################
 
-    async def add_helper(self, ctx: IreContext, emote: PartialEmote, alias: str | None) -> None:
+    async def add_helper(self, ctx: Context, emote: PartialEmote, alias: str | None) -> None:
         """Add 7TV emote helper.
 
         Note that this doesn't use `self.emote_set_add_with_validations` because "!7tv add" commands are
@@ -1260,7 +1281,7 @@ class SevenTVPublic(IrePublicComponent):
     @stv.command(name="add")
     async def stv_add(
         self,
-        ctx: IreContext,
+        ctx: Context,
         emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
         alias: str | None = None,
     ) -> None:
@@ -1293,7 +1314,7 @@ class SevenTVPublic(IrePublicComponent):
     @commands.command(name="add")
     async def add(
         self,
-        ctx: IreContext,
+        ctx: Context,
         *,
         emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
         alias: str | None = None,
@@ -1304,11 +1325,11 @@ class SevenTVPublic(IrePublicComponent):
         """
         await self.add_helper(ctx, emote_id_link_or_name, alias)
 
-    #########################################################################################################################
-    # 7TV VIEWER (OR POSSIBLE VIEWER) COMMANDS                                                                              #
-    #########################################################################################################################
+    ####################################################################################################################
+    # 7TV VIEWER (OR POSSIBLE VIEWER) COMMANDS
+    ####################################################################################################################
 
-    async def validate_emote_ownership(self, ctx: IreContext, user_id: str, emote_id: str) -> OwnershipEnum:
+    async def validate_emote_ownership(self, ctx: Context, user_id: str, emote_id: str) -> OwnershipEnum:
         """Validate emote ownership.
 
         An emote is supposed to be managed by
@@ -1335,7 +1356,7 @@ class SevenTVPublic(IrePublicComponent):
 
         return OwnershipEnum.chatter
 
-    async def rename_emote_worker(self, ctx: IreContext, emote: PartialEmote, alias: str) -> None:
+    async def rename_emote_worker(self, ctx: Context, emote: PartialEmote, alias: str) -> None:
         """Rename 7TV emote helper."""
         ownership_type = await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
@@ -1349,7 +1370,7 @@ class SevenTVPublic(IrePublicComponent):
     @stv.command(name="rename")
     async def stv_rename(
         self,
-        ctx: IreContext,
+        ctx: Context,
         emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
         new_alias: str,
     ) -> None:
@@ -1382,7 +1403,7 @@ class SevenTVPublic(IrePublicComponent):
     @commands.command(name="rename")
     async def rename(
         self,
-        ctx: IreContext,
+        ctx: Context,
         *,
         emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
         new_alias: str,
@@ -1393,7 +1414,7 @@ class SevenTVPublic(IrePublicComponent):
         """
         await self.rename_emote_worker(ctx, emote_id_link_or_name, new_alias)
 
-    async def remove_emote_worker(self, ctx: IreContext, emote: PartialEmote) -> None:
+    async def remove_emote_worker(self, ctx: Context, emote: PartialEmote) -> None:
         """Remove 7TV emote helper."""
         await self.validate_emote_ownership(ctx, ctx.chatter.id, emote.id)
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
@@ -1405,9 +1426,9 @@ class SevenTVPublic(IrePublicComponent):
     @stv.command(name="remove")
     async def stv_remove(
         self,
-        ctx: IreContext,
+        ctx: Context,
         *,
-        emote: Annotated[PartialEmote, UserEmoteConverter],
+        emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
@@ -1415,30 +1436,30 @@ class SevenTVPublic(IrePublicComponent):
 
         Parameters
         ----------
-        emote
-            In the following format: ``<emote_name_link_or_id>`` which is supposed to be an emote identifier:
+        emote_id_link_or_name
+            is supposed to be an emote identifier:
 
             * emote link (any link containing its ID, e.g. emote link or its CDN-link),
             * emote ID (characters sequence after the last "/" in the emote link)
             * or emote name that the bot will use to search the desired emote globally across 7TV.
         """
-        await self.remove_emote_worker(ctx, emote)
+        await self.remove_emote_worker(ctx, emote_id_link_or_name)
 
     @is_broadcaster_dev_editor_or_adder()
     @commands.command(name="remove")
     async def remove(
         self,
-        ctx: IreContext,
+        ctx: Context,
         *,
-        emote: Annotated[PartialEmote, UserEmoteConverter],
+        emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
 
         Shortcut for ``!7tv remove``. Consult the documentation for that command.
         """
-        await self.remove_emote_worker(ctx, emote)
+        await self.remove_emote_worker(ctx, emote_id_link_or_name)
 
-    async def replace_emote_worker(self, ctx: IreContext, emote: PartialEmote, alias: str | None) -> None:
+    async def replace_emote_worker(self, ctx: Context, emote: PartialEmote, alias: str | None) -> None:
         """Replace 7TV emote helper."""
         # Validate it's been 10 minutes
         query = """
@@ -1474,7 +1495,7 @@ class SevenTVPublic(IrePublicComponent):
     @stv.command(name="replace")
     async def stv_replace(
         self,
-        ctx: IreContext,
+        ctx: Context,
         *,
         emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
         alias: str | None = None,
@@ -1485,8 +1506,8 @@ class SevenTVPublic(IrePublicComponent):
         they can replace it with this command.
         For example, if in their redemption they typed "smh", but the bot added some uninteresting version of "smh" -
         they can use ``!replace <some-cool-emote-id>`` without spending any points.
-        To prevent abuse, this command only allows replacing your most recent emote request if it was done within 10 minutes
-        of it.
+        To prevent abuse, this command only allows replacing your most recent emote request if it was done within
+        10 minutes of it.
 
         PS. This command also has a short version ``!replace`` (so no need to type ``!7tv``).
 
@@ -1503,14 +1524,14 @@ class SevenTVPublic(IrePublicComponent):
 
         Examples
         --------
-        All these examples below replace the most recent requested emote with a new one. Note that the user does not need to
-        type an identifier for the emote that they want to replace - the bot fetches their most recent emote addition
-        redemption.
+        All these examples below replace the most recent requested emote with a new one. Note that the user does not
+        need to type an identifier for the emote that they want to replace - the bot fetches their most recent
+        emote addition redemption.
 
         * ``!7tv replace 01F6R50PYR0004V0XPDH2CKXCH``
         * ``!7tv replace https://7tv.app/emotes/01F6R50PYR0004V0XPDH2CKXCH``
-        * ``!7tv replace smh DuckSmh`` - the bot will search 7tv for "smh", note that the bot will still add the most popular
-          one, so doing ``!replace smh`` after adding ``smh`` via redemption is pointless.
+        * ``!7tv replace smh DuckSmh`` - the bot will search 7tv for "smh", note that the bot will still add the most
+          popular one, so doing ``!replace smh`` after adding ``smh`` via redemption is pointless.
         """
         await self.replace_emote_worker(ctx, emote_id_link_or_name, alias)
 
@@ -1518,7 +1539,7 @@ class SevenTVPublic(IrePublicComponent):
     @commands.command(name="replace")
     async def replace(
         self,
-        ctx: IreContext,
+        ctx: Context,
         *,
         emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
         alias: str | None = None,
@@ -1529,12 +1550,12 @@ class SevenTVPublic(IrePublicComponent):
         """
         await self.replace_emote_worker(ctx, emote_id_link_or_name, alias)
 
-    #########################################################################################################################
-    # BLACKLIST                                                                                                             #
-    #########################################################################################################################
+    ####################################################################################################################
+    # BLACKLIST
+    ####################################################################################################################
 
     @stv.group(name="blacklist", invoke_fallback=True)
-    async def stv_blacklist(self, ctx: IreContext) -> None:
+    async def stv_blacklist(self, ctx: Context) -> None:
         """Group command for `!7tv blacklist`.
 
         These commands manage 7tv blacklist channel points reward and related emotes.
@@ -1546,7 +1567,7 @@ class SevenTVPublic(IrePublicComponent):
     # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_blacklist.command(name="create")
-    async def stv_blacklist_create(self, ctx: IreContext, *, recreate: str = "") -> None:
+    async def stv_blacklist_create(self, ctx: Context, *, recreate: str = "") -> None:
         """Create 'Blacklist/Remove Emote' channel points reward.
 
         A few notes:
@@ -1570,7 +1591,7 @@ class SevenTVPublic(IrePublicComponent):
         )
 
     @stv_blacklist.command(name="status")
-    async def stv_blacklist_status(self, ctx: IreContext) -> None:
+    async def stv_blacklist_status(self, ctx: Context) -> None:
         """Get some information about 'Blacklist/Remove Emote' channel points reward's status."""
         custom_reward = await self.get_custom_reward(self.blacklist, ctx.broadcaster)
         status = " \N{BULLET} ".join([
@@ -1584,7 +1605,7 @@ class SevenTVPublic(IrePublicComponent):
     @is_broadcaster_dev_or_editor()
     @stv_blacklist.command(name="settings")
     async def stv_blacklist_settings(
-        self, ctx: IreContext, *, days: int | None, hours: int | None, remove_only: bool | None
+        self, ctx: Context, *, days: int | None, hours: int | None, remove_only: bool | None
     ) -> None:
         """Show or change settings related to 'Blacklist/Remove Emote' channel points reward.
 
@@ -1598,8 +1619,8 @@ class SevenTVPublic(IrePublicComponent):
             A few notes:
 
             * The bot removes blacklisted status from emotes every hour at X:00. This means, for example,
-              if current blacklist duration is set to 7 days,
-              it's been 5 days since a certain emote was blacklisted and now the broadcaster sets new duration to 3 days then
+              if current blacklist duration is set to 7 days, it's been 5 days since a certain emote was blacklisted and
+              now the broadcaster sets new duration to 3 days then
               that emote (and other emotes) will be released at next X:00.
             * I guess, it's pedantic to point out that the emotes are not being blacklisted `precisely` for the inputted
               duration, since the bot does the blacklist-expiry task every hour at X:00. So an emote "AAA" that was
@@ -1643,9 +1664,13 @@ class SevenTVPublic(IrePublicComponent):
             query = "UPDATE ttv_stv_blacklist_rewards SET remove_only = $2 WHERE broadcaster_id = $1;"
             status: str = await self.bot.pool.execute(query, ctx.broadcaster.id, remove_only)
             if status == "UPDATE 0":
-                msg = f"This broadcaster does not have 'Blacklist/Remove Emote' channel points reward set up {self.EMOTE}"
+                msg = (
+                    f"This broadcaster does not have 'Blacklist/Remove Emote' channel points reward set up {self.EMOTE}"
+                )
                 raise errors.RespondWithError(msg)
-            await ctx.send(f"Changed 'Blacklist/Remove Emote' channel points reward behavior to remove-only {self.EMOTE}")
+            await ctx.send(
+                f"Changed 'Blacklist/Remove Emote' channel points reward behavior to remove-only {self.EMOTE}"
+            )
 
     async def process_blacklist_redemption(
         self,
@@ -1715,14 +1740,14 @@ class SevenTVPublic(IrePublicComponent):
 
     @is_broadcaster_dev_or_editor()
     @stv_blacklist.command(name="duration")
-    async def stv_blacklist_duration(self, ctx: IreContext, days: int, hours: int = 0) -> None:
+    async def stv_blacklist_duration(self, ctx: Context, days: int, hours: int = 0) -> None:
         """Set duration for which the emotes are going to be blacklisted."""
 
     #########################################################################################################################
     # SOME MODERATION RELATED
     #########################################################################################################################
 
-    async def get_who_added(self, ctx: IreContext, emote: PartialEmote) -> None:
+    async def get_who_added(self, ctx: Context, emote: PartialEmote) -> None:
         """Get username of who added the emote via channel redemption."""
         query = "SELECT requested_by FROM ttv_stv_cycle_emotes WHERE broadcaster_id = $1 AND emote_id = $2"
         user_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, emote.id)
@@ -1740,28 +1765,33 @@ class SevenTVPublic(IrePublicComponent):
         await ctx.send(f"Permanent emote: it was added by {display_name} {self.EMOTE}")
 
     @stv.command(name="who-added", aliases=["whoadded"])  # cSpell: words: whoadded
-    async def stv_who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, UserEmoteConverter]) -> None:
+    async def stv_who_added(
+        self, ctx: Context, *, emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter]
+    ) -> None:
         """Get twitch user who added the emote via channel redemption.
 
         PS. This command also has a short version ``!who-added`` (so no need to type ``!7tv``).
 
         Parameters
         ----------
-        emote
-            Format: ``<emote_name_link_or_id>`` which is supposed to be an emote identifier for the bot to find the emote:
-            emote link (any link containing its ID, e.g. emote link or its CDN-link),
-            emote ID (characters sequence after the last "/" in the emote link) or name that the bot will use to
-            search for desired emote in the broadcaster's emote set.
+        emote_id_link_or_name
+            is supposed to be an emote identifier:
+
+            * emote link (any link containing its ID, e.g. emote link or its CDN-link),
+            * emote ID (characters sequence after the last "/" in the emote link)
+            * or emote name that the bot will use to search the desired emote globally across 7TV.
         """
-        await self.get_who_added(ctx, emote)
+        await self.get_who_added(ctx, emote_id_link_or_name)
 
     @commands.command(name="who-added", aliases=["whoadded"])
-    async def who_added(self, ctx: IreContext, *, emote: Annotated[PartialEmote, UserEmoteConverter]) -> None:
+    async def who_added(
+        self, ctx: Context, *, emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter]
+    ) -> None:
         """Get twitch user who added the emote via channel redemption.
 
         Shortcut for ``!7tv who-added``. Consult the documentation for that command.
         """
-        await self.get_who_added(ctx, emote)
+        await self.get_who_added(ctx, emote_id_link_or_name)
 
     #########################################################################################################################
     # 7TV EDITORS
@@ -1769,11 +1799,11 @@ class SevenTVPublic(IrePublicComponent):
 
     @commands.cooldown(rate=1, per=60, key=commands.BucketType.channel)
     @stv.command(name="editors", aliases=["mods"])
-    async def stv_editors(self, ctx: IreContext) -> None:
+    async def stv_editors(self, ctx: Context) -> None:
         """Get 7tv editors for this broadcaster.
 
-        Important lazy quirk! I'm having troubles setting up receiving automatic updates from 7tv for emote / editor updates.
-        Currently the bot does NOT automatically fetch 7tv editors information for the streamers.
+        Important lazy quirk! I'm having troubles setting up receiving automatic updates from 7tv for emote / editor
+        updates. Currently the bot does NOT automatically fetch 7tv editors information for the streamers.
         So it does NOT automatically update the list of users who can use elevated 7tv commands (such as ``!7tv add``).
 
         However, this command does - it refreshes the list of 7tv list editors for the broadcaster in the database.
@@ -1806,7 +1836,7 @@ class SevenTVPublic(IrePublicComponent):
     #########################################################################################################################
 
     @stv.group(name="settings", invoke_fallback=True)
-    async def stv_settings(self, ctx: IreContext) -> None:
+    async def stv_settings(self, ctx: Context) -> None:
         """Group command for `!7tv settings`.
 
         These commands manage 7tv settings channel points reward and related emotes.
@@ -1817,7 +1847,7 @@ class SevenTVPublic(IrePublicComponent):
 
     @is_broadcaster_dev_or_editor()
     @stv_settings.command(name="allow-common-words", aliases=["allowcommonwords"])  # cSpell: ignore: allowcommonwords
-    async def stv_settings_allowcommonwords(self, ctx: IreContext, *, new_state: bool | None = None) -> None:
+    async def stv_settings_allowcommonwords(self, ctx: Context, *, new_state: bool | None = None) -> None:
         """Set whether common words are allowed to be emote aliases in this stream.
 
         Parameters
@@ -1864,13 +1894,13 @@ class SevenTVDevOnly(IreDevComponent):
     }
 
     @commands.command()
-    async def balls(self, ctx: IreContext) -> None:
+    async def balls(self, ctx: Context) -> None:
         """Balls."""
         content = " ".join(f"{k} {v}" for k, v in self.BALLS.items())
         await ctx.send(content)
 
     @commands.command(aliases=["dev_reset_cycle"])
-    async def dev_cycle_reset(self, ctx: IreContext) -> None:
+    async def dev_cycle_reset(self, ctx: Context) -> None:
         """Developer command for temporary reset / testing.
 
         This

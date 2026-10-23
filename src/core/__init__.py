@@ -6,6 +6,7 @@ Notices
 * Copyright (C) 2020-present @Aluerie.
 """
 
-from .bases import *
 from .bot import *
+from .component import *
+from .context import *
 from .subscriptions import *
