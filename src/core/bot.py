@@ -280,6 +280,7 @@ class Bot(BotBase, commands.AutoBot):
                     .Embed(
                         colour=ctx.chatter.colour.code if ctx.chatter.colour else 0x890620,
                         title=f"Command Error: `!{getattr(ctx.command, 'name', '(unknown command)')}`",
+                        description=f"`{ctx.message.text}`",
                     )
                     .set_author(name=f"Chatter {ctx.chatter.display_name}", icon_url=chatter_icon)
                     .set_footer(text=f"Broadcaster: {ctx.broadcaster.display_name}", icon_url=broadcaster_icon)
@@ -317,7 +318,11 @@ class Bot(BotBase, commands.AutoBot):
         if not notify:
             return
 
-        embed = discord.Embed(title=f"Event Error: `{getattr(payload.listener, '__qualname__', 'unknown_event')}`")
+        embed = discord.Embed(
+            title=f"Event Error: `{getattr(payload.listener, '__qualname__', 'unknown_event')}`",
+        )
+        if user_input := getattr(original, "user_input", None):
+            embed.description = user_input
         if chatter := getattr(original, "user", None):
             chatter_icon = await _get_profile_image(chatter)
             embed.set_author(name=f"Chatter {chatter.display_name}", icon_url=chatter_icon)

@@ -975,7 +975,7 @@ class SevenTVPublic(PublicComponent):
     # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_cycle.command(name="create")
-    async def stv_cycle_create(self, ctx: Context, *, recreate: str = "") -> None:
+    async def stv_cycle_create(self, ctx: Context, recreate: str = "") -> None:
         """Create 'Add Cycle Emote' channel points reward, redeems for which will be and process to add/remove emotes.
 
         A few notes about the created channel points reward:
@@ -1315,7 +1315,6 @@ class SevenTVPublic(PublicComponent):
     async def add(
         self,
         ctx: Context,
-        *,
         emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
         alias: str | None = None,
     ) -> None:
@@ -1404,7 +1403,6 @@ class SevenTVPublic(PublicComponent):
     async def rename(
         self,
         ctx: Context,
-        *,
         emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
         new_alias: str,
     ) -> None:
@@ -1427,7 +1425,6 @@ class SevenTVPublic(PublicComponent):
     async def stv_remove(
         self,
         ctx: Context,
-        *,
         emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
@@ -1450,7 +1447,6 @@ class SevenTVPublic(PublicComponent):
     async def remove(
         self,
         ctx: Context,
-        *,
         emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter],
     ) -> None:
         """Remove 7TV emote.
@@ -1496,7 +1492,6 @@ class SevenTVPublic(PublicComponent):
     async def stv_replace(
         self,
         ctx: Context,
-        *,
         emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
         alias: str | None = None,
     ) -> None:
@@ -1540,7 +1535,6 @@ class SevenTVPublic(PublicComponent):
     async def replace(
         self,
         ctx: Context,
-        *,
         emote_id_link_or_name: Annotated[PartialEmote, SearchEmoteConverter],
         alias: str | None = None,
     ) -> None:
@@ -1567,7 +1561,7 @@ class SevenTVPublic(PublicComponent):
     # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_blacklist.command(name="create")
-    async def stv_blacklist_create(self, ctx: Context, *, recreate: str = "") -> None:
+    async def stv_blacklist_create(self, ctx: Context, recreate: str = "") -> None:
         """Create 'Blacklist/Remove Emote' channel points reward.
 
         A few notes:
@@ -1605,7 +1599,7 @@ class SevenTVPublic(PublicComponent):
     @is_broadcaster_dev_or_editor()
     @stv_blacklist.command(name="settings")
     async def stv_blacklist_settings(
-        self, ctx: Context, *, days: int | None, hours: int | None, remove_only: bool | None
+        self, ctx: Context, days: int | None, hours: int | None, remove_only: bool | None  # ruff: ignore[boolean-type-hint-positional-argument]
     ) -> None:
         """Show or change settings related to 'Blacklist/Remove Emote' channel points reward.
 
@@ -1766,7 +1760,7 @@ class SevenTVPublic(PublicComponent):
 
     @stv.command(name="who-added", aliases=["whoadded"])  # cSpell: words: whoadded
     async def stv_who_added(
-        self, ctx: Context, *, emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter]
+        self, ctx: Context, emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter]
     ) -> None:
         """Get twitch user who added the emote via channel redemption.
 
@@ -1785,7 +1779,7 @@ class SevenTVPublic(PublicComponent):
 
     @commands.command(name="who-added", aliases=["whoadded"])
     async def who_added(
-        self, ctx: Context, *, emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter]
+        self, ctx: Context, emote_id_link_or_name: Annotated[PartialEmote, UserEmoteConverter]
     ) -> None:
         """Get twitch user who added the emote via channel redemption.
 
@@ -1847,7 +1841,7 @@ class SevenTVPublic(PublicComponent):
 
     @is_broadcaster_dev_or_editor()
     @stv_settings.command(name="allow-common-words", aliases=["allowcommonwords"])  # cSpell: ignore: allowcommonwords
-    async def stv_settings_allowcommonwords(self, ctx: Context, *, new_state: bool | None = None) -> None:
+    async def stv_settings_allowcommonwords(self, ctx: Context, new_state: bool | None = None) -> None:  # ruff: ignore[boolean-type-hint-positional-argument]
         """Set whether common words are allowed to be emote aliases in this stream.
 
         Parameters
