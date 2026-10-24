@@ -27,10 +27,9 @@ import steam
 from steam.ext.dota2 import Hero, LobbyType, MatchOutcome
 from twitchio.ext import commands
 
-from config import env
 from core import Context, PublicComponent
 from shared import clock, errors, fmt, fuzzy
-from shared.apis import dota2com, local, steam_web
+from shared.apis import dota2com, local
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -318,7 +317,6 @@ class MMRBot(PublicComponent):
 
     def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
-        self.steam_web = steam_web.SteamWebAPIClient(api_key=env.STEAM_API_KEY, session=bot.session)
         self.dota2com = dota2com.Dota2comClient(session=bot.session)
         self.local_api = local.LocalAPI(bot.session)
 
