@@ -33,7 +33,7 @@ class ExtConverter(commands.Converter[str]):
 
     @override
     async def convert(self, ctx: Context, arg: str) -> str:  # ty: ignore[invalid-method-override]
-        # TODO: do somwething like where "stv" and "public.stv" are allowed to be used
+        # TODO: do something like where "stv" and "public.stv" are allowed to be used
         return f"ext.{arg}"
 
 

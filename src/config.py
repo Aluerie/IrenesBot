@@ -42,7 +42,7 @@ class Env(EnvConfig):
     EVENTSUB: str
     WEBHOOK_LOGGER: str
     WEBHOOK_ERROR: str
-    WEBHOOK_NOTIFICATION: str
+    WEBHOOK_SPAM: str
     WEBHOOK_STREAM_NOTIF: str
     WEBHOOK_HEARTBEAT: str
 

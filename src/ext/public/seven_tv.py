@@ -844,7 +844,7 @@ class SevenTVPublic(PublicComponent):
     # TODO: Wait for FlagConverter
     @guards.is_broadcaster_or_dev()
     @stv_permanent.command(name="create")
-    async def stv_permanent_create(self, ctx: Context, *, recreate: str = "") -> None:
+    async def stv_permanent_create(self, ctx: Context, recreate: str = "") -> None:
         """Create 'Add Permanent Emote' channel points reward.
 
         The bot will listen to the redemptions of this reward and process them to add permanent 7tv emotes.

@@ -161,7 +161,7 @@ class Bot(BotBase, commands.AutoBot):
             session,
             dev_ping=dev_ping,
             error_webhook_url=env.WEBHOOK_ERROR,
-            notification_webhook_url=env.WEBHOOK_NOTIFICATION,
+            spam_webhook_url=env.WEBHOOK_SPAM,
         )
         super(commands.AutoBot, self).__init__(
             client_id=client_id,

@@ -316,7 +316,6 @@ class FirstChatterChannelRewardManagement(PublicComponent):
             partial_user = self.bot.create_partialuser(row["streamer_id"])
             first_reward = next(iter(await partial_user.fetch_custom_rewards(ids=[row["reward_id"]])))
             if not first_reward:
-                content = self.bot.dev_ping
                 embed = Embed(
                     description=(
                         f"Looks like something wrong with streamer @{partial_user.name} ({row['streamer_id']}) "
@@ -324,7 +323,7 @@ class FirstChatterChannelRewardManagement(PublicComponent):
                     ),
                     colour=0x345245,
                 )
-                await self.bot.notification_webhook.send(content=content, embed=embed)
+                await self.bot.notify_developers(embed=embed)
 
     # USER COMMANDS
 
