@@ -32,6 +32,7 @@ class Env(EnvConfig):
     POSTGRES_VPS: str
     POSTGRES_HOME: str
     SEVEN_TV_BEARER: str
+    STEAM_API_KEY: str
     SPOTIFY_AIDENWALLIS: str
     EVENTSUB: str
     WEBHOOK_LOGGER: str

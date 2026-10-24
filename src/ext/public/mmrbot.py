@@ -27,9 +27,10 @@ import steam
 from steam.ext.dota2 import Hero, LobbyType, MatchOutcome
 from twitchio.ext import commands
 
+from config import env
 from core import Context, PublicComponent
 from shared import clock, errors, fmt, fuzzy
-from shared.apis import dota2com, local
+from shared.apis import local, steam_web
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -317,7 +318,7 @@ class MMRBot(PublicComponent):
 
     def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
-        self.dota2com = dota2com.Dota2comClient(session=bot.session)
+        self.steam_web = steam_web.SteamWebAPIClient(session=bot.session, api_key=env.STEAM_API_KEY)
         self.local_api = local.LocalAPI(bot.session)
 
     #########################################################################################################################
@@ -474,12 +475,12 @@ class MMRBot(PublicComponent):
     # LIVE GAME THAT REQUIRE REAL TIME STATS
     #########################################################################################################################
 
-    async def get_real_time_stats(self, match: local.FriendLiveMatch) -> dota2com.RealTimeStats:
+    async def get_real_time_stats(self, match: local.FriendLiveMatch) -> steam_web.RealTimeStats:
         """Get Real time stats."""
         if match.lobby_type == LobbyType.NewPlayerMode:
             msg = "New Player Mode matches do not support real time stats."
             raise errors.RespondWithError(msg)
-        return await self.dota2com.real_time_stats(match.server_steam_id)
+        return await self.steam_web.get_real_time_stats(match.server_steam_id)
 
     @commands.command(aliases=["items", "kda"])
     async def stats(self, ctx: Context, *, player_slot_color_or_hero_name: str) -> None:
