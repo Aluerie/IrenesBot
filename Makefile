@@ -31,7 +31,8 @@ Environment and Setup:
 	update              Update dependencies
 
 Running the bot:
-	run                 Run the bot
+	run                 Run the bot in the subset-mode
+	ride:  				Run (ride) the bot with all components
 	scopes				Run the bot in the scopes-only mode
 
 Linters, Type-checkers, formatters and tests:
@@ -91,6 +92,12 @@ update:  # Update dependencies
 .SILENT: run
 run:  # Run the bot in the subset-mode
 	uv run src/main.py --subset-mode --adapter=local --test-account
+
+
+.PHONY: ride
+.SILENT: ride
+ride:  # Run (ride) the bot with all components
+	uv run src/main.py --adapter=local --test-account
 
 
 .PHONY: scopes

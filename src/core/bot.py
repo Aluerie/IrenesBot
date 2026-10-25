@@ -178,6 +178,7 @@ class Bot(BotBase, commands.AutoBot):
         self.scopes_only: bool = scopes_only
 
         self.extensions_to_load: tuple[str, ...] = self.get_extensions(is_subset_mode=is_subset_mode, package=ext)
+        log.info("List of modules (%s total) to load: %s", len(self.extensions_to_load), self.extensions_to_load)
 
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()

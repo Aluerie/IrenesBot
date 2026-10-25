@@ -16,6 +16,8 @@ from shared import errors
 from utils import const
 
 if TYPE_CHECKING:
+    import twitchio
+
     from . import Bot, Context
 
 
@@ -52,6 +54,14 @@ class PersonalComponent(ComponentBase):
         if not self.is_dev(ctx.broadcaster.id):
             msg = "Command is not allowed anywhere except Irene's channel"
             raise errors.NotAllowedError(msg, policy=errors.SILENT)
+
+    def is_human_dev_message(self, message: twitchio.ChatMessage) -> bool:
+        """Check that a message has text, was sent in the developer's channel and was not sent by a known bot."""
+        return (
+            self.is_dev(message.broadcaster.id)
+            and bool(message.text)
+            and message.chatter.name not in const.BotsLowerName
+        )
 
 
 class DevComponent(ComponentBase):

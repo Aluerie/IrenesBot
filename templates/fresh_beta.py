@@ -11,7 +11,7 @@ Notices
 
 from __future__ import annotations
 
-from beta_base import *
+from base_beta import *
 
 
 class BetaTest(BetaCog):
