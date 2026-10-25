@@ -28,16 +28,11 @@ if TYPE_CHECKING:
         desc: str
 
 
-__all__ = ("MetaCommands",)
+__all__ = ("UncategorizedCommands",)
 
 
-class MetaCommands(PublicComponent):
+class UncategorizedCommands(PublicComponent):
     """Meta commands."""
-
-    @commands.command()
-    async def about(self, ctx: Context) -> None:
-        """Get some information about about the bot."""
-        await ctx.send(f"I'm a personal Irene's bot, made by Irene. {const.Stv.AYAYA}")
 
     @guards.is_online()
     @commands.command()
@@ -400,4 +395,4 @@ class MetaCommands(PublicComponent):
 
 async def setup(bot: Bot) -> None:
     """Load IreBot module. Framework of twitchio."""
-    await bot.add_component(MetaCommands(bot))
+    await bot.add_component(UncategorizedCommands(bot))

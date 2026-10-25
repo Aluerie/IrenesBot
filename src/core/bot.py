@@ -21,8 +21,8 @@ from twitchio import eventsub
 from twitchio.ext import commands
 from twitchio.web import StarletteAdapter
 
+import ext
 from config import env
-from ext import DISABLED_EXTENSIONS, EXT_PACKAGE
 from shared import clock, errors, fmt, globs
 from shared.apis import stv
 from shared.concepts import BotBase
@@ -177,9 +177,7 @@ class Bot(BotBase, commands.AutoBot):
         self.pool: PoolTypedWithAny = pool
         self.scopes_only: bool = scopes_only
 
-        self.extensions_to_load: tuple[str, ...] = self.get_extensions(
-            is_subset_mode=is_subset_mode, package=EXT_PACKAGE, disabled_extensions=DISABLED_EXTENSIONS
-        )
+        self.extensions_to_load: tuple[str, ...] = self.get_extensions(is_subset_mode=is_subset_mode, package=ext)
 
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()

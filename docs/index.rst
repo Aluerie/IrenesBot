@@ -32,7 +32,7 @@ personal multipurpose :iconify:`logos:twitch` `twitch.tv <https://www.twitch.tv>
    :caption: Public features
    :hidden:
 
-   public/meta
+   public/uncategorized
    public/seven_tv
    public/dota2
 
