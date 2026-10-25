@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import random
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, override
 
 from twitchio.ext import commands
 
@@ -45,101 +45,116 @@ MESSAGES: list[str] = [
         f"chat I kinda need to grind affiliate on @IrenesBot account. "
         f"Please, follow it and if possible lurk there when I eventually gonna stream from it {const.Stv.DankApprove}"
     ),
-    # (
-    #     "hey chat I'm making a small web-page to describe the bot's features (WIP)."
-    #     "You can see it here: (not implemented xdd)"
-    # ),
-    # "Discord discord.gg/K8FuDeP",
 ]
-LINES_NEEDED_CD = 151
-MIN_WAIT_TIME = 51
-RANDOM_WAIT_TIME = 61 * 60
+TIMER_COOLDOWN = dt.timedelta(hours=1)  # minimum time between two timer messages
+LINES_NEEDED = 200  # chat lines needed between two timer messages
+MIN_WAIT_TIME = 51  # seconds
+RANDOM_WAIT_TIME = 61 * 60  # seconds, upper bound of the extra random delay
 
 
 class Timers(PersonalComponent):
-    """Periodic messages/announcements in Aluerie's channel."""
+    """Periodic messages and announcements in the developer's channel.
 
-    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
-        super().__init__(bot, *args, **kwargs)
+    Attributes
+    ----------
+    messages
+        Shuffled timer messages for the current stream, sent in order.
+    index
+        Position of the next timer message in `messages`.
+    lines_count
+        Chat lines counted since the last timer message.
+    is_live
+        Whether the stream is live, which is when chat lines are counted.
+    last_timer_message
+        When the last timer message was sent, if any.
+    """
 
-        self.lines_count: int = 0
+    def __init__(self, bot: Bot) -> None:
+        super().__init__(bot)
+        self.messages: list[str] = []
         self.index: int = 0
-        self.cooldown: dt.timedelta = dt.timedelta(hours=1)
-        self._most_recent: dt.datetime | None = None
-        self._lock: asyncio.Lock = asyncio.Lock()
+        self.lines_count: int = 0
+        self.is_live: bool = False
+        self.last_timer_message: dt.datetime | None = None
 
-        self.messages = MESSAGES
+    @override
+    async def component_teardown(self) -> None:
+        """Cancel pending background tasks when the component is unloaded."""
+        self.send_timer_message.cancel()
+        self.random_daily_announcement.cancel()
+        await super().component_teardown()
 
     @commands.Component.listener(name="stream_online")
-    async def stream_online_start_the_task(self, online: twitchio.StreamOffline) -> None:
-        """Start counting messages when stream goes online."""
+    async def stream_start(self, online: twitchio.StreamOnline) -> None:
+        """Start counting chat lines and the periodic announcement when the stream goes live."""
         if not self.is_dev(online.broadcaster.id):
             return
 
-        random.shuffle(self.messages)
+        self.messages = random.sample(MESSAGES, k=len(MESSAGES))
         self.index = 0
         self.lines_count = 0
-        self.bot.add_listener(self.count_messages, event="event_message")
-        self.random_daily_announcement.start()
+        self.is_live = True
+        if not self.random_daily_announcement.is_running():
+            self.random_daily_announcement.start()
 
     @commands.Component.listener(name="stream_offline")
-    async def stream_offline_cancel_the_task(self, offline: twitchio.StreamOffline) -> None:
-        """Cancel the counting messages listener when stream goes offline."""
+    async def stream_end(self, offline: twitchio.StreamOffline) -> None:
+        """Stop counting chat lines and cancel everything pending when the stream goes offline."""
         if not self.is_dev(offline.broadcaster.id):
             return
 
-        self.bot.remove_listener(self.count_messages)
+        self.is_live = False
+        self.send_timer_message.cancel()
         self.random_daily_announcement.cancel()
 
-    # @commands.Component.listener(name="message")
+    @commands.Component.listener(name="message")
     async def count_messages(self, message: twitchio.ChatMessage) -> None:
-        """Count messages and send timer-messages when needed.
+        """Count chat lines and schedule a timer message when the conditions are met.
 
-        Timer messages are sent if the following conditions are met
-        * there were X amount of messages in the chat between bot timer-messages
-        * Y time passed between those.
-
-        If these two are fulfilled then the bot sends a semi-periodic message in the chat.
+        A timer message is scheduled if enough lines were sent since the previous one and the cooldown has passed.
         """
-        if not self.is_dev(message.broadcaster.id):
-            return
-
-        if message.chatter.name in const.BotsLowerName:
-            # do not count messages from known bot accounts
+        if not self.is_live or not self.is_human_dev_message(message):
             return
 
         self.lines_count += 1
-        async with self._lock:
-            if self._most_recent and (clock.utcnow() - self._most_recent) < self.cooldown:
-                # we already have a timer to send
-                return
+        if self.lines_count <= LINES_NEEDED:
+            return
+        if self.send_timer_message.is_running():
+            return  # one is already scheduled
+        if self.last_timer_message and clock.utcnow() - self.last_timer_message < TIMER_COOLDOWN:
+            return
 
-            if self.lines_count > LINES_NEEDED_CD:
-                await asyncio.sleep(MIN_WAIT_TIME + random.randint(1, RANDOM_WAIT_TIME))
-                await message.respond(self.messages[self.index % len(self.messages)])
+        self.send_timer_message.start(message)
 
-                # reset the index vars
-                self.index += 1
-                self.lines_count = 0
-                self._most_recent = clock.utcnow()
+    @loop(count=1)
+    async def send_timer_message(self, message: twitchio.ChatMessage) -> None:
+        """Send the next timer message after a random delay, so the timing is not predictable.
+
+        Cancelled when the stream goes offline.
+        """
+        await asyncio.sleep(MIN_WAIT_TIME + random.randint(1, RANDOM_WAIT_TIME))
+        await message.respond(self.messages[self.index % len(self.messages)])
+
+        self.index += 1
+        self.lines_count = 0
+        self.last_timer_message = clock.utcnow()
 
     @loop(hours=5)
     async def random_daily_announcement(self) -> None:
-        """It's time to boink."""
+        """Post an announcement in chat every five hours of the stream.
+
+        The first iteration is skipped because it would run right when the stream starts. Friday nights (UTC) get a
+        different message.
+        """
         if self.random_daily_announcement.current_loop == 0:
             return
 
         now = clock.utcnow()
         message = (
             f"it's friday night gents {const.Stv.fridayNight} time to dance"
-            if (now.weekday == 4 and now.hour > 18) or (now.weekday == 5 and now.hour < 6)
+            if (now.weekday() == 4 and now.hour > 18) or (now.weekday() == 5 and now.hour < 6)
             else f"It's time to {const.Stv.Boink}"
         )
         await self.bot.create_partialuser(self.bot.owner_id).send_announcement(
             message=message, moderator=self.bot.bot_id, color="primary"
         )
-
-
-async def setup(bot: Bot) -> None:
-    """Load IreBot module. Framework of twitchio."""
-    await bot.add_component(Timers(bot))

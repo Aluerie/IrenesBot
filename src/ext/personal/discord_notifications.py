@@ -1,4 +1,4 @@
-"""Personal.
+"""Discord notifications..
 
 Notices
 -------
@@ -14,6 +14,7 @@ import logging
 from typing import TYPE_CHECKING, override
 
 import discord
+import twitchio
 from twitchio.ext import commands
 
 from config import env
@@ -21,8 +22,6 @@ from core import PersonalComponent
 from shared.concepts import loop, restart_task
 
 if TYPE_CHECKING:
-    import twitchio
-
     from core import Bot
 
 log = logging.getLogger(__name__)
@@ -35,7 +34,10 @@ VOD_TIMESTAMP_TOLERANCE = dt.timedelta(minutes=1)  # allowance for clock skew be
 
 
 class DiscordNotifications(PersonalComponent):
-    """Discord Notifications.
+    """Discord notifications about the developer's Twitch stream.
+
+    Posts a "went live" embed when the stream starts. Once the stream has been offline for a while, the live preview in
+    old embeds is replaced with the channel's offline image.
 
     Attributes
     ----------
@@ -66,7 +68,7 @@ class DiscordNotifications(PersonalComponent):
         return discord.Webhook.from_url(url=webhook_url, session=self.bot.session)
 
     @commands.Component.listener(name="stream_online")
-    async def discord_stream_start(self, online: twitchio.StreamOnline) -> None:
+    async def send_notification(self, online: twitchio.StreamOnline) -> None:
         """Post a "went live" notification embed to Discord.
 
         The embed shows the stream title, the game, a live preview and, when available, a link to the VOD of this
@@ -81,7 +83,11 @@ class DiscordNotifications(PersonalComponent):
 
         stream_url = f"https://twitch.tv/{irene.name}"
 
-        videos = await self.bot.fetch_videos(user_id=irene.id, period="day")
+        try:
+            videos = await self.bot.fetch_videos(user_id=irene.id, period="day")
+        except twitchio.HTTPException:
+            log.warning("Failed to fetch videos for the stream notification", exc_info=True)
+            videos = []
         cutoff = online.started_at - VOD_TIMESTAMP_TOLERANCE
         current_vod = next((video for video in videos if video.created_at >= cutoff), None)
         current_vod_link = f"/[VOD]({current_vod.url})" if current_vod else ""

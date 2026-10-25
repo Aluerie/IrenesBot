@@ -28,7 +28,16 @@ log = logging.getLogger(__name__)
 
 
 class Alerts(PersonalComponent):
-    """Alerts.
+    """Chat alerts and stream reminders for the developer's own Twitch channel.
+
+    Covers
+    * raids
+    * ad breaks
+    * subscriptions
+    * the first-time chatter greeting
+    * the reminders that run during a stream.
+
+    Every listener ignores events from channels other than the developer's own.
 
     Attributes
     ----------
@@ -68,7 +77,7 @@ class Alerts(PersonalComponent):
 
     @commands.Component.listener(name="raid")
     async def raids(self, raid: twitchio.ChannelRaid) -> None:
-        """Announce a raid in chat and give the raiding channel a shoutout."""
+        """Announce a raid and give the raiding channel a shoutout."""
         if not self.is_dev(raid.to_broadcaster.id):
             return
 
@@ -88,16 +97,37 @@ class Alerts(PersonalComponent):
 
     @commands.Component.listener(name="ad_break")
     async def ad_break(self, ad_break: twitchio.ChannelAdBreakBegin) -> None:
-        """Warn chat that an ad break has started.
-
-        The message includes the ad length and whether the ad was scheduled automatically or started manually.
-        """
+        """Warn that an ad break has started."""
         if not self.is_dev(ad_break.broadcaster.id):
             return
 
         word = "automatic" if ad_break.automatic else "manual"
         human_delta = clock.human_timedelta(seconds=ad_break.duration, mode="short")
         await ad_break.respond(f"{human_delta} {word} ad starting {const.Stv.peepoAds}")
+
+    @commands.Component.listener(name="subscription")
+    async def subscription(self, subscription: twitchio.ChannelSubscribe) -> None:
+        """Thank a new subscriber in chat."""
+        if not self.is_dev(subscription.broadcaster.id):
+            return
+
+        await subscription.respond(f"{subscription.user.mention} just subscribed {const.Stv.Donki} thanks")
+
+    @commands.Component.listener(name="subscription_message")
+    async def subscription_message(self, subscription_message: twitchio.ChannelSubscriptionMessage) -> None:
+        """Thank a resubscriber who shared a resubscription message, mentioning their month count."""
+        if not self.is_dev(subscription_message.broadcaster.id):
+            return
+
+        await subscription_message.respond(
+            f"{subscription_message.user.mention} just subscribed for "
+            f"{fmt.ordinal(subscription_message.months)} months "
+            f"{const.Stv.Donki} thanks a lot"
+        )
+
+    ####################################################################################################################
+    # FIRST TIME CHATTER
+    ####################################################################################################################
 
     @commands.Component.listener(name="ban")
     async def bans_timeouts(self, ban: twitchio.Ban) -> None:
@@ -150,26 +180,6 @@ class Alerts(PersonalComponent):
         finally:
             self.greeting_in_progress.discard(chatter_id)
 
-    @commands.Component.listener(name="subscription")
-    async def subscription(self, subscription: twitchio.ChannelSubscribe) -> None:
-        """Thank a new subscriber in chat."""
-        if not self.is_dev(subscription.broadcaster.id):
-            return
-
-        await subscription.respond(f"{subscription.user.mention} just subscribed {const.Stv.Donki} thanks")
-
-    @commands.Component.listener(name="subscription_message")
-    async def subscription_message(self, subscription_message: twitchio.ChannelSubscriptionMessage) -> None:
-        """Thank a resubscriber who shared a resubscription message, mentioning their month count."""
-        if not self.is_dev(subscription_message.broadcaster.id):
-            return
-
-        await subscription_message.respond(
-            f"{subscription_message.user.mention} just subscribed for "
-            f"{fmt.ordinal(subscription_message.months)} months "
-            f"{const.Stv.Donki} thanks a lot"
-        )
-
     ####################################################################################################################
     # STREAM REMINDERS
     ####################################################################################################################
@@ -185,7 +195,7 @@ class Alerts(PersonalComponent):
             reminder.cancel()
 
     @commands.Component.listener(name="stream_online")
-    async def chat_stream_start(self, online: twitchio.StreamOnline) -> None:
+    async def stream_start(self, online: twitchio.StreamOnline) -> None:
         """Announce the stream going live in chat and start the stream reminders.
 
         Reminders are started first so that a failed API call or chat message below cannot prevent them from being
@@ -226,8 +236,7 @@ class Alerts(PersonalComponent):
     async def reminder_to_turn_recording_on(self, online: twitchio.StreamOnline) -> None:
         """Remind the streamer to start recording, ten minutes after going live.
 
-        An extra nudge on top of the checklist posted in `chat_stream_start`. Cancelled by `chat_stream_end` if the
-        stream goes offline before the delay is over.
+        Cancelled by `chat_stream_end` if the stream goes offline before the delay is over.
         """
         await asyncio.sleep(10 * 60)
         await online.respond(
@@ -238,8 +247,7 @@ class Alerts(PersonalComponent):
     async def reminder_to_stop_streaming(self, online: twitchio.StreamOnline) -> None:
         """Warn the streamer that the stream is about to hit YouTube's 12-hour VOD limit.
 
-        Fires 11 hours 40 minutes after going live, which leaves 20 minutes to wrap up. Cancelled by `chat_stream_end`
-        if the stream goes offline before the delay is over.
+        Cancelled by `chat_stream_end` if the stream goes offline before the delay is over.
         """
         youtube_vod_limit = 11 * 3600 + 40 * 60  # 11 hours 40 minutes
         await asyncio.sleep(youtube_vod_limit)

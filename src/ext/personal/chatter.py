@@ -9,6 +9,7 @@ Notices
 from __future__ import annotations
 
 import asyncio
+import datetime as dt
 import logging
 import random
 import re
@@ -21,8 +22,6 @@ from shared import clock
 from utils import const
 
 if TYPE_CHECKING:
-    import datetime as dt
-
     import twitchio
 
     from core import Bot
@@ -33,23 +32,29 @@ ERM_PATTERN = re.compile(r"\bErm\b")
 ERM_NOTIFICATION_CHANCE = 0.005
 ERM_NOTIFICATION_COOLDOWN = 180
 
-
 KEYWORD_PATTERN = re.compile(r"\b(?:Pog|gg|GG|bueno)\b")
 KEYWORD_RESPONSE_COOLDOWN = 7 * 60  # seconds
-KEYWORD_RESPONSE_CHANCE = 0.01
+KEYWORD_RESPONSE_CHANCE = 0.02
 
 
 class Chatter(PersonalComponent):
-    """Chatter.
+    """Light chat features for the developer's own Twitch channel.
+
+    Covers
+    * the Erm counter
+    * the keyword echo responses
 
     last_erm_notification
         When the bot last posted an Erm total in chat. Used to rate-limit the random Erm notifications.
+    last_keyword_response
+        When the bot last echoed a keyword in chat. Used to rate-limit keyword responses.
     """
 
     def __init__(self, bot: Bot) -> None:
         super().__init__(bot)
 
         self.last_erm_notification: dt.datetime = clock.utcnow()
+        self.last_keyword_response: dt.datetime = clock.utcnow() - dt.timedelta(seconds=KEYWORD_RESPONSE_COOLDOWN)
 
     ####################################################################################################################
     # ERM COUNTERS
@@ -110,7 +115,11 @@ class Chatter(PersonalComponent):
 
     @commands.Component.listener(name="message")
     async def keywords_response(self, message: twitchio.ChatMessage) -> None:
-        """Echo a keyword or key phrase spotted in chat as a flavour message."""
+        """Echo a keyword or key phrase spotted in chat as a flavour message.
+
+        Only whole words count. To avoid spam, a response is sent with a low chance and at most once per cooldown period,
+        even if a message contains several keywords.
+        """
         if not self.is_human_dev_message(message):
             return
 

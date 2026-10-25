@@ -6,8 +6,6 @@ Available commands (docs in detail coming soon)
 ☝️ Commands
 ###########
 
-.. autochatcommand:: ext.public.uncategorized.UncategorizedCommands.about
-
 .. autochatcommand:: ext.public.uncategorized.UncategorizedCommands.hello
 
 .. autochatcommand:: ext.public.uncategorized.UncategorizedCommands.clip
