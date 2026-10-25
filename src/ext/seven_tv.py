@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, TypedDict, 
 import twitchio
 from twitchio.ext import commands
 
-from core import DevComponent, PublicComponent
+from core import Component, DevComponent
 from shared import clock, errors, globs, ut
 from shared.apis.stv import EmoteNotFoundError, PartialEmote, PartialEmoteSet, StvClient, UnsatisfyingResultError
 from shared.concepts import PrefixLoggerAdapter, loop
@@ -377,7 +377,7 @@ def is_broadcaster_dev_editor_or_adder() -> Any:
 #############################################################################################################################
 
 
-class SevenTVPublic(PublicComponent):
+class SevenTVPublic(Component):
     """Cycling Emotes."""
 
     EMOTE = globs.TwitchEmote.FeelsDankMan

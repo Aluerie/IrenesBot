@@ -28,7 +28,7 @@ from steam.ext.dota2 import Hero, LobbyType, MatchOutcome
 from twitchio.ext import commands
 
 from config import env
-from core import Context, PublicComponent
+from core import Component, Context
 from shared import clock, errors, fmt, fuzzy
 from shared.apis import local, steam_web
 from utils import const, guards
@@ -313,7 +313,7 @@ def is_allowed_to_add_notable() -> Any:
     return commands.guard(predicate)
 
 
-class MMRBot(PublicComponent):
+class MMRBot(Component):
     """MMR Bot."""
 
     def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:

@@ -1,4 +1,4 @@
-"""Alerts.
+"""Personal.
 
 Notices
 -------
@@ -10,8 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import random
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from twitchio.ext import commands
 
@@ -28,54 +27,19 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class Alerts(PersonalComponent):
-    """Twitch Chat Alerts.
+class Personal(PersonalComponent):
+    """Personal.
 
     Mostly, EventSub events that are nice to have a notification in twitch chat for.
     """
 
-    def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
-        super().__init__(bot, *args, **kwargs)
+    def __init__(self, bot: Bot) -> None:
+        super().__init__(bot)
         self.ban_list: set[str] = set()
 
-    # SECTION 1.
-    # Channel Points beta test event (because it's the easiest event to test out)
-
-    @commands.Component.listener(name="custom_redemption_add")
-    async def channel_points_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
-        """Somebody redeemed a custom channel points reward."""
-        if not self.is_dev(redemption.broadcaster.id):
-            return
-
-        # just testing
-        print(f"{redemption.user.display_name} redeemed {redemption.reward.title}.")  # ruff: ignore[print]
-
-    # SECTION 2
-    # Actual events
-
-    # Turn it off for a foreseeable future, anonymized follows are better.
-    # @commands.Component.listener(name="follow")
-    async def follows(self, follow: twitchio.ChannelFollow) -> None:
-        """Somebody followed the channel."""
-        if not self.is_dev(follow.broadcaster.id):
-            return
-
-        random_phrase = random.choice([
-            "welcome in",
-            "I appreciate it",
-            "enjoy your stay",
-            "nice to see you",
-            "enjoy the show",
-        ])
-        random_emote = random.choice([
-            const.Stv.donkHappy,
-            const.Bttv.PogU,
-            const.Stv.dankHey,
-            const.Stv.donkHey,
-            const.Bttv.peepoHey,
-            const.Stv.Hey,
-        ])
-        await follow.respond(f"@{follow.user.display_name} just followed! Thanks, {random_phrase} {random_emote}")
+    ####################################################################################################################
+    # ALERTS
+    ####################################################################################################################
 
     @commands.Component.listener(name="raid")
     async def raids(self, raid: twitchio.ChannelRaid) -> None:
@@ -178,10 +142,6 @@ class Alerts(PersonalComponent):
         human_delta = clock.human_timedelta(seconds=ad_break.duration, mode="short")
         await ad_break.respond(f"{human_delta} {word} ad starting {const.Stv.peepoAds}")
 
-        # this is pointless probably
-        # await asyncio.sleep(payload.duration)
-        # await channel.send("Ad break is over")
-
     @commands.Component.listener(name="ban")
     async def bans_timeouts(self, ban: twitchio.Ban) -> None:
         """Bans."""
@@ -202,13 +162,9 @@ class Alerts(PersonalComponent):
         if not message.text:
             return
 
-        query = """--sql
-            SELECT COUNT(1)
-            FROM ttv_chatters
-            WHERE user_id = $1
-        """
+        query = "SELECT COUNT(1) FROM ttv_chatters WHERE user_id = $1"
         if await self.bot.pool.fetchval(query, message.chatter.id) == 1:
-            # if in database: a known chatter
+            # a known chatter
             return
 
         await asyncio.sleep(4.0)  # wait for auto-mod / WizeBot to ban super-sus users - 4 sec is probably enough.
@@ -252,5 +208,5 @@ class Alerts(PersonalComponent):
 
 
 async def setup(bot: Bot) -> None:
-    """Load IreBot module. Framework of twitchio."""
-    await bot.add_component(Alerts(bot))
+    """Load the module (twitchio entry point)."""
+    await bot.add_component(Personal(bot))

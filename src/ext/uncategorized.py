@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Annotated, TypedDict
 import twitchio  # ruff: ignore[typing-only-third-party-import]
 from twitchio.ext import commands
 
-from core import PublicComponent
+from core import Component
 from shared import errors, globs, translate
 from utils import const, guards
 from utils.converters import TranslateArguments, TranslateConverter
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 __all__ = ("UncategorizedCommands",)
 
 
-class UncategorizedCommands(PublicComponent):
+class UncategorizedCommands(Component):
     """Meta commands."""
 
     @guards.is_online()

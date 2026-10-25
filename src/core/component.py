@@ -20,9 +20,9 @@ if TYPE_CHECKING:
 
 
 __all__ = (
+    "Component",
     "DevComponent",
     "PersonalComponent",
-    "PublicComponent",
 )
 
 
@@ -37,8 +37,8 @@ class ComponentBase(commands.Component):
         return user_id == self.bot.owner_id
 
 
-class PublicComponent(ComponentBase):
-    """Base component to use for public components."""
+class Component(ComponentBase):
+    """Component."""
 
 
 class PersonalComponent(ComponentBase):

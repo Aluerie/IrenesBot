@@ -20,7 +20,7 @@ import twitchio
 from discord import Embed
 from twitchio.ext import commands
 
-from core import PublicComponent
+from core import Component
 from shared import clock, errors, fmt, globs
 from shared.concepts import loop
 from utils import const, guards
@@ -46,7 +46,7 @@ __all__ = ("FirstChatterChannelRewardManagement",)
 DEFAULT_FIRST_REWARD_TITLE = "First!"
 
 
-class FirstChatterChannelRewardManagement(PublicComponent):
+class FirstChatterChannelRewardManagement(Component):
     """Track some silly number counters of how many times this or that happened."""
 
     @override

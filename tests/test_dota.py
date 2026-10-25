@@ -7,7 +7,7 @@ Notices
 """
 
 import pytest
-from src.ext.public.mmrbot import extract_player_slot
+from src.ext.mmrbot import extract_player_slot
 from steam.ext import dota2
 
 Hero = dota2.Hero
