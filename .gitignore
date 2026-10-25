@@ -41,10 +41,9 @@ _build/
 .temp/
 
 # Testing Related
-src/ext/beta.py
+src/ext/zeta.py
 src/subset.py
-src/alpha.py
-src/zeta.py
+src/xi.py
 
 # FILES TO COMMIT ELSEWHERE
 # -------------------------
