@@ -51,7 +51,7 @@ class BetaCog(DevComponent):
         super().__init__(bot)
         self.beta_test.start()
 
-    @loop(count=1)
+    @loop(count=10)
     async def beta_test(self) -> None:
         """Task that is supposed to run just once to test stuff out."""
         await self.beta_test_task_count_1()

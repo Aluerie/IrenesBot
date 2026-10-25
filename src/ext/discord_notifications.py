@@ -38,7 +38,7 @@ class DiscordNotifications(PersonalComponent):
         self.active_notification_messages: list[discord.WebhookMessage] = []
 
     @discord.utils.cached_property
-    def logger_webhook(self) -> discord.Webhook:
+    def stream_notif(self) -> discord.Webhook:
         """Shortcut to logger webhook."""
         webhook_url = env.WEBHOOK_STREAM_NOTIF if not self.bot.test else env.WEBHOOK_LOGGER
         return discord.Webhook.from_url(url=webhook_url, session=self.bot.session)
@@ -57,7 +57,7 @@ class DiscordNotifications(PersonalComponent):
         current_vod = next(iter(await self.bot.fetch_videos(user_id=irene.id, period="day")), None)
         current_vod_link = f"/[VOD]({current_vod.url})" if current_vod else ""
         self.active_notification_messages.append(
-            await self.logger_webhook.send(
+            await self.stream_notif.send(
                 content=f"<@&760082003495223298> and chat, **`@{irene.display_name}`** just went live!",
                 wait=True,
                 embed=discord

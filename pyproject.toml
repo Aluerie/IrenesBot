@@ -143,7 +143,7 @@ unfixable = [
 flake8-quotes.inline-quotes = "double"
 
 [tool.ruff.lint.per-file-ignores]
-"{src/zeta.py,templates/fresh_zeta.py,src/xi.py,*.ipynb}" = [
+"{src/ext/zeta.py,templates/fresh_zeta.py,src/xi.py,*.ipynb}" = [
     # These files are my playground to mess around and test stuff.
     "ANN",
     "D", 
