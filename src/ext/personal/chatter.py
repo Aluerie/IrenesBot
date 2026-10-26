@@ -117,8 +117,8 @@ class Chatter(PersonalComponent):
     async def keywords_response(self, message: twitchio.ChatMessage) -> None:
         """Echo a keyword or key phrase spotted in chat as a flavour message.
 
-        Only whole words count. To avoid spam, a response is sent with a low chance and at most once per cooldown period,
-        even if a message contains several keywords.
+        Only whole words count. To avoid spam, a response is sent with a low chance and at most once per cooldown
+        period, even if a message contains several keywords.
         """
         if not self.is_human_dev_message(message):
             return
