@@ -365,7 +365,7 @@ class Bot(BotBase, commands.AutoBot):
             log.debug("Loading module: %s", module)
             try:
                 await self.load_module(module)
-            except commands.ModuleLoadFailure as error:
+            except commands.exceptions.ModuleError as error:
                 embed = discord.Embed(title="Module Load Error", colour=0x12A28A)
                 await self.error_notification_manager.register(error, embed=embed)
 
