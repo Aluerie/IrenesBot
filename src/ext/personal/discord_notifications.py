@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, override
 
 import discord
 import twitchio
+from discord import ui
 from twitchio.ext import commands
 
 from config import env
@@ -64,8 +65,7 @@ class DiscordNotifications(PersonalComponent):
     @discord.utils.cached_property
     def stream_notif(self) -> discord.Webhook:
         """Webhook for stream notifications, or the logger webhook when the bot runs in test mode."""
-        webhook_url = env.WEBHOOK_STREAM_NOTIF if not self.bot.test else env.WEBHOOK_LOGGER
-        return discord.Webhook.from_url(url=webhook_url, session=self.bot.session)
+        return self.bot.webhook_from_url_or_test(env.WEBHOOK_STREAM_NOTIF)
 
     @commands.Component.listener(name="stream_online")
     async def send_notification(self, online: twitchio.StreamOnline) -> None:
@@ -90,7 +90,6 @@ class DiscordNotifications(PersonalComponent):
             videos = []
         cutoff = online.started_at - VOD_TIMESTAMP_TOLERANCE
         current_vod = next((video for video in videos if video.created_at >= cutoff), None)
-        current_vod_link = f"/[VOD]({current_vod.url})" if current_vod else ""
 
         embed = (
             discord
@@ -98,7 +97,7 @@ class DiscordNotifications(PersonalComponent):
                 color=TWITCH_PURPLE,
                 title=channel_info.title,
                 url=stream_url,
-                description=f"Playing {channel_info.game_name}\n/[Watch Stream]({stream_url}){current_vod_link}",
+                description=f"Playing {channel_info.game_name}",
             )
             .set_author(
                 name=f"{irene.display_name} just went live on Twitch!",
@@ -111,6 +110,10 @@ class DiscordNotifications(PersonalComponent):
                 "?format=webp&width=720&height=405"
             )
         )
+        view = ui.View(timeout=None)
+        view.add_item(ui.Button(label="Watch Stream", url=stream_url))
+        if current_vod:
+            view.add_item(ui.Button(label="VOD", url=current_vod.url))
 
         message = await self.stream_notif.send(
             content=f"<@&{NOTIFICATION_ROLE_ID}> and chat, **`@{irene.display_name}`** just went live!",

@@ -142,7 +142,6 @@ class Bot(BotBase, commands.AutoBot):
 
         if is_test_account:
             # test account
-            self.test = True
             client_id = env.TEST_TWITCH_CLIENT_ID
             client_secret = env.TEST_TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Test
@@ -150,7 +149,6 @@ class Bot(BotBase, commands.AutoBot):
             dev_ping = "<@&1337106675433340990>"
         else:
             # production account
-            self.test = False
             client_id = env.TWITCH_CLIENT_ID
             client_secret = env.TWITCH_CLIENT_SECRET
             bot_id = const.UserID.Bot
@@ -159,6 +157,7 @@ class Bot(BotBase, commands.AutoBot):
 
         super().__init__(
             session,
+            test=is_test_account,
             dev_ping=dev_ping,
             error_webhook_url=env.WEBHOOK_ERROR,
             spam_webhook_url=env.WEBHOOK_SPAM,
