@@ -158,3 +158,8 @@ class Timers(PersonalComponent):
         await self.bot.create_partialuser(self.bot.owner_id).send_announcement(
             message=message, moderator=self.bot.bot_id, color="primary"
         )
+
+
+async def setup(bot: Bot) -> None:
+    """Load IreBot module. Framework of twitchio."""
+    await bot.add_component(Timers(bot))
