@@ -237,7 +237,7 @@ def extract_player_slot(argument: str, hero_names: list[str]) -> int:
         Matched hero as well as its index in the provided `heroes` list.
         This is because usually when this function is called, the `player slot` is also of a big interest.
     """
-    if argument.isnumeric():
+    if argument.isdecimal():
         # then the user typed only a number and our life is easy because it is a player slot
         # let's consider users normal: they start enumerating slots from 1 instead of 0.
         index = int(argument) - 1
@@ -547,10 +547,13 @@ class MMRBot(Component):
         match = await self.get_live_match(ctx.broadcaster.id)
         stats = await self.get_real_time_stats(match)
         lead = stats.radiant_nw - stats.dire_nw
+        if lead == 0:
+            summary = "Net worth is even"  # is it even possible in Dota :D
+        else:
+            summary = f"{'Radiant' if lead > 0 else 'Dire'} is leading by {abs(lead) / 1000:.1f}k"
         content = (
             f"{'[2m delay] ' if match.tag == 'playing' else ''}"
-            f"Radiant {stats.radiant_score} - Dire {stats.dire_score}: "
-            f"{'Radiant' if lead > 0 else 'Dire'} is leading by {abs(lead) / 1000:.1f}k"
+            f"Radiant {stats.radiant_score} - Dire {stats.dire_score}: {summary}"
         )
         await self.send_with_tag(ctx, match, content)
 
@@ -573,11 +576,11 @@ class MMRBot(Component):
             FROM ttv_dota_matches m
                     JOIN ttv_dota_match_players p ON m.match_id = p.match_id
                     JOIN ttv_dota_accounts a ON a.friend_id = p.friend_id
-            WHERE a.twitch_id = $1
+            WHERE a.twitch_id = $1  AND m.live > $2
             ORDER BY m.start_time DESC
             LIMIT 1;
         """
-        row = await self.bot.pool.fetchrow(query, broadcaster_id)
+        row = await self.bot.pool.fetchrow(query, broadcaster_id, local.MatchState.Live)
         if not row:
             msg = "No last game found: streamer hasn't played Dota 2 in the last 2 days"
             raise errors.RespondWithError(msg)
@@ -648,8 +651,8 @@ class MMRBot(Component):
     async def npm_dev(self, ctx: Context) -> None:
         """Group command for the bot developer to manage list of notable players in the database."""
         message = (
-            '"!npm" is a group command: use it together with its subcommands (add, help, remove, find), "'
-            '"i.e. "!npm add 123 Arteezy"'
+            '"!npm" is a group command: use it together with its subcommands (add, help, remove, find), '
+            'i.e. "!npm add 123 Arteezy"'
         )
         await ctx.send(message)
 
@@ -678,7 +681,7 @@ class MMRBot(Component):
         response = (
             "!npm add 123 Arteezy \N{BULLET} "
             "!npm remove 123 \N{BULLET} "
-            "!npm rename 123 \N{BULLET} "
+            "!npm rename 123 SADBOY \N{BULLET} "
             "where 123 is their friend_id; "
             "!npm find Arteezy - to get their friend_id."
         )
@@ -686,7 +689,7 @@ class MMRBot(Component):
 
     @npm_dev.command(name="remove")
     async def npm_dev_remove(self, ctx: Context, friend_id: int) -> None:
-        """Add a notable player to the database.
+        """Remove a notable player from the database.
 
         This command is only available for certain group of people.
         """
@@ -695,7 +698,9 @@ class MMRBot(Component):
             WHERE friend_id = $1
             RETURNING nickname;
         """
-        name: str = await self.bot.pool.fetchval(query, friend_id)
+        name: str | None = await self.bot.pool.fetchval(query, friend_id)
+        if name is None:
+            await ctx.send("This is not a notable player.")
         await ctx.send(f"Removed player <friend_id={friend_id}, name={name}> from notable players.")
 
     @npm_dev.command(name="find")
