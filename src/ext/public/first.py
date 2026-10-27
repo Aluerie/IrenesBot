@@ -29,10 +29,14 @@ if TYPE_CHECKING:
     from core import Bot, Context
 
     class FirstRedeemsRow(TypedDict):
+        """FirstRedeemsRow."""
+
         user_id: str
         first_times: int
 
     class FirstChatterRewardsQueryRow(TypedDict):
+        """FirstChatterRewardsQueryRow."""
+
         streamer_id: str
         reward_id: str
         original_title: str
@@ -41,13 +45,16 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-__all__ = ("FirstChatterChannelRewardManagement",)
 
 DEFAULT_FIRST_REWARD_TITLE = "First!"
 
+# Title that the bot sets after somebody redeems the reward, i.e. "@Irene was 1st today!".
+# Twitch display names can contain digits and non-ASCII characters, so we match any non-whitespace run.
+BOT_REWARD_TITLE_PATTERN = re.compile(r"@\S+ was 1st today!")
+
 
 class FirstChatterChannelRewardManagement(Component):
-    """Track some silly number counters of how many times this or that happened."""
+    """Manage the "First!" channel point reward: setup, validation, redeem counters and title resets."""
 
     @override
     async def component_load(self) -> None:
@@ -67,7 +74,7 @@ class FirstChatterChannelRewardManagement(Component):
     @commands.command()
     async def setup_first_reward(self, ctx: Context) -> None:
         """Set up First Chatter Channel Reward in the broadcaster channel."""
-        query = """
+        query = """--sql
             SELECT COUNT(1)
             FROM ttv_first_chatter_rewards
             WHERE streamer_id = $1;
@@ -77,19 +84,19 @@ class FirstChatterChannelRewardManagement(Component):
             raise errors.RespondWithError(msg)
 
         custom_reward = await ctx.broadcaster.create_custom_reward(
-            title="First!",
+            title=DEFAULT_FIRST_REWARD_TITLE,
             cost=1,
             max_per_stream=1,
             max_per_user=1,
             redemptions_skip_queue=True,
         )
-        query = """
+        query = """--sql
             INSERT INTO ttv_first_chatter_rewards
             (streamer_id, reward_id)
             VALUES ($1, $2)
             ON CONFLICT (streamer_id)
                 DO NOTHING
-            returning streamer_id
+            RETURNING streamer_id;
         """
         streamer_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, custom_reward.id)
         if streamer_id is None:
@@ -104,7 +111,7 @@ class FirstChatterChannelRewardManagement(Component):
     @guards.is_broadcaster_or_dev()
     @commands.command()
     async def fix_first_reward(self, ctx: Context) -> None:
-        """Set up First Chatter Channel Reward in the broadcaster channel."""
+        """Fix First Chatter Channel Reward attributes in the broadcaster channel."""
         if (reward_row := await self.fetch_reward(ctx.broadcaster.id)) is None:
             msg = (
                 "This stream does not have First Chatter Channel Reward set up. "
@@ -126,34 +133,58 @@ class FirstChatterChannelRewardManagement(Component):
         query = """--sql
             SELECT COUNT(1)
             FROM ttv_first_chatter_rewards
-            WHERE reward_id = $1
+            WHERE reward_id = $1;
         """
         return await self.bot.pool.fetchval(query, reward_id) == 1
 
     async def fetch_reward(self, streamer_id: str) -> FirstChatterRewardsQueryRow | None:
         """Fetch row for First Chatter Reward by `streamer_id`."""
-        query = """
+        query = """--sql
             SELECT streamer_id, reward_id, original_title
             FROM ttv_first_chatter_rewards
             WHERE streamer_id = $1;
         """
         return await self.bot.pool.fetchrow(query, streamer_id)
 
+    async def fetch_all_rewards(self) -> list[FirstChatterRewardsQueryRow]:
+        """Fetch rows for all First Chatter Rewards."""
+        query = """--sql
+            SELECT streamer_id, reward_id, original_title
+            FROM ttv_first_chatter_rewards;
+        """
+        return await self.bot.pool.fetch(query)
+
+    # TWITCH HELPERS
+
+    async def fetch_twitch_reward(
+        self,
+        broadcaster: twitchio.PartialUser,
+        reward_id: str,
+    ) -> twitchio.CustomReward | None:
+        """Fetch the custom reward from Twitch.
+
+        Returns
+        -------
+        twitchio.CustomReward | None
+            The reward or `None` if Twitch returned nothing for the `reward_id`.
+        """
+        rewards = await broadcaster.fetch_custom_rewards(ids=[reward_id])
+        return next(iter(rewards), None)
+
     # LISTENERS
 
     @commands.Component.listener(name="custom_reward_update")
     async def update_reward_title_in_database(self, reward: twitchio.ChannelPointsRewardUpdate) -> None:
         """Update reward title in the database."""
-        match = re.search(r"^@[a-zA-Z_]+ was 1st today!$", reward.title)
-        if match is not None:
+        if BOT_REWARD_TITLE_PATTERN.fullmatch(reward.title):
             # then it's highly likely it was not a title from the user but from the bot
             # the `@Irene was 1st today!`
             return
 
-        query = """
+        query = """--sql
             UPDATE ttv_first_chatter_rewards
             SET original_title = $1
-            WHERE reward_id = $2
+            WHERE reward_id = $2;
         """
         await self.bot.pool.execute(query, reward.title, reward.id)
 
@@ -166,28 +197,20 @@ class FirstChatterChannelRewardManagement(Component):
         if not await self.is_reward_in_database(reward.id):
             return
 
-        def get_response(msg: str) -> str:
-            """Add message prefix and suffix to `msg`."""
-            return (
-                f"{reward.broadcaster.mention} settings for `First Chatter Redeem` were just changed. "
-                f"{msg} "
-                "Please, fix or run `!fix_first_reward`."
-            )
-
         if reward.max_per_stream is None:
-            msg = get_response("For some reason `reward.max_per_stream` was set to `None` which is wrong.")
-            await reward.respond(msg)
+            problem = "For some reason `reward.max_per_stream` was set to `None` which is wrong."
+        elif not reward.max_per_stream.enabled:
+            problem = "Are you sure you want `Limit Redemptions Per Stream` to be disabled?"
+        elif reward.max_per_stream.value != 1:
+            problem = f"Are you sure you want `Limit Redemptions Per Stream` to be {reward.max_per_stream.value}."
+        else:
             return
-        if not reward.max_per_stream.enabled:
-            msg = get_response("Are you sure you want `Limit Redemptions Per Stream` to be disabled?")
-            await reward.respond(msg)
-            return
-        if reward.max_per_stream.value != 1:
-            msg = get_response(
-                f"Are you sure you want `Limit Redemptions Per Stream` to be {reward.max_per_stream.value}."
-            )
-            await reward.respond(msg)
-            return
+
+        await reward.respond(
+            f"{reward.broadcaster.mention} settings for `First Chatter Redeem` were just changed. "
+            f"{problem} "
+            "Please, fix or run `!fix_first_reward`."
+        )
 
     @commands.Component.listener(name="custom_reward_remove")
     async def remind_reward_remove(self, reward: twitchio.ChannelPointsRewardRemove) -> None:
@@ -198,13 +221,13 @@ class FirstChatterChannelRewardManagement(Component):
         if not await self.is_reward_in_database(reward.id):
             return
 
-        query = """
+        query = """--sql
             DELETE FROM ttv_first_chatter_rewards
             WHERE reward_id = $1;
         """
         await self.bot.pool.execute(query, reward.id)
         await reward.respond(
-            f"{reward.broadcaster.mention} I've noticed you've just removed the `First Chatter Channel Reward`"
+            f"{reward.broadcaster.mention} I've noticed you've just removed the `First Chatter Channel Reward` "
             "that was set up with this bot. If you want to recreate it, use `!setup_first_reward`."
         )
 
@@ -227,20 +250,18 @@ class FirstChatterChannelRewardManagement(Component):
             RETURNING first_times;
         """
         count: int = await self.bot.pool.fetchval(query, redemption.user.id, redemption.broadcaster.id)
-        msg = (
-            f'@{redemption.user.display_name}, gratz on your very first "First!" {const.Stv.gg}'
-            if count == 1
-            else (
-                f"@{redemption.user.display_name}, Gratz! you've been first {count} times "
-                f"{const.Stv.gg} {globs.TwitchEmote.EZ}"
-            )
-        )
+        name = redemption.user.display_name
+        if count == 1:
+            msg = f'@{name}, gratz on your very first "First!" {const.Stv.gg}'
+        else:
+            msg = f"@{name}, Gratz! you've been first {count} times {const.Stv.gg} {globs.TwitchEmote.EZ}"
+
         await redemption.respond(msg)
         with contextlib.suppress(twitchio.HTTPException):
             await redemption.fulfill(token_for=redemption.broadcaster.id)
         await redemption.broadcaster.update_custom_reward(
             id=redemption.reward.id,
-            title=f"@{redemption.user.display_name} was 1st today!",
+            title=f"@{name} was 1st today!",
         )
 
     async def helper_reset_redeem_title_to_original(
@@ -251,10 +272,23 @@ class FirstChatterChannelRewardManagement(Component):
     ) -> None:
         """Reset First Chatter Reward title's to normal.
 
-        Title gets replaces by "@User was first today!" during the streams.
+        Title gets replaced by "@User was 1st today!" during the streams.
         This replaces it back to the original.
+
+        Parameters
+        ----------
+        broadcaster
+            The channel owner.
+        reward_id
+            ID of the First Chatter Reward.
+        original_title
+            The title to restore. Falls back to the default title if empty.
         """
-        first_reward = next(iter(await broadcaster.fetch_custom_rewards(ids=[reward_id])))
+        first_reward = await self.fetch_twitch_reward(broadcaster, reward_id)
+        if first_reward is None:
+            log.warning("🥇 First: reward %s of streamer %s was not found on Twitch.", reward_id, broadcaster.id)
+            return
+
         intended_title = original_title or DEFAULT_FIRST_REWARD_TITLE
         if first_reward.title != intended_title:
             await first_reward.update(title=intended_title)
@@ -263,7 +297,7 @@ class FirstChatterChannelRewardManagement(Component):
     async def reset_first_redeem_title(self, offline: twitchio.StreamOffline) -> None:
         """Reset the title of the "First!" redeem back to its original state.
 
-        Currently, it should be changed when somebody redeems to "@user was first!
+        Currently, it should be changed when somebody redeems to "@user was 1st today!".
         """
         if reward_row := await self.fetch_reward(offline.broadcaster.id):
             await self.helper_reset_redeem_title_to_original(
@@ -280,20 +314,19 @@ class FirstChatterChannelRewardManagement(Component):
         """
         log.debug("🥇 First: Double check Task starts now.")
         await self.bot.streamers_index_ready.wait()
-        query = """
-            SELECT streamer_id, reward_id, original_title
-            FROM ttv_first_chatter_rewards;
-        """
-        rows: list[FirstChatterRewardsQueryRow] = await self.bot.pool.fetch(query)
-        for row in rows:
-            streamer = self.bot.get_streamer(row["streamer_id"])
-            if streamer.online:
-                continue
-            await self.helper_reset_redeem_title_to_original(
-                self.bot.create_partialuser(row["streamer_id"]),
-                row["reward_id"],
-                row["original_title"],
-            )
+
+        for row in await self.fetch_all_rewards():
+            try:
+                if self.bot.get_streamer(row["streamer_id"]).online:
+                    continue
+                await self.helper_reset_redeem_title_to_original(
+                    self.bot.create_partialuser(row["streamer_id"]),
+                    row["reward_id"],
+                    row["original_title"],
+                )
+            except Exception:
+                # one broken channel (revoked token, deleted reward, etc.) must not stop the others
+                log.exception("🥇 First: Double check failed for streamer %s.", row["streamer_id"])
 
     @loop(time=[dt.time(hour=3, minute=59)])
     async def check_first_reward(self) -> None:
@@ -306,20 +339,20 @@ class FirstChatterChannelRewardManagement(Component):
             return
 
         log.debug("🥇 First: Checking if all rewards in the database exist.")
-        query = """
-            SELECT streamer_id, reward_id, original_title
-            FROM ttv_first_chatter_rewards;
-        """
-        rows: list[FirstChatterRewardsQueryRow] = await self.bot.pool.fetch(query)
 
-        for row in rows:
+        for row in await self.fetch_all_rewards():
             partial_user = self.bot.create_partialuser(row["streamer_id"])
-            first_reward = next(iter(await partial_user.fetch_custom_rewards(ids=[row["reward_id"]])))
-            if not first_reward:
+            try:
+                first_reward = await self.fetch_twitch_reward(partial_user, row["reward_id"])
+            except twitchio.HTTPException:
+                log.exception("🥇 First: Failed to fetch the reward for streamer %s.", row["streamer_id"])
+                continue
+
+            if first_reward is None:
                 embed = Embed(
                     description=(
-                        f"Looks like something wrong with streamer @{partial_user.name} ({row['streamer_id']}) "
-                        'deleted "First!" channel points reward from the channel.'
+                        f"Looks like something wrong with streamer {row['streamer_id']}: "
+                        'the "First!" channel points reward is missing from the channel.'
                     ),
                     colour=0x345245,
                 )
@@ -339,10 +372,13 @@ class FirstChatterChannelRewardManagement(Component):
         """
         rows: list[FirstRedeemsRow] = await self.bot.pool.fetch(query, ctx.broadcaster.id)
         if not rows:
-            msg = "This channel doesn't have `First!` feature setup."
+            msg = "This channel doesn't have `First!` feature set up or nobody has redeemed it yet."
             raise errors.RespondWithError(msg)
 
-        content = f'{const.Bttv.DankG} Top5 "First!" redeemers: '
+        # a single API request instead of one per row
+        users = await self.bot.fetch_users(ids=[row["user_id"] for row in rows])
+        names = {user.id: user.display_name for user in users}
+
         rank_medals = [
             "\N{FIRST PLACE MEDAL}",
             "\N{SECOND PLACE MEDAL}",
@@ -350,14 +386,11 @@ class FirstChatterChannelRewardManagement(Component):
             globs.DIGITS[4],
             globs.DIGITS[5],
         ]
-        content += " ".join(
-            [
-                f"{rank_medals[i]} {(await self.bot.create_partialuser(row['user_id']).user()).display_name}: "
-                f"{fmt.plural(number=row['first_times']):time};"
-                for i, row in enumerate(rows)
-            ],
+        leaderboard = " ".join(
+            f"{medal} {names.get(row['user_id'], row['user_id'])}: {fmt.plural(number=row['first_times']):time};"
+            for medal, row in zip(rank_medals, rows, strict=False)
         )
-        await ctx.send(content)
+        await ctx.send(f'{const.Bttv.DankG} Top5 "First!" redeemers: {leaderboard}')
 
 
 async def setup(bot: Bot) -> None:
