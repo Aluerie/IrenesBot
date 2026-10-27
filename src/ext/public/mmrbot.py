@@ -623,7 +623,7 @@ class MMRBot(Component):
             raise errors.RespondWithError(msg)
 
         friend_id = await self.get_friend_id(ctx.broadcaster.id)
-        match = await self.local_api.get_previous_match(friend_id)
+        match = await self.local_api.get_previous_match(friend_id, index=index)
 
         minimal = await self.local_api.get_minimal_match(match.id)
         slot, player = next(
