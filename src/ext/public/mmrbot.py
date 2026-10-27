@@ -18,12 +18,10 @@ import datetime as dt
 import logging
 import operator
 import pprint
-import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict
 from urllib import parse as url_parse
 
-import steam
 from steam.ext.dota2 import Hero, LobbyType, MatchOutcome
 from twitchio.ext import commands
 
@@ -348,11 +346,11 @@ class MMRBot(Component):
         We assume the last-seen account is the one they want to use commands against.
         """
         friend_id = await self.get_friend_id(broadcaster_id)
-        streamer: local.Friend = await self.local_api.get_friend(friend_id)
-        if is_green_online_required and not streamer.is_playing_dota:
+        friend: local.Friend = await self.local_api.get_friend(friend_id)
+        if is_green_online_required and not friend.is_playing_dota:
             msg = "Inactive command \N{BULLET} it requires streamer to be green-online \N{LARGE GREEN CIRCLE} in Dota 2"
             raise errors.RespondWithError(msg)
-        return streamer
+        return friend
 
     #########################################################################################################################
     # LIVE GAME
@@ -757,42 +755,23 @@ class MMRBot(Component):
     @commands.command()
     async def party(self, ctx: Context) -> None:
         """Show notable players in the current party."""
-        streamer = await self.get_friend(ctx.broadcaster.id)
-        party = streamer.raw_rich_presence.get("party")
-        if party is None:
-            msg = "Streamer is not in a party."
-            raise errors.RespondWithError(msg)
-        if (party2 := streamer.raw_rich_presence.get("party2")) is not None:
-            # Apparently if a party is too big, valve just slice the string into party2
-            party += party2
+        friend = await self.get_friend(ctx.broadcaster.id)
 
-        # Mapping steam32_id -> [steam64_id, their supposed account name]
-        # v[0]: int - steam64
-        # v[1]: str - notable name
-        party_member_pattern = re.compile(r"members\s{\ssteam_id:\s([0-9]+)")
-        members: dict[int, list[Any]] = {m.id: [m.id64, ""] for m in map(steam.ID, party_member_pattern.findall(party))}
-        if not members:
+        if not friend.party:
             msg = "Streamer is not in a party."
             raise errors.RespondWithError(msg)
 
         query = "SELECT nickname, friend_id FROM ttv_dota_notable_players WHERE friend_id = ANY($1);"
-        rows = await self.bot.pool.fetch(query, members.keys())
-        for row in rows:
-            members[row["friend_id"]][1] = row["nickname"]
+        rows = await self.bot.pool.fetch(query, friend.party)
+        notables = {row["friend_id"]: row["nickname"] for row in rows}
 
-        response = ""
-        if rows:
-            known_party_members = " \N{BULLET} ".join(v[1] for v in members.values() if v[1])
-            response += known_party_members
-
-        unknown_party_members = " \N{BULLET} ".join([
-            f"{(await self.local_api.get_steam_user(v[0])).name} ({k})" for k, v in members.items() if not v[1]
-        ])
-        if unknown_party_members:
-            response += f". And not notable to the bot: {unknown_party_members}"
-        # else:
-        #     # zero known members
-        #     response = f"Party members IDs: {unknown_party_members}"
+        party_members = []
+        for friend_id in friend.party:
+            name = (await self.local_api.get_steam_user(friend_id)).name
+            if nick := notables.get(friend_id):
+                name += f" ({nick})"
+            party_members.append(name)
+        response = " \N{BULLET} ".join(party_members)
         await ctx.send(response)
 
     async def score_response_helper(self, broadcaster_id: str, stream_started_at: dt.datetime | None = None) -> str:
