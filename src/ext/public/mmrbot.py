@@ -554,7 +554,7 @@ class MMRBot(Component):
         content = " \N{BULLET} ".join((
             api_player.name,
             f"{player.identifier} lvl {api_player.level}",
-            f"NW {api_player.networth / 1000:.1f} (gold {api_player.gold / 1000:.1f})",
+            f"NW {api_player.networth / 1000:.1f}k (gold {api_player.gold / 1000:.1f}k)",
             f"KDA {api_player.kills}/{api_player.deaths}/{api_player.assists}",
             f"CS {api_player.creep_score}/{api_player.denies}",
             items,
