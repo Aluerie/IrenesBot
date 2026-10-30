@@ -1,3 +1,5 @@
+# Copyright (C) 2020-present, Irene Adler ❤ (@Aluerie).
+# Licensed under MPL-2.0, see the LICENSE file for details.
 """Subscriptions and Oath.
 
 Contains functions to subscribe to proper EventSub subscriptions as well as helper functions for twitch permissions.
@@ -21,11 +23,6 @@ TwitchDev Docs
 TwitchIO  Docs
     * Event Reference: https://twitchio.dev/en/latest/references/events/events.html
     * Models: https://twitchio.dev/en/latest/references/eventsub/index.html
-
-Notices
--------
-* MPL-2.0 License, see LICENSE file for more details.
-* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations

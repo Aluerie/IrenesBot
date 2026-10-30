@@ -1,3 +1,5 @@
+# Copyright (C) 2020-present, Irene Adler ❤ (@Aluerie).
+# Licensed under MPL-2.0, see the LICENSE file for details.
 """The bot's launcher, so called "main.py" file.
 
 You can launch this bot with:
@@ -5,11 +7,6 @@ You can launch this bot with:
 * `uv run --no-dev src/main.py` preferred for production.
 
 CLI supported flags can be viewed with `--help` flag (or looked up in this file).
-
-Notices
--------
-* MPL-2.0 License, see LICENSE file for more details.
-* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (C) 2020-present, Irene Adler ❤ (@Aluerie).
+# Licensed under MPL-2.0, see the LICENSE file for details.
 """MMR Bot.
 
 The name is a homage to old-school famous @9kmmrbot which was a twitch bot for Dota 2 streamers
@@ -5,11 +7,6 @@ with various chat commands such as `!np`.
 
 Nowadays, @dotabod is quite popular and feature rich, but I always liked simplicity of @9kmmrbot.
 Its author (@Hambergo) is a cool guy too.
-
-Notices
--------
-* MPL-2.0 License, see LICENSE file for more details.
-* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (C) 2020-present, Irene Adler ❤ (@Aluerie).
+# Licensed under MPL-2.0, see the LICENSE file for details.
 """Scheduler.
 
 Sources
@@ -5,11 +7,6 @@ Sources
 The code below is largely taken/inspired by these (a lot to learn from these):
 * @mikeshardmind's scheduler https://github.com/mikeshardmind/discord-scheduler
 * @Rapptz's reminders cog https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/reminder.py
-
-Notices
--------
-* MPL-2.0 License, see LICENSE file for more details.
-* Copyright (C) 2020-present @Aluerie.
 """
 
 from __future__ import annotations

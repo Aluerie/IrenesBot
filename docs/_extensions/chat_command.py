@@ -1,11 +1,8 @@
+# Copyright (C) 2020-present, Irene Adler ❤ (@Aluerie).
+# Licensed under MPL-2.0, see the LICENSE file for details.
 """Chat-command directive.
 
 This is all quite badly coded but idk how to make it better.
-
-Notices
--------
-* MPL-2.0 License, see LICENSE file for more details.
-* Copyright (C) 2020-present @Aluerie.
 """
 
 from typing import TYPE_CHECKING, Any, override
