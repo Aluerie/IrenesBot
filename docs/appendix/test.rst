@@ -41,7 +41,11 @@ Todo: delete this lol
         Layouts of landing page, simple one page, and three-column
         documentation page.
 
-        .. code-block::
+        .. code-block:: Python
             :caption: Usage Syntax
 
             print("xd")
+
+.. important::
+
+    Wow

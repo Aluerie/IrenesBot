@@ -98,5 +98,5 @@ class OtherDevCommands(DevComponent):
 
 
 async def setup(bot: Bot) -> None:
-    """Load IreBot module. Framework of twitchio."""
+    """Load the extension (twitchio entry point)."""
     await bot.add_component(OtherDevCommands(bot))
