@@ -134,5 +134,5 @@ class Control(DevComponent):
 
 
 async def setup(bot: Bot) -> None:
-    """Load the extension (twitchio entry point)."""
+    """Load the module (twitchio entry point)."""
     await bot.add_component(Control(bot))

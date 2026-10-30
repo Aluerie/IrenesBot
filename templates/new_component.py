@@ -24,5 +24,5 @@ class NewCog(PersonalComponent):
 
 
 async def setup(bot: Bot) -> None:
-    """Load IreBot's module. Framework of twitchio."""
+    """Load the module (twitchio entry point)."""
     await bot.add_component(NewCog(bot))
