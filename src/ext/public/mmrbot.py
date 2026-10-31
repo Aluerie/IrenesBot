@@ -340,7 +340,7 @@ class MMRBot(Component):
         """Get the friend id of the steam account the broadcaster has been seen last online on."""
         query = """
             SELECT friend_id
-            FROM ttv_dota_accounts
+            FROM dota_accounts
             WHERE twitch_id = $1
             ORDER BY last_seen DESC
             LIMIT 1;
@@ -471,7 +471,7 @@ class MMRBot(Component):
         if not match.players:
             content = "No player data yet."
         else:
-            query = "SELECT friend_id, nickname FROM ttv_dota_notable_players WHERE friend_id = ANY($1);"
+            query = "SELECT friend_id, nickname FROM dota_notable_players WHERE friend_id = ANY($1);"
             rows: list[NotablePlayersQueryRow] = await self.bot.pool.fetch(query, [p.id for p in match.players])
             if not rows:
                 content = "No notable players found"
@@ -599,9 +599,9 @@ class MMRBot(Component):
         """
         query = """
             SELECT p.match_id, p.friend_id
-            FROM ttv_dota_matches m
-                    JOIN ttv_dota_match_players p ON m.match_id = p.match_id
-                    JOIN ttv_dota_accounts a ON a.friend_id = p.friend_id
+            FROM dota_matches m
+                    JOIN dota_match_players p ON m.match_id = p.match_id
+                    JOIN dota_accounts a ON a.friend_id = p.friend_id
             WHERE a.twitch_id = $1 AND m.live > $2
             ORDER BY m.start_time DESC
             LIMIT 1;
@@ -698,7 +698,7 @@ class MMRBot(Component):
         """
         steam_user = await self.local_api.get_steam_user(friend_id)
         query = """
-            INSERT INTO ttv_dota_notable_players
+            INSERT INTO dota_notable_players
             (friend_id, nickname)
             VALUES ($1, $2)
             ON CONFLICT (friend_id) DO
@@ -726,7 +726,7 @@ class MMRBot(Component):
         This command is only available for certain group of people.
         """
         query = """
-            DELETE FROM ttv_dota_notable_players
+            DELETE FROM dota_notable_players
             WHERE friend_id = $1
             RETURNING nickname;
         """
@@ -744,7 +744,7 @@ class MMRBot(Component):
         """
         query = """
             SELECT friend_id, nickname
-            FROM ttv_dota_notable_players
+            FROM dota_notable_players
             ORDER BY similarity(nickname, $1) DESC
             LIMIT 3;
         """
@@ -782,7 +782,7 @@ class MMRBot(Component):
         This account is considered to be queried against for the bot's commands.
         """
         streamer = await self.get_friend(ctx.broadcaster.id, is_green_online_required=False)
-        query = "SELECT last_seen FROM ttv_dota_accounts WHERE friend_id = $1"
+        query = "SELECT last_seen FROM dota_accounts WHERE friend_id = $1"
         last_seen: dt.datetime = await self.bot.pool.fetchval(query, streamer.id)
         delta = clock.utcnow() - last_seen
         response = (
@@ -803,7 +803,7 @@ class MMRBot(Component):
             msg = "Streamer is not in a party."
             raise errors.RespondWithError(msg)
 
-        query = "SELECT nickname, friend_id FROM ttv_dota_notable_players WHERE friend_id = ANY($1);"
+        query = "SELECT nickname, friend_id FROM dota_notable_players WHERE friend_id = ANY($1);"
         rows: list[NotablePlayersQueryRow] = await self.bot.pool.fetch(query, member_ids)
         notables = {row["friend_id"]: row["nickname"] for row in rows}
 
@@ -829,9 +829,9 @@ class MMRBot(Component):
 
         query = f"""
             SELECT d.friend_id, m.start_time, m.lobby_type, m.game_mode, m.outcome, p.player_slot, p.abandon
-            FROM ttv_dota_matches m
-                    JOIN ttv_dota_match_players p ON m.match_id = p.match_id
-                    JOIN ttv_dota_accounts d ON d.friend_id = p.friend_id
+            FROM dota_matches m
+                    JOIN dota_match_players p ON m.match_id = p.match_id
+                    JOIN dota_accounts d ON d.friend_id = p.friend_id
             WHERE d.twitch_id = $1
             AND m.live > $2 {clause}
             ORDER BY m.start_time DESC;
