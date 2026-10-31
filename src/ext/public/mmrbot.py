@@ -324,6 +324,68 @@ def is_allowed_to_add_notable() -> Any:
     return commands.guard(predicate)
 
 
+SEPARATOR = " \N{BULLET} "
+
+PLAYED_WITH_QUERY = """
+WITH me AS (
+    SELECT p.friend_id
+    FROM shared.dota_match_players AS p
+    JOIN shared.dota_accounts AS a USING (friend_id)
+    WHERE p.match_id = $1
+      AND a.twitch_id = $2
+    LIMIT 1
+),
+live AS (
+    SELECT start_time
+    FROM shared.dota_matches
+    WHERE match_id = $1
+),
+history AS (
+    SELECT
+        m.match_id,
+        m.start_time,
+        LEAD(m.start_time) OVER (ORDER BY m.start_time) - m.start_time AS gap_to_next
+    FROM shared.dota_matches AS m
+    JOIN shared.dota_match_players AS p USING (match_id)
+    WHERE p.friend_id = (SELECT friend_id FROM me)
+      AND (m.failed = 0 OR m.match_id = $1)
+      AND m.start_time <= (SELECT start_time FROM live)
+),
+session_matches AS (
+    SELECT
+        h.match_id,
+        ROW_NUMBER() OVER (ORDER BY h.start_time DESC) - 1 AS matches_ago
+    FROM history AS h
+    WHERE h.start_time > COALESCE(
+        (SELECT MAX(start_time) FROM history WHERE gap_to_next > INTERVAL '6 hours'),
+        '-infinity'::timestamptz
+    )
+)
+SELECT DISTINCT ON (sp.friend_id)
+    sp.friend_id,
+    sp.hero_id,
+    sm.matches_ago
+FROM shared.dota_match_players AS lp
+JOIN shared.dota_match_players AS sp ON sp.friend_id = lp.friend_id
+JOIN session_matches AS sm ON sm.match_id = sp.match_id
+WHERE lp.match_id = $1
+  AND lp.friend_id <> (SELECT friend_id FROM me)
+  AND sm.matches_ago > 0
+ORDER BY sp.friend_id, sm.matches_ago;
+"""
+
+
+def _ago(n: int) -> str:
+    """Format a number of matches back as text.
+
+    Parameters
+    ----------
+    n
+        How many matches ago, where ``1`` is the previous game.
+    """
+    return "last game" if n == 1 else f"{n} matches ago"
+
+
 class MMRBot(Component):
     """MMR Bot."""
 
@@ -605,9 +667,9 @@ class MMRBot(Component):
         last_game = await self.local_api.get_minimal_match(row["match_id"])
         return row["friend_id"], last_game
 
-    @commands.command(name="played", aliases=["last_game", "lg", "lm"])
+    @commands.command(name="played", aliases=["last_game", "lg", "lm", "lgs"])
     async def played_with(self, ctx: Context) -> None:
-        """List recurring players from the last game present in the current match."""
+        """List recurring players from the last gaming session present in the current match."""
         match = await self.get_live_match(ctx.broadcaster.id)
         if not match.players:
             await ctx.send("No player data yet.")
@@ -617,23 +679,20 @@ class MMRBot(Component):
             await ctx.send("This command only works for the matches the streamer is playing in, not spectating.")
             return
 
-        friend_id, last_game = await self.get_last_game(ctx.broadcaster.id)
-
-        # players with private data have zero id, they can't be told apart
-        last_game_heroes: dict[int, str] = {p.id: p.hero.name for p in last_game.players if p.id}
-        last_game_heroes.pop(friend_id, None)  # remove the streamer themselves
+        rows = await self.bot.pool.fetch(PLAYED_WITH_QUERY, match.id, ctx.broadcaster.id)
+        previous = {row["friend_id"]: row for row in rows}
 
         response_parts = [
-            f"{player.identifier} played as {played_as}"
+            f"{player.identifier} played as {Hero(prev['hero_id']).display_name} {_ago(prev['matches_ago'])}"
             for player in match.players
-            if (played_as := last_game_heroes.get(player.id)) is not None
+            if (prev := previous.get(player.id))
         ]
         content = (
-            " \N{BULLET} ".join(response_parts)
+            SEPARATOR.join(response_parts)
             if response_parts
-            else "No players from the last game present in the match"
+            else "No players from the last game(-s) present in the match"
         )
-        await ctx.send(content)
+        await ctx.chunk_send(content)
 
     @commands.command(aliases=["pm"])
     async def previous_match(self, ctx: Context, index: int = 0) -> None:
