@@ -48,7 +48,7 @@ async def start_the_bot(
     postgres_url = env.POSTGRES_VPS if platform.system() == "Linux" else env.POSTGRES_HOME
     try:
         # TODO: DELETE public
-        pool = await db.create_pool(postgres_url, "irenesbot,shared,public")
+        pool = await db.create_pool(postgres_url, "irenesbot,shared")
     except Exception:
         msg = "Could not set up PostgreSQL. Exiting."
         click.echo(msg, file=sys.stderr)
