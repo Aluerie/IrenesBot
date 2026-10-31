@@ -322,7 +322,7 @@ class Score:
         abandon
             Whether the player abandoned the match.
         """
-        if abandon is not None:
+        if bool(abandon):
             self.abandons += 1
         elif outcome is None:
             self.pending += 1
@@ -930,7 +930,7 @@ class MMRBot(Component):
         for row in rows:
             category = local.Category.create(row["lobby_type"], row["game_mode"])
             scores[row["friend_id"]][category].record(
-                row["outcome"],
+                outcome=row["outcome"],
                 player_slot=row["player_slot"],
                 abandon=row["abandon"],
             )
