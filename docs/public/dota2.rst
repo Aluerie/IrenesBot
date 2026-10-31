@@ -87,7 +87,7 @@ The commands below work exactly in the same fashion as :iconify:`logos:twitch` `
       - Show match id for the current game.
       - .. image:: /_static/images/dota2/matchid.png
     * - Played with in Last Game
-      - !lg !lm !played
+      - !lgs !lg !lm !played
       - Show recurring players from the last game present in the current game.
       - .. image:: /_static/images/dota2/last-game.png
     * - Previous Match Results
@@ -148,3 +148,14 @@ Some short instructions for :iconify:`logos:twitch` `@PotatBotat <https://www.tw
 
 Hopefully, another implementation for these features (using :iconify:`thesvg-color:dota-2` Dota 2 Game State Integration) is coming soon™️. 
 It won't have mentioned restrictions but you will have to put a ``.cfg`` file into the :iconify:`thesvg-color:dota-2` Dota 2 directory.
+
+🙋🏻 Notable Players Management
+###############################
+
+.. autochatcommand:: ext.public.mmrbot.MMRBot.npm_dev_add
+
+.. autochatcommand:: ext.public.mmrbot.MMRBot.npm_dev_help
+
+.. autochatcommand:: ext.public.mmrbot.MMRBot.npm_dev_remove
+
+.. autochatcommand:: ext.public.mmrbot.MMRBot.npm_dev_find

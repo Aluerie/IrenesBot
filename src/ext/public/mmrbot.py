@@ -949,9 +949,7 @@ class MMRBot(Component):
         response = await self.score_response_helper(ctx.broadcaster.id)
         await ctx.send(content=response)
 
-    ####################################################################################################################
-    # MISC
-    ####################################################################################################################
+    # --- MISC ---------------------------------------------------------------------------------------------------------
 
     @commands.command(name="d2pt")
     async def dota2protracker_hero_page(self, ctx: Context) -> None:
