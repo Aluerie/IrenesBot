@@ -29,6 +29,7 @@ GUARD_NOTE_MAPPING = {
     "is_broadcaster_or_dev": "Broadcaster",
     "_is_broadcaster_dev_or_editor_predicate": "Broadcaster, 7tv editors",
     "is_broadcaster_dev_editor_or_adder": ("Broadcaster, 7tv editors, a person who added the emote"),
+    "is_allowed_to_add_notable": "Irene and @Xasthurize"
 }
 
 

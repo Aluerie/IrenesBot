@@ -726,7 +726,6 @@ class MMRBot(Component):
 
     # --- NOTABLE PEOPLE MANAGEMENT ------------------------------------------------------------------------------------
 
-    @is_allowed_to_add_notable()
     @guards.is_production()
     @commands.group(name="npm", aliases=["np-dev"], invoke_fallback=True)
     async def npm_dev(self, ctx: Context) -> None:
@@ -737,6 +736,7 @@ class MMRBot(Component):
         )
         await ctx.send(message)
 
+    @is_allowed_to_add_notable()
     @npm_dev.command(name="add", aliases=["edit", "rename"])
     async def npm_dev_add(self, ctx: Context, friend_id: int, *, name: str) -> None:
         """Add a notable player to the database.
@@ -756,6 +756,7 @@ class MMRBot(Component):
         await self.bot.pool.execute(query, steam_user.id, name)
         await ctx.send(f"Added/edited a notable player <friend_id={steam_user.id}, name={name}>")
 
+    @is_allowed_to_add_notable()
     @npm_dev.command(name="help")
     async def npm_dev_help(self, ctx: Context) -> None:
         """Show small help for !np-dev commands."""
@@ -768,12 +769,10 @@ class MMRBot(Component):
         )
         await ctx.send(response)
 
+    @is_allowed_to_add_notable()
     @npm_dev.command(name="remove")
     async def npm_dev_remove(self, ctx: Context, friend_id: int) -> None:
-        """Remove a notable player from the database.
-
-        This command is only available for certain group of people.
-        """
+        """Remove a notable player from the database."""
         query = """
             DELETE FROM dota_notable_players
             WHERE friend_id = $1
@@ -785,12 +784,10 @@ class MMRBot(Component):
             return
         await ctx.send(f"Removed player <friend_id={friend_id}, name={name}> from notable players.")
 
+    @is_allowed_to_add_notable()
     @npm_dev.command(name="find")
     async def npm_dev_find(self, ctx: Context, *, name: str) -> None:
-        """Find a notable player from the database.
-
-        This command is only available for certain group of people.
-        """
+        """Find a notable player from the database."""
         query = """
             SELECT friend_id, nickname
             FROM dota_notable_players
