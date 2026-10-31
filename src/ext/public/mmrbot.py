@@ -15,6 +15,7 @@ import asyncio
 import datetime as dt
 import json
 import operator
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict, override
 from urllib import parse as url_parse
@@ -309,6 +310,29 @@ class Score:
             wl += f", Pending: {self.pending}"
         return wl
 
+    def record(self, outcome: int | None, *, player_slot: int, abandon: bool | None) -> None:
+        """Add a single match to the score.
+
+        Parameters
+        ----------
+        outcome
+            Match outcome, ``None`` if it is not known yet.
+        player_slot
+            The player's slot, where slots below 5 belong to Radiant.
+        abandon
+            Whether the player abandoned the match.
+        """
+        if abandon is not None:
+            self.abandons += 1
+        elif outcome is None:
+            self.pending += 1
+        elif outcome in {MatchOutcome.RadiantVictory, MatchOutcome.DireVictory}:
+            is_radiant = player_slot < 5
+            if (outcome == MatchOutcome.RadiantVictory) == is_radiant:
+                self.wins += 1
+            else:
+                self.losses += 1
+
 
 def is_allowed_to_add_notable() -> Any:
     """Allow !npm add/remove/rename to only be invoked by certain people."""
@@ -384,6 +408,34 @@ def _ago(n: int) -> str:
         How many matches ago, where ``1`` is the previous game.
     """
     return "last game" if n == 1 else f"{n} matches ago"
+
+
+SCORE_QUERY = """
+    WITH matches AS (
+        SELECT
+            d.friend_id,
+            m.start_time,
+            m.lobby_type,
+            m.game_mode,
+            m.outcome,
+            p.player_slot,
+            p.abandon,
+            LAG(m.start_time) OVER (ORDER BY m.start_time DESC) - m.start_time AS gap_to_newer
+        FROM dota_matches AS m
+        JOIN dota_match_players AS p ON p.match_id = m.match_id
+        JOIN dota_accounts AS d ON d.friend_id = p.friend_id
+        WHERE d.twitch_id = $1
+          AND m.live > $2
+          AND ($3::timestamptz IS NULL OR m.start_time > $3)
+    )
+    SELECT friend_id, start_time, lobby_type, game_mode, outcome, player_slot, abandon
+    FROM matches
+    WHERE start_time > COALESCE(
+        (SELECT MAX(start_time) FROM matches WHERE gap_to_newer > $4),
+        '-infinity'::timestamptz
+    )
+    ORDER BY start_time DESC;
+"""
 
 
 class MMRBot(Component):
@@ -863,66 +915,42 @@ class MMRBot(Component):
 
     async def score_response_helper(self, broadcaster_id: str, stream_started_at: dt.datetime | None = None) -> str:
         """Get !wl commands response."""
-        args: list[Any] = [broadcaster_id, local.MatchState.Live]
-        clause = ""
-        if stream_started_at is not None:
-            args.append(stream_started_at)
-            clause = "AND m.start_time > $3"
-
-        query = f"""
-            SELECT d.friend_id, m.start_time, m.lobby_type, m.game_mode, m.outcome, p.player_slot, p.abandon
-            FROM dota_matches m
-                    JOIN dota_match_players p ON m.match_id = p.match_id
-                    JOIN dota_accounts d ON d.friend_id = p.friend_id
-            WHERE d.twitch_id = $1
-            AND m.live > $2 {clause}
-            ORDER BY m.start_time DESC;
-        """  # ruff: ignore[hardcoded-sql-expression]
-        rows: list[ScoreQueryRow] = await self.bot.pool.fetch(query, *args)
+        rows: list[ScoreQueryRow] = await self.bot.pool.fetch(
+            SCORE_QUERY,
+            broadcaster_id,
+            local.MatchState.Live,
+            stream_started_at,
+            GAMING_SESSION_GAP,
+        )
         if not rows:
             return "0 W - 0 L"
 
-        scores: dict[int, dict[local.Category, Score]] = {}  # friend_id -> category -> score
-
-        cutoff_dt = rows[0]["start_time"]
+        # friend_id -> category -> score
+        scores: defaultdict[int, defaultdict[local.Category, Score]] = defaultdict(lambda: defaultdict(Score))
         for row in rows:
-            if row["start_time"] < cutoff_dt - GAMING_SESSION_GAP:
-                gaming_session_dt = cutoff_dt
-                break
-            cutoff_dt = row["start_time"]
-
             category = local.Category.create(row["lobby_type"], row["game_mode"])
-            score = scores.setdefault(row["friend_id"], {}).setdefault(category, Score())
-
-            outcome = row["outcome"]
-            if row["abandon"]:
-                score.abandons += 1
-            elif outcome is None:
-                score.pending += 1
-            elif outcome in {MatchOutcome.RadiantVictory, MatchOutcome.DireVictory}:
-                is_radiant = row["player_slot"] < 5
-                if (outcome == MatchOutcome.RadiantVictory) == is_radiant:
-                    score.wins += 1
-                else:
-                    score.losses += 1
-        else:
-            gaming_session_dt = rows[-1]["start_time"]
+            scores[row["friend_id"]][category].record(
+                row["outcome"],
+                player_slot=row["player_slot"],
+                abandon=row["abandon"],
+            )
 
         summaries = {
-            friend_id: " \N{BULLET} ".join(f"{category.name} {score}" for category, score in by_category.items())
+            friend_id: SEPARATOR.join(f"{category.name} {score}" for category, score in by_category.items())
             for friend_id, by_category in scores.items()
         }
         if len(summaries) == 1:
             response = next(iter(summaries.values()))
         else:
-            # Let's make extra queries to know the names of the accounts
+            # Multiple accounts: make extra queries to know the names of the accounts
             users = await asyncio.gather(*(self.local_api.get_steam_user(friend_id) for friend_id in summaries))
             response = " \N{LARGE PURPLE CIRCLE} ".join(
                 f"{user.name}: {summary}" for user, summary in zip(users, summaries.values(), strict=True)
             )
 
         if stream_started_at is None:
-            ago = clock.human_timedelta(clock.utcnow() - gaming_session_dt, mode="short")
+            # rows are ordered newest first, so rows[-1] is the first match of the session
+            ago = clock.human_timedelta(clock.utcnow() - rows[-1]["start_time"], mode="short")
             response = f"[Offline, {ago} ago] {response}"
         return response
 
