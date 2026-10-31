@@ -41,7 +41,7 @@ class Alerts(PersonalComponent):
         IDs of users banned during the current stream. Lets the first-message greeting tell spam-bots apart from real
         newcomers. Cleared when the stream ends.
     known_chatters
-        IDs of chatters already confirmed to exist in the ``ttv_chatters`` table. An in-memory cache that spares a
+        IDs of chatters already confirmed to exist in the ``chatters`` table. An in-memory cache that spares a
         database query for every chat message.
     greeting_in_progress
         IDs of chatters whose first-message greeting is currently being processed. Prevents duplicate greetings when a

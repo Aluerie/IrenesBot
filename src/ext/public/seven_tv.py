@@ -385,19 +385,19 @@ class SevenTVPublic(Component):
         self.permanent = Reward(
             code="permanent",
             name="Add Permanent Emote",
-            table="ttv_stv_permanent_rewards",
+            table="stv_permanent_rewards",
             processor=self.process_permanent_redemption,
         )
         self.cycle = Reward(
             code="cycle",
             name="Add Cycle Emote",
-            table="ttv_stv_cycle_rewards",
+            table="stv_cycle_rewards",
             processor=self.process_cycle_redemption,
         )
         self.blacklist = Reward(
             code="blacklist",
             name="Blacklist/Remove Emote",
-            table="ttv_stv_blacklist_rewards",
+            table="stv_blacklist_rewards",
             processor=self.process_blacklist_redemption,
         )
         self.rewards = (self.permanent, self.cycle, self.blacklist)
