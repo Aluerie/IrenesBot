@@ -141,7 +141,7 @@ class Tags(PersonalComponent):
         """
         tag_name = tag_name.lower()
         query = """
-            SELECT tag_content FROM ttv_tags
+            SELECT tag_content FROM tags
             WHERE tag_name = $1;
         """
         tag_content: str | None = await self.bot.pool.fetchval(query, tag_name)
@@ -170,7 +170,7 @@ class Tags(PersonalComponent):
         ensure_tag_name_is_free(tag_name)
 
         query = """
-            INSERT INTO ttv_tags
+            INSERT INTO tags
             (tag_name, tag_content)
             VALUES ($1, $2);
         """
@@ -194,7 +194,7 @@ class Tags(PersonalComponent):
         """
         tag_name = tag_name.lower()
         query = """
-            DELETE FROM ttv_tags
+            DELETE FROM tags
             WHERE tag_name = $1
             RETURNING tag_name;
         """
@@ -217,7 +217,7 @@ class Tags(PersonalComponent):
         """
         tag_name = tag_name.lower()
         query = """
-            UPDATE ttv_tags
+            UPDATE tags
             SET tag_content = $2
             WHERE tag_name = $1
             RETURNING tag_name;
@@ -244,7 +244,7 @@ class Tags(PersonalComponent):
         ensure_tag_name_is_free(new_tag_name)
 
         query = """
-            UPDATE ttv_tags
+            UPDATE tags
             SET tag_name = $2
             WHERE tag_name = $1
             RETURNING tag_name;
@@ -263,7 +263,7 @@ class Tags(PersonalComponent):
     async def tag_names(self, ctx: Context) -> None:
         """Tag names list."""
         query = """
-            SELECT tag_name FROM ttv_tags
+            SELECT tag_name FROM tags
             ORDER BY tag_name;
         """
         rows: list[TagQueryRow] = await self.bot.pool.fetch(query)
@@ -276,7 +276,7 @@ class Tags(PersonalComponent):
     async def tag_list(self, ctx: Context) -> None:
         """Tag list with contents."""
         query = """
-            SELECT tag_name, tag_content FROM ttv_tags
+            SELECT tag_name, tag_content FROM tags
             ORDER BY tag_name;
         """
         rows: list[TagQueryRow] = await self.bot.pool.fetch(query)

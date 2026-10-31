@@ -329,7 +329,7 @@ async def _is_broadcaster_dev_or_editor_predicate(ctx: Context) -> Literal[True]
     if ctx.chatter.id in {ctx.broadcaster.id, ctx.bot.owner_id}:
         return True
 
-    query = "SELECT editor_id FROM ttv_stv_mods WHERE broadcaster_id = $1 AND editor_id = $2"
+    query = "SELECT editor_id FROM stv_mods WHERE broadcaster_id = $1 AND editor_id = $2"
     editor_id: str | None = await ctx.bot.pool.fetchval(query, ctx.broadcaster.id, ctx.chatter.id)
     if editor_id is None:
         msg = "Only broadcaster and 7tv editors can use this command"
@@ -487,12 +487,12 @@ class SevenTVPublic(Component):
 
     async def select_allow_common_words(self, broadcaster_id: str) -> bool:
         """Select broadcaster's allow common words boolean."""
-        query = "SELECT allow_common_words FROM ttv_stv_users WHERE broadcaster_id = $1;"
+        query = "SELECT allow_common_words FROM stv_users WHERE broadcaster_id = $1;"
         return await self.bot.pool.fetchval(query, broadcaster_id)
 
     async def select_emote_set(self, broadcaster_id: str) -> PartialEmoteSet:
         """Select emote set id."""
-        query = "SELECT emote_set_id FROM ttv_stv_users WHERE broadcaster_id = $1;"
+        query = "SELECT emote_set_id FROM stv_users WHERE broadcaster_id = $1;"
         emote_set_id: str | None = await self.bot.pool.fetchval(query, broadcaster_id)
         if emote_set_id is None:
             msg = f"7tv features are not attached to any of the emote sets {self.EMOTE}"
@@ -517,7 +517,7 @@ class SevenTVPublic(Component):
             emote_set_id = user_info.active_emote_set_id
 
         query = """
-            INSERT INTO ttv_stv_users
+            INSERT INTO stv_users
                 (broadcaster_id, stv_user_id, emote_set_id)
             VALUES ($1, $2, $3)
             ON CONFLICT(broadcaster_id)
@@ -528,8 +528,8 @@ class SevenTVPublic(Component):
         return f"linked bot's 7tv features to your '{emote_set_name}' emote set ({emote_set_id}) {self.EMOTE}"
 
     async def delete_from_cycle_emotes(self, emote_id: str, emote_set_id: str) -> None:
-        """Delete an emote from ``ttv_stv_cycle_emotes``."""
-        query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2"
+        """Delete an emote from ``stv_cycle_emotes``."""
+        query = "DELETE FROM stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2"
         await self.bot.pool.execute(query, emote_id, emote_set_id)
 
     #########################################################################################################################
@@ -650,8 +650,8 @@ class SevenTVPublic(Component):
         """
         query = """
             SELECT e.emote_id, e.blacklisted_at, r.duration, r.remove_only
-            FROM ttv_stv_blacklist_emotes e
-                    JOIN ttv_stv_blacklist_rewards r
+            FROM stv_blacklist_emotes e
+                    JOIN stv_blacklist_rewards r
                         ON r.broadcaster_id = e.broadcaster_id
             WHERE e.emote_id = $1
                 AND r.broadcaster_id = $2;
@@ -935,7 +935,7 @@ class SevenTVPublic(Component):
         For example, if the streamer manually deleted emotes while the bot is offline -
         then database might have wrong data.
         """
-        query = "SELECT emote_id, emote_set_id FROM ttv_stv_cycle_emotes"
+        query = "SELECT emote_id, emote_set_id FROM stv_cycle_emotes"
         emote_sets = defaultdict[str, list[str]](list)
         for row in await self.bot.pool.fetch(query):
             emote_sets[row["emote_set_id"]].append(row["emote_id"])
@@ -1000,11 +1000,11 @@ class SevenTVPublic(Component):
             SELECT r.reward_id,
                 r.emote_limit,
                 (SELECT COUNT(*)
-                    FROM ttv_stv_cycle_emotes e
+                    FROM stv_cycle_emotes e
                     WHERE e.broadcaster_id = r.broadcaster_id) AS emote_count,
                 u.emote_set_id
-            FROM ttv_stv_cycle_rewards r
-                JOIN ttv_stv_users u ON u.broadcaster_id = r.broadcaster_id
+            FROM stv_cycle_rewards r
+                JOIN stv_users u ON u.broadcaster_id = r.broadcaster_id
             WHERE u.broadcaster_id = $1;
         """
         row: CycleStatusQueryRow = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
@@ -1048,7 +1048,7 @@ class SevenTVPublic(Component):
                 msg = f"Not allowed to have emote limit above 999 {self.EMOTE}"
                 raise errors.RespondWithError(msg)
 
-        query = "UPDATE ttv_stv_cycle_rewards SET emote_limit = $1 WHERE broadcaster_id = $2;"
+        query = "UPDATE stv_cycle_rewards SET emote_limit = $1 WHERE broadcaster_id = $2;"
         await self.bot.pool.execute(query, emote_limit, ctx.broadcaster.id)
         await ctx.send(f"Updated {self.EMOTE}")
 
@@ -1082,7 +1082,7 @@ class SevenTVPublic(Component):
         * ``!7tv cycle drop smh``
         * ``!7tv cycle drop https://7tv.app/emotes/01FP8TR8G8000EJT2EVEY3JQTF``
         """
-        query = "DELETE FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND broadcaster_id = $2 RETURNING emote_id"
+        query = "DELETE FROM stv_cycle_emotes WHERE emote_id = $1 AND broadcaster_id = $2 RETURNING emote_id"
         emote_id: str | None = await self.bot.pool.fetchval(query, emote_id_link_or_name.id, ctx.broadcaster.id)
         if emote_id is None:
             msg = "This emote is not related to 'Add Cycle Emote' reward."
@@ -1092,7 +1092,7 @@ class SevenTVPublic(Component):
     @stv_cycle.command(name="show-emotes", aliases=["all-emotes"])
     async def stv_cycle_showemotes(self, ctx: Context) -> None:
         """Show all emotes that were added with 'Add Cycle Emote' channel points reward redemptions."""
-        query = "SELECT emote_id FROM ttv_stv_cycle_emotes WHERE broadcaster_id = $1;"
+        query = "SELECT emote_id FROM stv_cycle_emotes WHERE broadcaster_id = $1;"
         emote_ids = [e for (e,) in await self.bot.pool.fetch(query, ctx.broadcaster.id)]
         emote_set = await self.select_emote_set(ctx.broadcaster.id)
         emote_set_emotes = await emote_set.fetch_all_emotes()
@@ -1136,13 +1136,13 @@ class SevenTVPublic(Component):
         # Step 4. Remove emote(-s) if above the limit
         query = """
             SELECT e.emote_id
-            FROM ttv_stv_cycle_emotes e
+            FROM stv_cycle_emotes e
             WHERE e.broadcaster_id = $1
                 AND e.emote_set_id = $2
             ORDER BY e.added_at DESC
             OFFSET (
                 SELECT r.emote_limit - 1
-                FROM ttv_stv_cycle_rewards r
+                FROM stv_cycle_rewards r
                 WHERE r.broadcaster_id = $1
             )
         """
@@ -1165,7 +1165,7 @@ class SevenTVPublic(Component):
         log.debug("Added emote #%s", emote.id)
 
         query = """
-            INSERT INTO ttv_stv_cycle_emotes
+            INSERT INTO stv_cycle_emotes
             (emote_id, broadcaster_id, emote_set_id, requested_by)
             VALUES ($1, $2, $3, $4)
         """
@@ -1337,7 +1337,7 @@ class SevenTVPublic(Component):
         else:
             return OwnershipEnum.broadcaster_dev_or_editor
 
-        query = "SELECT requested_by FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
+        query = "SELECT requested_by FROM stv_cycle_emotes WHERE emote_id = $1 AND broadcaster_id = $2"
         requested_by: str | None = await self.bot.pool.fetchval(query, emote_id, ctx.broadcaster.id)
         if requested_by is None:
             msg = f"Invalid emote (probably not temporary one) {self.EMOTE}"
@@ -1454,7 +1454,7 @@ class SevenTVPublic(Component):
         # Validate it's been 10 minutes
         query = """
             SELECT emote_id, added_at
-            FROM ttv_stv_cycle_emotes
+            FROM stv_cycle_emotes
             WHERE broadcaster_id = $1 AND requested_by = $2
             ORDER BY added_at DESC
             LIMIT 1
@@ -1474,7 +1474,7 @@ class SevenTVPublic(Component):
         await emote_set.add_emote(emote.id, emote_alias=alias)
 
         query = """
-            UPDATE ttv_stv_cycle_emotes
+            UPDATE stv_cycle_emotes
             SET emote_id = $1
             WHERE broadcaster_id = $2 AND emote_id = $3 AND requested_by = $4;
         """
@@ -1631,7 +1631,7 @@ class SevenTVPublic(Component):
             # ``!7tv blacklist settings`` with no arguments: show current settings
             query = """
                 SELECT duration, remove_only
-                FROM ttv_stv_blacklist_rewards
+                FROM stv_blacklist_rewards
                 WHERE broadcaster_id = $1;
             """
             row = await self.bot.pool.fetchrow(query, ctx.broadcaster.id)
@@ -1649,11 +1649,11 @@ class SevenTVPublic(Component):
             if new_duration < 0:
                 msg = "Negative blacklist duration is not allowed"
                 raise errors.RespondWithError(msg)
-            query = "UPDATE ttv_stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2"
+            query = "UPDATE stv_blacklist_rewards SET duration = $1 WHERE broadcaster_id = $2"
             await self.bot.pool.execute(query, new_duration, ctx.broadcaster.id)
             await ctx.send(f"Changed duration to {clock.human_timedelta(days=days, hours=hours)} {self.EMOTE}")
         if remove_only is not None:
-            query = "UPDATE ttv_stv_blacklist_rewards SET remove_only = $2 WHERE broadcaster_id = $1;"
+            query = "UPDATE stv_blacklist_rewards SET remove_only = $2 WHERE broadcaster_id = $1;"
             status: str = await self.bot.pool.execute(query, ctx.broadcaster.id, remove_only)
             if status == "UPDATE 0":
                 msg = (
@@ -1690,7 +1690,7 @@ class SevenTVPublic(Component):
         emote_set = await self.select_emote_set(redemption.broadcaster.id)
         log.debug("Operating on emote_set #%s", emote_set.id)
 
-        query = "SELECT emote_id FROM ttv_stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2;"
+        query = "SELECT emote_id FROM stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2;"
         selected_emote_id: str | None = await self.bot.pool.fetchval(query, emote.id, emote_set.id)
         if selected_emote_id is None:
             msg = f"This is not a known temporary emote {self.EMOTE}"
@@ -1699,12 +1699,12 @@ class SevenTVPublic(Component):
             await emote_set.remove_emote(emote_id=selected_emote_id)
         await self.delete_from_cycle_emotes(selected_emote_id, emote_set.id)
 
-        query = "SELECT remove_only FROM ttv_stv_blacklist_rewards WHERE broadcaster_id = $1"
+        query = "SELECT remove_only FROM stv_blacklist_rewards WHERE broadcaster_id = $1"
         remove_only: bool = await self.bot.pool.fetchval(query, redemption.broadcaster.id)
         if not remove_only:
             # Blacklist the emote.
             query = """
-                INSERT INTO ttv_stv_blacklist_emotes
+                INSERT INTO stv_blacklist_emotes
                 (emote_id, broadcaster_id, requested_by)
                 VALUES ($1, $2, $3)
             """
@@ -1723,8 +1723,8 @@ class SevenTVPublic(Component):
     async def expire_blacklisted_emotes(self) -> None:
         """Task to expire blacklisted emotes."""
         query = """
-            DELETE FROM ttv_stv_blacklist_emotes e
-            USING ttv_stv_blacklist_rewards r
+            DELETE FROM stv_blacklist_emotes e
+            USING stv_blacklist_rewards r
             WHERE r.broadcaster_id = e.broadcaster_id
                 AND e.blacklisted_at + make_interval(hours => r.duration) < now() AT TIME zone 'utc';
         """
@@ -1741,7 +1741,7 @@ class SevenTVPublic(Component):
 
     async def get_who_added(self, ctx: Context, emote: PartialEmote) -> None:
         """Get username of who added the emote via channel redemption."""
-        query = "SELECT requested_by FROM ttv_stv_cycle_emotes WHERE broadcaster_id = $1 AND emote_id = $2"
+        query = "SELECT requested_by FROM stv_cycle_emotes WHERE broadcaster_id = $1 AND emote_id = $2"
         user_id: str | None = await self.bot.pool.fetchval(query, ctx.broadcaster.id, emote.id)
         if user_id is not None:
             user = await self.bot.fetch_user(id=user_id)
@@ -1812,13 +1812,13 @@ class SevenTVPublic(Component):
 
         editor_ids = [editor["platformId"] for editor in editors]
         # Insert new editors
-        query = "INSERT INTO ttv_stv_mods (broadcaster_id, editor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;"
+        query = "INSERT INTO stv_mods (broadcaster_id, editor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;"
         await self.bot.pool.executemany(query, [(ctx.broadcaster.id, editor_id) for editor_id in editor_ids])
         content = " \N{BULLET} ".join([editor["platformDisplayName"] or "unknown_user" for editor in editors])
         await ctx.send(f"{content} {self.EMOTE}")
 
         # Delete old editors
-        query = "DELETE FROM ttv_stv_mods WHERE broadcaster_id = $1 AND editor_id <> ALL($2::text[])"
+        query = "DELETE FROM stv_mods WHERE broadcaster_id = $1 AND editor_id <> ALL($2::text[])"
         await self.bot.pool.execute(query, ctx.broadcaster.id, editor_ids)
 
     #########################################################################################################################
@@ -1857,7 +1857,7 @@ class SevenTVPublic(Component):
             return
 
         # Set new_state
-        query = "UPDATE ttv_stv_users SET allow_common_words = $1 WHERE broadcaster_id = $2;"
+        query = "UPDATE stv_users SET allow_common_words = $1 WHERE broadcaster_id = $2;"
         await self.bot.pool.execute(query, new_state, ctx.broadcaster.id)
         await ctx.send(f"Changed allow-common-words setting to '{new_state!s}' {self.EMOTE}")
 
@@ -1898,10 +1898,10 @@ class SevenTVDevOnly(DevComponent):
         * removes all current @Irene's cycling emotes;
         * removes color emotes (Blue, Teal, Yellow, etc.) from Irene's active emote set;
         """
-        query = "UPDATE ttv_stv_cycle_rewards SET emote_limit = $1 WHERE broadcaster_id = $2;"
+        query = "UPDATE stv_cycle_rewards SET emote_limit = $1 WHERE broadcaster_id = $2;"
         await self.bot.pool.execute(query, 2, const.UserID.Irene)
 
-        query = "DELETE FROM ttv_stv_cycle_emotes tce WHERE tce.broadcaster_id = $1;"
+        query = "DELETE FROM stv_cycle_emotes tce WHERE tce.broadcaster_id = $1;"
         await self.bot.pool.execute(query, const.UserID.Irene)
 
         partial_emote_set = ctx.bot.stv.create_partial_emote_set(const.StvID.IRENE_EMOTE_SET)

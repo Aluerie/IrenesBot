@@ -137,7 +137,7 @@ class Alerts(PersonalComponent):
     async def greet_first_time_chatter(self, message: twitchio.ChatMessage) -> None:
         """Greet first-time chatters with the FirstTimeChadder treatment.
 
-        Chatters missing from the ``ttv_chatters`` table get a greeting and are recorded there. The greeting is delayed
+        Chatters missing from the ``chatters`` table get a greeting and are recorded there. The greeting is delayed
         by a few seconds so that auto-mod and other moderation bots can remove spam-bots first. Anyone banned during
         that window gets the LastTimeChatter emote instead and is not recorded.
         """
@@ -150,7 +150,7 @@ class Alerts(PersonalComponent):
 
         self.greeting_in_progress.add(chatter_id)  # no await between the check and the add
         try:
-            query = "SELECT EXISTS (SELECT 1 FROM ttv_chatters WHERE user_id = $1)"
+            query = "SELECT EXISTS (SELECT 1 FROM chatters WHERE user_id = $1)"
             if await self.bot.pool.fetchval(query, chatter_id):
                 self.known_chatters.add(chatter_id)
                 return
@@ -161,7 +161,7 @@ class Alerts(PersonalComponent):
                 return
 
             query = """
-                INSERT INTO ttv_chatters
+                INSERT INTO chatters
                 (user_id, name_lower)
                 VALUES ($1, $2)
                 ON CONFLICT (user_id)

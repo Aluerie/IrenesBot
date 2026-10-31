@@ -58,7 +58,7 @@ class Chatter(PersonalComponent):
 
     async def fetch_erm_count(self) -> int:
         """Fetch the current Erm count from the database."""
-        query = "SELECT value FROM ttv_counters WHERE name = $1"
+        query = "SELECT value FROM counters WHERE name = $1"
         return await self.bot.pool.fetchval(query, "erm") or 0
 
     @commands.Component.listener(name="message")
@@ -74,10 +74,10 @@ class Chatter(PersonalComponent):
             return
 
         query = """
-            INSERT INTO ttv_counters (name, value)
+            INSERT INTO counters (name, value)
             VALUES ($1, 1)
             ON CONFLICT (name)
-                DO UPDATE SET value = ttv_counters.value + 1
+                DO UPDATE SET value = counters.value + 1
             RETURNING value;
         """
         erm_amount_milestone: int = await self.bot.pool.fetchval(query, "erm")

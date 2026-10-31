@@ -404,7 +404,7 @@ class Bot(BotBase, commands.AutoBot):
 
         # Store our tokens in a simple SQLite Database when they are authorized...
         query = """
-            INSERT INTO ttv_tokens
+            INSERT INTO tokens
             (user_id, token, refresh)
             VALUES ($1, $2, $3)
             ON CONFLICT(user_id)
@@ -417,7 +417,7 @@ class Bot(BotBase, commands.AutoBot):
         if resp.user_id is not None and display_name is None:
             # Probably new user joined - let's give them a name
             user = await self.create_partialuser(resp.user_id).user()
-            query = "UPDATE ttv_tokens SET display_name = $1 WHERE user_id = $2;"
+            query = "UPDATE tokens SET display_name = $1 WHERE user_id = $2;"
             await self.pool.execute(query, user.display_name, user.id)
             log.info("Added a new streamer %s (@%s) to the database", user.id, user.display_name)
 
@@ -432,7 +432,7 @@ class Bot(BotBase, commands.AutoBot):
     @override
     async def load_tokens(self, _: str | None = None) -> None:  # _ is `path`
         # We don't need to call this manually, it is called in .login() from .start() internally...
-        query = "SELECT * FROM ttv_tokens"
+        query = "SELECT * FROM tokens"
         rows: list[LoadTokensQueryRow] = await self.pool.fetch(query)
         for row in rows:
             await self.add_token(row["token"], row["refresh"])

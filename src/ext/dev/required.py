@@ -55,7 +55,7 @@ class StreamerIndexManagement(DevComponent):
     async def fill_streamers_index(self) -> None:
         """Fill `bot.streamers` index on bot's startup."""
         log.debug("Filling `self.bot.streamers` index")
-        query = "SELECT user_id FROM ttv_tokens WHERE user_type != 'bot';"
+        query = "SELECT user_id FROM tokens WHERE user_type != 'bot';"
         user_ids = [r for (r,) in await self.bot.pool.fetch(query)]
         self.bot.streamers = {id_: Streamer(id_) for id_ in user_ids}
 
@@ -97,14 +97,14 @@ class StreamerIndexManagement(DevComponent):
         if clock.utcnow().day != 31:
             return
 
-        query = "SELECT user_id, display_name FROM ttv_tokens;"
+        query = "SELECT user_id, display_name FROM tokens;"
         rows: list[StreamersUserQueryRow] = await self.bot.pool.fetch(query)
         database_streamers = {row["user_id"]: row["display_name"] for row in rows}
 
         twitch_users = await self.bot.fetch_users(ids=list(database_streamers.keys()))
         for user in twitch_users:
             if (user.display_name or "").lower() != database_streamers[user.id]:
-                query = "UPDATE ttv_tokens SET display_name = $1 WHERE user_id = $2"
+                query = "UPDATE tokens SET display_name = $1 WHERE user_id = $2"
                 await self.bot.pool.execute(query, user.display_name, user.id)
 
 

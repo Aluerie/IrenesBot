@@ -73,7 +73,7 @@ class FirstChatterChannelRewardManagement(Component):
         """Set up First Chatter Channel Reward in the broadcaster channel."""
         query = """--sql
             SELECT COUNT(1)
-            FROM ttv_first_chatter_rewards
+            FROM first_chatter_rewards
             WHERE streamer_id = $1;
         """
         if await self.bot.pool.fetchval(query, ctx.broadcaster.id) == 1:
@@ -88,7 +88,7 @@ class FirstChatterChannelRewardManagement(Component):
             redemptions_skip_queue=True,
         )
         query = """--sql
-            INSERT INTO ttv_first_chatter_rewards
+            INSERT INTO first_chatter_rewards
             (streamer_id, reward_id)
             VALUES ($1, $2)
             ON CONFLICT (streamer_id)
@@ -129,7 +129,7 @@ class FirstChatterChannelRewardManagement(Component):
         """Check whether the reward with `reward_id` is present in the database."""
         query = """--sql
             SELECT COUNT(1)
-            FROM ttv_first_chatter_rewards
+            FROM first_chatter_rewards
             WHERE reward_id = $1;
         """
         return await self.bot.pool.fetchval(query, reward_id) == 1
@@ -138,7 +138,7 @@ class FirstChatterChannelRewardManagement(Component):
         """Fetch row for First Chatter Reward by `streamer_id`."""
         query = """--sql
             SELECT streamer_id, reward_id, original_title
-            FROM ttv_first_chatter_rewards
+            FROM first_chatter_rewards
             WHERE streamer_id = $1;
         """
         return await self.bot.pool.fetchrow(query, streamer_id)
@@ -147,7 +147,7 @@ class FirstChatterChannelRewardManagement(Component):
         """Fetch rows for all First Chatter Rewards."""
         query = """--sql
             SELECT streamer_id, reward_id, original_title
-            FROM ttv_first_chatter_rewards;
+            FROM first_chatter_rewards;
         """
         return await self.bot.pool.fetch(query)
 
@@ -179,7 +179,7 @@ class FirstChatterChannelRewardManagement(Component):
             return
 
         query = """--sql
-            UPDATE ttv_first_chatter_rewards
+            UPDATE first_chatter_rewards
             SET original_title = $1
             WHERE reward_id = $2;
         """
@@ -219,7 +219,7 @@ class FirstChatterChannelRewardManagement(Component):
             return
 
         query = """--sql
-            DELETE FROM ttv_first_chatter_rewards
+            DELETE FROM first_chatter_rewards
             WHERE reward_id = $1;
         """
         await self.bot.pool.execute(query, reward.id)
@@ -239,11 +239,11 @@ class FirstChatterChannelRewardManagement(Component):
             return
 
         query = """--sql
-            INSERT INTO ttv_first_chatter_redeems
+            INSERT INTO first_chatter_redeems
             (user_id, streamer_id)
             VALUES ($1, $2)
             ON CONFLICT (user_id, streamer_id) DO
-                UPDATE SET first_times = ttv_first_chatter_redeems.first_times + 1
+                UPDATE SET first_times = first_chatter_redeems.first_times + 1
             RETURNING first_times;
         """
         count: int = await self.bot.pool.fetchval(query, redemption.user.id, redemption.broadcaster.id)
@@ -362,7 +362,7 @@ class FirstChatterChannelRewardManagement(Component):
         """Get top5 first redeemers."""
         query = """--sql
             SELECT user_id, first_times
-            FROM ttv_first_chatter_redeems
+            FROM first_chatter_redeems
             WHERE streamer_id = $1
             ORDER BY first_times DESC
             LIMIT 5;

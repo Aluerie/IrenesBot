@@ -32,41 +32,6 @@ class TemporaryCommands(PersonalComponent):
     Commands that are likely to be removed in future.
     """
 
-    @commands.group(invoke_fallback=True)
-    async def gunfort(self, ctx: Context) -> None:
-        """Commands to count my successful and failed Yolo Gunfort attempts."""
-        query = "SELECT value FROM ttv_counters WHERE name = $1;"
-        success: int = await self.bot.pool.fetchval(query, "gunfort_success")
-        query = "SELECT value FROM ttv_counters WHERE name = $1;"
-        attempts: int = await self.bot.pool.fetchval(query, "gunfort_attempts")
-
-        stats = f" Success Rate: {success / attempts:.1%} (over {attempts} attempts)"
-        await ctx.send(f"{const.Stv.science} Yolo Gunfort {stats}")
-
-    @commands.is_owner()
-    @gunfort.command()
-    async def no(self, ctx: Context) -> None:
-        """Count a failed Yolo Gunfort attempt in."""
-        query = "SELECT value FROM ttv_counters WHERE name = $1;"
-        success: int = await self.bot.pool.fetchval(query, "gunfort_success")
-        query = "UPDATE ttv_counters SET value = value + 1 WHERE name = $1 RETURNING value;"
-        attempts: int = await self.bot.pool.fetchval(query, "gunfort_attempts")
-
-        stats = f" Success Rate: {success / attempts:.1%} (over {attempts} attempts)"
-        await ctx.send(f"Failed yolo gunfort? {const.Stv.classic} {stats} {const.Stv.buenoFail}")
-
-    @commands.is_owner()
-    @gunfort.command()
-    async def yes(self, ctx: Context) -> None:
-        """Count a successful Yolo Gunfort attempt in."""
-        query = "UPDATE ttv_counters SET value = value + 1 WHERE name = $1 RETURNING value;"
-        success: int = await self.bot.pool.fetchval(query, "gunfort_success")
-        query = "UPDATE ttv_counters SET value = value + 1 WHERE name = $1 RETURNING value;"
-        attempts: int = await self.bot.pool.fetchval(query, "gunfort_attempts")
-
-        stats = f" Success Rate: {success / attempts:.1%} (over {attempts} attempts)"
-        await ctx.send(f"Yolo Gunfort is easy {const.Stv.EZdodge} {stats} {const.Stv.buenoSuccess}")
-
     @commands.command(name="is")
     async def immortal_severance(self, ctx: Context) -> None:
         """Print a proper speed-run order for IS dialog."""
