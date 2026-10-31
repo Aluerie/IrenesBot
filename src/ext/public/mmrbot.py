@@ -939,14 +939,10 @@ class MMRBot(Component):
             friend_id: SEPARATOR.join(f"{category.name} {score}" for category, score in by_category.items())
             for friend_id, by_category in scores.items()
         }
-        if len(summaries) == 1:
-            response = next(iter(summaries.values()))
-        else:
-            # Multiple accounts: make extra queries to know the names of the accounts
-            users = await asyncio.gather(*(self.local_api.get_steam_user(friend_id) for friend_id in summaries))
-            response = " \N{LARGE PURPLE CIRCLE} ".join(
-                f"{user.name}: {summary}" for user, summary in zip(users, summaries.values(), strict=True)
-            )
+        users = await asyncio.gather(*(self.local_api.get_steam_user(friend_id) for friend_id in summaries))
+        response = " \N{LARGE PURPLE CIRCLE} ".join(
+            f"{user.name}: {summary}" for user, summary in zip(users, summaries.values(), strict=True)
+        )
 
         if stream_started_at is None:
             # rows are ordered newest first, so rows[-1] is the first match of the session
