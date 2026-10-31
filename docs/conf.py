@@ -84,6 +84,7 @@ extensions = [
     "chat_command",
     "sphinx_copybutton",
     "sphinx_togglebutton",
+    "translate_lang_table"
 ]
 
 intersphinx_mapping = {

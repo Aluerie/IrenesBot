@@ -332,9 +332,7 @@ class MMRBot(Component):
         self.steam_web = steam_web.SteamWebAPIClient(session=bot.session, api_key=env.STEAM_API_KEY)
         self.local_api = local.LocalAPI(bot.session)
 
-    ####################################################################################################################
-    # COMMON
-    ####################################################################################################################
+    # --- COMMON -------------------------------------------------------------------------------------------------------
 
     async def get_friend_id(self, broadcaster_id: str) -> int:
         """Get the friend id of the steam account the broadcaster has been seen last online on."""
@@ -365,9 +363,7 @@ class MMRBot(Component):
             raise errors.RespondWithError(msg)
         return friend
 
-    ####################################################################################################################
-    # LIVE GAME
-    ####################################################################################################################
+    # --- LIVE GAME ----------------------------------------------------------------------------------------------------
 
     async def get_live_match(self, broadcaster_id: str) -> local.FriendLiveMatch:
         """Find broadcaster's active match."""
@@ -415,7 +411,7 @@ class MMRBot(Component):
         """
         match = await self.get_live_match(ctx.broadcaster.id)
         content = "No server data yet." if match.server_steam_id is None else str(match.server_steam_id)
-        await ctx.send(content=content)
+        await self.send_with_tag(ctx, match, content)
 
     @commands.command(aliases=["matchid"])
     async def match_id(self, ctx: Context) -> None:
@@ -432,7 +428,7 @@ class MMRBot(Component):
             content = "No player data yet"
         else:
             response_parts = [f"{player.identifier} {player.rank_display_name}" for player in match.players]
-            prefix = f"[{avg_mmr} avg mmr] " if (avg_mmr := match.average_mmr) is not None else ""
+            prefix = f"[{avg_mmr} avg mmr] " if bool(avg_mmr := match.average_mmr) else ""
             content = prefix + " \N{BULLET} ".join(response_parts)
         await self.send_with_tag(ctx, match, content)
 
@@ -502,9 +498,7 @@ class MMRBot(Component):
             content = f"{player.identifier} stratz.com/players/{player.id}"
         await self.send_with_tag(ctx, match, content)
 
-    ####################################################################################################################
-    # LIVE GAME THAT REQUIRE REAL TIME STATS
-    ####################################################################################################################
+    # --- LIVE GAME THAT REQUIRE REAL TIME STATS -----------------------------------------------------------------------
 
     async def get_real_time_stats(self, match: local.FriendLiveMatch) -> steam_web.RealTimeStats:
         """Get real time stats of the match from Steam Web API."""
@@ -583,9 +577,7 @@ class MMRBot(Component):
         content = f"Radiant {stats.radiant_score} - Dire {stats.dire_score}: {summary}"
         await self.send_with_tag(ctx, match, content, delayed=True)
 
-    ####################################################################################################################
-    # LAST GAME
-    ####################################################################################################################
+    # --- LAST GAME(-S) ------------------------------------------------------------------------------------------------
 
     async def get_last_game(self, broadcaster_id: str) -> tuple[int, local.MinimalMatch]:
         """Get broadcaster's last finished game from the database.
@@ -608,7 +600,7 @@ class MMRBot(Component):
         """
         row = await self.bot.pool.fetchrow(query, broadcaster_id, local.MatchState.Live)
         if not row:
-            msg = "No last game found: streamer hasn't played Dota 2 in the last 2 days"
+            msg = "No last game found: the bot hasn't recorded any streamer's games"
             raise errors.RespondWithError(msg)
         last_game = await self.local_api.get_minimal_match(row["match_id"])
         return row["friend_id"], last_game
@@ -653,7 +645,7 @@ class MMRBot(Component):
             How far to look back: 0 is the latest match, 1 is the one before it, and so on.
         """
         if not 0 <= index < 20:
-            msg = "`index` argument should be an integer and 0 <= index < 20"
+            msg = "'index' argument should be an integer and 0 <= index < 20"
             raise errors.RespondWithError(msg)
 
         friend_id = await self.get_friend_id(ctx.broadcaster.id)
@@ -673,9 +665,7 @@ class MMRBot(Component):
         )
         await ctx.send(response)
 
-    ####################################################################################################################
-    # NOTABLE PEOPLE MANAGEMENT
-    ####################################################################################################################
+    # --- NOTABLE PEOPLE MANAGEMENT ------------------------------------------------------------------------------------
 
     @is_allowed_to_add_notable()
     @guards.is_production()
@@ -757,9 +747,7 @@ class MMRBot(Component):
         )
         await ctx.send(response)
 
-    ####################################################################################################################
-    # PROFILE
-    ####################################################################################################################
+    # --- PROFILE ------------------------------------------------------------------------------------------------------
 
     @commands.command(aliases=["rank", "medal"])
     async def mmr(self, ctx: Context) -> None:
@@ -815,9 +803,7 @@ class MMRBot(Component):
         ]
         await ctx.send(" \N{BULLET} ".join(party_members))
 
-    ####################################################################################################################
-    # WIN - LOSS
-    ####################################################################################################################
+    # --- WIN / LOSS ---------------------------------------------------------------------------------------------------
 
     async def score_response_helper(self, broadcaster_id: str, stream_started_at: dt.datetime | None = None) -> str:
         """Get !wl commands response."""
