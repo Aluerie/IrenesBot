@@ -53,3 +53,4 @@ jobs:
           WEBHOOK_HEARTBEAT: str
           WEBHOOK_STREAM_NOTIF: str
           WEBHOOK_SPAM: str
+          LOCAL_API_KEY: str

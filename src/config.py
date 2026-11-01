@@ -36,6 +36,7 @@ class Env(EnvConfig):
     WEBHOOK_SPAM: str
     WEBHOOK_STREAM_NOTIF: str
     WEBHOOK_HEARTBEAT: str
+    LOCAL_API_KEY: str
 
 
 env = Env()

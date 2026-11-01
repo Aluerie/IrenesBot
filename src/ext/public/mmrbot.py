@@ -444,7 +444,7 @@ class MMRBot(Component):
     def __init__(self, bot: Bot, *args: Any, **kwargs: Any) -> None:
         super().__init__(bot, *args, **kwargs)
         self.steam_web = steam_web.SteamWebAPIClient(session=bot.session, api_key=env.STEAM_API_KEY)
-        self.local_api = local.LocalAPI(bot.session)
+        self.local_api = local.LocalAPI(bot.session, env.LOCAL_API_KEY)
 
     # --- COMMON -------------------------------------------------------------------------------------------------------
 
@@ -1005,7 +1005,7 @@ class MMRBot(Component):
             Please send it in steam_32ID format (e.g. for my bot it's 1807243552).
             steam_64ID format (e.g. 76561199767509280) should also work.
         """
-        steam_user = await self.local_api.get_accept_invite(friend_id, ctx.broadcaster.id)
+        steam_user = await self.local_api.post_accept_invite(friend_id, ctx.broadcaster.id)
         bot_profile_link = f"steamcommunity.com/id/{'irenestest' if self.bot.test else 'irenesbot'}"
         await ctx.send(
             f"Waiting 10 minutes for a friend request from {steam_user.name} ({steam_user.id}) "
