@@ -793,9 +793,7 @@ class MMRBot(Component):
     async def npm_dev_add(self, ctx: Context, friend_id: int, *, name: str) -> None:
         """Add a notable player to the database.
 
-        This command is only available for certain group of people.
-        Since if the player already exists - it will just replace the entry - this command
-        also works as `!npm rename` just fine (we don't need to raise anything)
+        As aliases show - this command is identical to ``!npm rename``.
         """
         steam_user = await self.local_api.get_steam_user(friend_id)
         query = """
@@ -811,7 +809,7 @@ class MMRBot(Component):
     @is_allowed_to_add_notable()
     @npm_dev.command(name="help")
     async def npm_dev_help(self, ctx: Context) -> None:
-        """Show small help for !np-dev commands."""
+        """Show small help for ``!npm`` commands."""
         response = (
             "!npm add 123 Arteezy \N{BULLET} "
             "!npm remove 123 \N{BULLET} "
