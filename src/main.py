@@ -12,12 +12,12 @@ CLI supported flags can be viewed with `--help` flag (or looked up in this file)
 from __future__ import annotations
 
 import asyncio
-import logging
 import platform
 import sys
 
 import aiohttp
 import click
+from loguru import logger
 
 from config import env
 from core import AdapterEnum, Bot, get_eventsub_subscriptions
@@ -44,15 +44,14 @@ async def start_the_bot(
     is_test_account: bool,
 ) -> None:
     """Start the bot."""
-    log = logging.getLogger()
     postgres_url = env.POSTGRES_VPS if platform.system() == "Linux" else env.POSTGRES_HOME
     try:
         # TODO: DELETE public
         pool = await db.create_pool(postgres_url, "irenesbot,shared")
-    except Exception:
+    except Exception:  # ruff: ignore[blind-except] the traceback is logged via `logger.exception`
         msg = "Could not set up PostgreSQL. Exiting."
         click.echo(msg, file=sys.stderr)
-        log.exception(msg)
+        logger.exception(msg)
         return
 
     async with (

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
-import logging
 import random
 import re
 from typing import TYPE_CHECKING
@@ -22,7 +21,6 @@ if TYPE_CHECKING:
 
     from core import Bot
 
-log = logging.getLogger(__name__)
 
 ERM_PATTERN = re.compile(r"\bErm\b")
 ERM_NOTIFICATION_CHANCE = 0.005

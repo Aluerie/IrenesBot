@@ -6,12 +6,12 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
-import logging
 from typing import TYPE_CHECKING, override
 
 import discord
 import twitchio
 from discord import ui
+from loguru import logger
 from twitchio.ext import commands
 
 from config import env
@@ -20,8 +20,6 @@ from shared.concepts import loop, restart_task
 
 if TYPE_CHECKING:
     from core import Bot
-
-log = logging.getLogger(__name__)
 
 
 TWITCH_PURPLE = 0x9146FF
@@ -82,7 +80,7 @@ class DiscordNotifications(PersonalComponent):
         try:
             videos = await self.bot.fetch_videos(user_id=irene.id, period="day")
         except twitchio.HTTPException:
-            log.warning("Failed to fetch videos for the stream notification", exc_info=True)
+            logger.opt(exception=True).warning("Failed to fetch videos for the stream notification")
             videos = []
         cutoff = online.started_at - VOD_TIMESTAMP_TOLERANCE
         current_vod = next((video for video in videos if video.created_at >= cutoff), None)
@@ -152,7 +150,7 @@ class DiscordNotifications(PersonalComponent):
                 await message.edit(embed=embed)
             except discord.HTTPException:
                 # e.g. the message was deleted, drop it anyway so it does not fail on every future run
-                log.warning("Failed to edit stream notification %s", message.id, exc_info=True)
+                logger.opt(exception=True).warning("Failed to edit stream notification {}", message.id)
             notifications.remove(message)
 
 

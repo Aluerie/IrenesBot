@@ -5,9 +5,9 @@
 from __future__ import annotations
 
 import datetime as dt
-import logging
 from typing import TYPE_CHECKING, TypedDict, override
 
+from loguru import logger
 from twitchio.ext import commands
 
 from core import DevComponent, Streamer
@@ -25,9 +25,6 @@ if TYPE_CHECKING:
 
 
 __all__ = ("StreamerIndexManagement",)
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
 
 
 class StreamerIndexManagement(DevComponent):
@@ -54,7 +51,7 @@ class StreamerIndexManagement(DevComponent):
     @loop(count=1)
     async def fill_streamers_index(self) -> None:
         """Fill `bot.streamers` index on bot's startup."""
-        log.debug("Filling `self.bot.streamers` index")
+        logger.debug("Filling `self.bot.streamers` index")
         query = "SELECT user_id FROM tokens WHERE user_type != 'bot';"
         user_ids = [r for (r,) in await self.bot.pool.fetch(query)]
         self.bot.streamers = {id_: Streamer(id_) for id_ in user_ids}
@@ -70,7 +67,7 @@ class StreamerIndexManagement(DevComponent):
                 streamer.online = True
                 streamer.started_dt = stream.started_at
 
-        log.debug("Finished initial filling of `self.bot.streamers` index")
+        logger.debug("Finished initial filling of `self.bot.streamers` index")
         self.bot.streamers_index_ready.set()
 
     @commands.Component.listener(name="stream_online")

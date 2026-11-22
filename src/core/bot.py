@@ -7,12 +7,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import enum
-import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict, override
 
 import discord
 import twitchio
+from loguru import logger
 from twitchio import eventsub
 from twitchio.ext import commands
 from twitchio.web import StarletteAdapter
@@ -25,6 +25,7 @@ from shared.concepts import BotBase
 from utils import const
 
 from .context import Context
+from .stv_token import load_stv_token, register_stv_token_page
 from .subscriptions import get_oauth_urls, get_user_subscriptions
 
 if TYPE_CHECKING:
@@ -46,9 +47,6 @@ __all__ = (
     "Bot",
     "Streamer",
 )
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 @dataclass
@@ -173,7 +171,7 @@ class Bot(BotBase, commands.AutoBot):
         self.scopes_only: bool = scopes_only
 
         self.extensions_to_load: tuple[str, ...] = self.get_extensions(is_subset_mode=is_subset_mode, package=ext)
-        log.info("List of modules (%s total) to load: %s", len(self.extensions_to_load), self.extensions_to_load)
+        logger.info("List of modules ({} total) to load: {}", len(self.extensions_to_load), self.extensions_to_load)
 
         self.streamers: dict[str, Streamer] = {}
         self.streamers_index_ready: asyncio.Event = asyncio.Event()
@@ -182,10 +180,11 @@ class Bot(BotBase, commands.AutoBot):
             bearer_token=env.SEVEN_TV_BEARER,
             bot_7tv_user_id=const.StvID.BOT,
         )
+        if adapter is not None:
+            register_stv_token_page(adapter, self)
 
         # initialized later
         self.launch_time: dt.datetime
-        self.logs_via_webhook_handler: logging.Handler
 
     #########################################################################################################################
     # ERROR HANDLERS
@@ -222,7 +221,7 @@ class Bot(BotBase, commands.AutoBot):
                 if self.test:
                     # if not `self.test` then we don't need to spam the logs with commands from other bots
                     # for streams that use several bots with the same prefix.
-                    log.info("CommandNotFound: %s", error)
+                    logger.info("CommandNotFound: {}", error)
                 if ctx.broadcaster.id == self.owner_id:
                     # TODO: fuzzy
                     await ctx.send("Command not found.")
@@ -230,7 +229,7 @@ class Bot(BotBase, commands.AutoBot):
                 command_name = f"{ctx.prefix}{command.name}" if command else "this command"
                 await ctx.send(
                     f"Command {command_name} is on cooldown! "
-                    "Try again in {error.remaining:.0f} sec {const.Stv.Timeloth}",
+                    f"Try again in {error.remaining:.0f} sec {const.Stv.Timeloth}",
                 )
             case commands.GuardFailure():
                 # To make custom responses for default `twitchio` guards - need to cook a bit.
@@ -254,9 +253,9 @@ class Bot(BotBase, commands.AutoBot):
                     f'You need to provide "{error.param.name}" argument for this command {const.Ffz.peepoPolice}'
                 )
             case commands.BadArgument():
-                log.error("%s: %s name=%s value=%s", type(error), error, error.name, error.value)
+                logger.error("{}: {} name={} value={}", type(error), error, error.name, error.value)
                 if cause := error.__cause__:
-                    log.error("%s: %s", type(cause), cause, exc_info=cause)
+                    logger.opt(exception=cause).error("{}: {}", type(cause), cause)
                 await ctx.send(
                     content=(
                         f"Couldn't convert value '{error.value}' for argument '{error.name}' "
@@ -353,11 +352,13 @@ class Bot(BotBase, commands.AutoBot):
                 "Scopes Only Mode: print oauth urls and start the bot in adapter-only mode (no modules enabled).\n"
                 f"{get_oauth_urls(self.domain)}"
             )
-            log.warning(msg)
+            logger.warning(msg)
             return
 
+        await load_stv_token(self)
+
         for module in self.extensions_to_load:
-            log.debug("Loading module: %s", module)
+            logger.debug("Loading module: {}", module)
             try:
                 await self.load_module(module)
             except commands.exceptions.ModuleError as error:
@@ -388,7 +389,7 @@ class Bot(BotBase, commands.AutoBot):
         subs: list[eventsub.SubscriptionPayload] = get_user_subscriptions(payload.user_id, self.bot_id)
         resp: twitchio.MultiSubscribePayload = await self.multi_subscribe(subs)
         if resp.errors:
-            log.warning("Failed to subscribe to: %r, for user: %s", resp.errors, payload.user_id)
+            logger.warning("Failed to subscribe to: {!r}, for user: {}", resp.errors, payload.user_id)
 
     @override
     async def add_token(self, token: str, refresh: str) -> twitchio.authentication.ValidateTokenPayload:
@@ -419,14 +420,14 @@ class Bot(BotBase, commands.AutoBot):
             user = await self.create_partialuser(resp.user_id).user()
             query = "UPDATE tokens SET display_name = $1 WHERE user_id = $2;"
             await self.pool.execute(query, user.display_name, user.id)
-            log.info("Added a new streamer %s (@%s) to the database", user.id, user.display_name)
+            logger.info("Added a new streamer {} (@{}) to the database", user.id, user.display_name)
 
             # let's moderate the bot immediately
             await user.add_moderator(self.user.id)
 
             # TODO: maybe make a notification into irene's discord
 
-        log.info("Added token to the database for user: %s", resp.user_id)
+        logger.info("Added token to the database for user: {}", resp.user_id)
         return resp
 
     @override
@@ -450,7 +451,7 @@ class Bot(BotBase, commands.AutoBot):
     # @override  # interesting that it's not an override
     async def event_ready(self) -> None:
         """Event that is dispatched when the `Client` is ready and has completed login."""
-        log.info("%s is ready as @%s (id=%s)", self.__class__.__name__, self.user.display_name, self.bot_id)
+        logger.info("{} is ready as @{} (id={})", self.__class__.__name__, self.user.display_name, self.bot_id)
 
         if not hasattr(self, "launch_time"):
             # who knows maybe it triggers many times like `discord.py`

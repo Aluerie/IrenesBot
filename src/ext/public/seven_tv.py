@@ -7,7 +7,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import datetime as dt
-import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -20,7 +19,7 @@ from twitchio.ext import commands
 from core import Component, DevComponent
 from shared import clock, errors, globs, ut
 from shared.apis.stv import EmoteNotFoundError, PartialEmote, PartialEmoteSet, StvClient, UnsatisfyingResultError
-from shared.concepts import PrefixLoggerAdapter, loop
+from shared.concepts import loop, prefixed_logger
 from utils import const, guards
 
 if TYPE_CHECKING:
@@ -50,8 +49,7 @@ __all__ = (
     "SevenTVPublic",
 )
 
-log = PrefixLoggerAdapter(logging.getLogger(__name__), "🤯")
-log.setLevel(logging.DEBUG)
+log = prefixed_logger("🤯")
 
 
 #############################################################################################################################
@@ -889,7 +887,7 @@ class SevenTVPublic(Component):
             return
 
         log.debug(
-            "User @%s (%s) requested 'Add Permanent Emote' at broadcaster @%s (%s) with input: '%s'",
+            "User @{} ({}) requested 'Add Permanent Emote' at broadcaster @{} ({}) with input: '{}'",
             redemption.user.display_name,
             redemption.user.id,
             redemption.broadcaster.display_name,
@@ -900,12 +898,12 @@ class SevenTVPublic(Component):
         # Step 1. Parse User Input
 
         emote, alias = await parse_add_rename_reward_input(self.bot.stv, redemption.user_input)
-        log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
+        log.debug("Parsed user input: emote_id={} emote_alias={}", emote.id, alias)
 
         # Step 2. Get Emote Set
 
         emote_set = await self.select_emote_set(redemption.broadcaster.id)
-        log.debug("Operating on emote_set #%s", emote_set.id)
+        log.debug("Operating on emote_set #{}", emote_set.id)
 
         # Step 3. Add the requested emote
 
@@ -913,11 +911,11 @@ class SevenTVPublic(Component):
             emote_id=emote.id, broadcaster_id=redemption.broadcaster.id, emote_alias=alias
         )
         await emote_set.add_emote(emote_id=emote.id, emote_alias=alias)
-        log.debug("Added #%s", emote.id)
+        log.debug("Added #{}", emote.id)
 
         await self.redemption_respond(redemption, f"Done {self.EMOTE}")
         await self.fulfil_redemption(redemption)
-        log.info("Done with the redemption '%s' (%s)", alias, emote.id)
+        log.info("Done with the redemption '{}' ({})", alias, emote.id)
 
     @commands.Component.listener(name="custom_redemption_add")
     async def channel_points_permanent_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
@@ -947,7 +945,7 @@ class SevenTVPublic(Component):
                 if emote_id in all_emotes_ids:
                     continue
                 log.debug(
-                    "Detected Cycle emote (%s) that was removed while bot was inactive - deleting from the database",
+                    "Detected Cycle emote ({}) that was removed while bot was inactive - deleting from the database",
                     emote_id,
                 )
                 await self.delete_from_cycle_emotes(emote_id, emote_set_id)
@@ -1112,7 +1110,7 @@ class SevenTVPublic(Component):
             return
 
         log.debug(
-            "User @%s (%s) requested cycle-emote at broadcaster @%s (%s) with input: '%s'",
+            "User @{} ({}) requested cycle-emote at broadcaster @{} ({}) with input: '{}'",
             redemption.user.display_name,
             redemption.user.id,
             redemption.broadcaster.display_name,
@@ -1122,11 +1120,11 @@ class SevenTVPublic(Component):
 
         # Step 1. Parse User Input
         emote, alias = await parse_add_rename_reward_input(self.bot.stv, redemption.user_input)
-        log.debug("Parsed user input: emote_id=%s emote_alias=%s", emote.id, alias)
+        log.debug("Parsed user input: emote_id={} emote_alias={}", emote.id, alias)
 
         # Step 2. Get Emote Set
         emote_set = await self.select_emote_set(redemption.broadcaster.id)
-        log.debug("Operating on emote_set #%s", emote_set.id)
+        log.debug("Operating on emote_set #{}", emote_set.id)
 
         # Step 3. Need to validate the emote before attempting to remove
         await self.run_add_emote_validators(
@@ -1149,20 +1147,20 @@ class SevenTVPublic(Component):
         emote_ids_to_remove: list[str] = [
             r for (r,) in await self.bot.pool.fetch(query, redemption.broadcaster.id, emote_set.id)
         ]
-        log.debug("Removing emotes #%s", emote_ids_to_remove)
+        log.debug("Removing emotes #{}", emote_ids_to_remove)
 
         for emote_id_to_remove in emote_ids_to_remove:
             try:
                 await emote_set.remove_emote(emote_id=emote_id_to_remove)
             except EmoteNotFoundError:
-                log.debug("Emote Not Found #%s - skipping", emote_id_to_remove)
+                log.debug("Emote Not Found #{} - skipping", emote_id_to_remove)
             else:
-                log.debug("Removed emote %s", emote_id_to_remove)
+                log.debug("Removed emote {}", emote_id_to_remove)
             await self.delete_from_cycle_emotes(emote_id_to_remove, emote_set.id)
 
         # Step 5. Add the requested emote
         await emote_set.add_emote(emote_id=emote.id, emote_alias=alias)
-        log.debug("Added emote #%s", emote.id)
+        log.debug("Added emote #{}", emote.id)
 
         query = """
             INSERT INTO stv_cycle_emotes
@@ -1172,7 +1170,7 @@ class SevenTVPublic(Component):
         await self.bot.pool.execute(query, emote.id, redemption.broadcaster.id, emote_set.id, redemption.user.id)
         await self.redemption_respond(redemption, f"Done {self.EMOTE}")
         await self.fulfil_redemption(redemption)
-        log.info("Done with cycle redemption for '%s' (%s)", alias, emote.id)
+        log.info("Done with cycle redemption for '{}' ({})", alias, emote.id)
 
     @commands.Component.listener(name="custom_redemption_add")
     async def channel_points_cycle_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:
@@ -1676,7 +1674,7 @@ class SevenTVPublic(Component):
             return
 
         log.debug(
-            "User @%s (%s) requested blacklist-emote at broadcaster @%s (%s) with input: '%s'",
+            "User @{} ({}) requested blacklist-emote at broadcaster @{} ({}) with input: '{}'",
             redemption.user.display_name,
             redemption.user.id,
             redemption.broadcaster.display_name,
@@ -1685,10 +1683,10 @@ class SevenTVPublic(Component):
         )
 
         emote = await parse_remove_reward_input(self.bot.stv, redemption.user_input, redemption.broadcaster.id)
-        log.debug("Parsed user input: emote_id=%s", emote.id)
+        log.debug("Parsed user input: emote_id={}", emote.id)
 
         emote_set = await self.select_emote_set(redemption.broadcaster.id)
-        log.debug("Operating on emote_set #%s", emote_set.id)
+        log.debug("Operating on emote_set #{}", emote_set.id)
 
         query = "SELECT emote_id FROM stv_cycle_emotes WHERE emote_id = $1 AND emote_set_id = $2;"
         selected_emote_id: str | None = await self.bot.pool.fetchval(query, emote.id, emote_set.id)
@@ -1712,7 +1710,7 @@ class SevenTVPublic(Component):
 
         await self.redemption_respond(redemption, f"Done {self.EMOTE}")
         await self.fulfil_redemption(redemption)
-        log.info("Done with blacklist redemption for (%s)", emote.id)
+        log.info("Done with blacklist redemption for ({})", emote.id)
 
     @commands.Component.listener(name="custom_redemption_add")
     async def channel_points_blacklist_redeem(self, redemption: twitchio.ChannelPointsRedemptionAdd) -> None:

@@ -28,7 +28,6 @@ TwitchIO  Docs
 from __future__ import annotations
 
 import copy
-import logging
 from typing import TYPE_CHECKING, TypedDict
 
 import twitchio
@@ -48,9 +47,6 @@ __all__ = (
     "get_oauth_urls",
     "get_user_subscriptions",
 )
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def get_user_subscriptions(

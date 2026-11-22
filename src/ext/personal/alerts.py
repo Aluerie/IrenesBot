@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING, override
 
 from twitchio.ext import commands
@@ -19,8 +18,6 @@ if TYPE_CHECKING:
     import twitchio
 
     from core import Bot
-
-log = logging.getLogger(__name__)
 
 
 class Alerts(PersonalComponent):

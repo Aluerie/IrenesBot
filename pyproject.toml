@@ -23,6 +23,7 @@ dependencies = [
     "backoff",
     "click",
     "discord-py[speed]",
+    "loguru>=0.8.0",
     "lru-dict>=1.4.1",
     "orjson",
     "pydantic-settings",
@@ -130,6 +131,9 @@ ignore = [
     "suspicious-non-cryptographic-random-usage",
     "undefined-local-with-import-star",
     "undefined-local-with-import-star-usage",
+    # Logging: we use `loguru` with `{}` formatting, these rules assume standard `logging` with `%s` formatting
+    "logging-too-many-args",
+    "logging-too-few-args",
 ]
 extend-select = [
     # NumPy Doc convention turns these rules off

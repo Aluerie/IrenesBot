@@ -28,6 +28,7 @@ class Env(EnvConfig):
     POSTGRES_VPS: str
     POSTGRES_HOME: str
     SEVEN_TV_BEARER: str
+    STV_TOKEN_PAGE_KEY: str
     STEAM_API_KEY: str
     SPOTIFY_AIDENWALLIS: str
     EVENTSUB: str

@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, override
 
 from twitchio.ext import commands
@@ -17,9 +16,6 @@ from utils import const
 
 if TYPE_CHECKING:
     from core import Bot
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
 
 
 class LogsViaWebhook(DiscordWebhookLogs, DevComponent):

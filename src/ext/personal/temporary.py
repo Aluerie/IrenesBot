@@ -91,6 +91,7 @@ class TemporaryCommands(PersonalComponent):
         )
         await ctx.send(msg)
 
+    # TODO: this does not work properly in other channels
     @commands.cooldown(rate=1, per=dt.timedelta(seconds=60), key=commands.BucketType.channel)
     @commands.command()
     async def chat(self, ctx: Context, *, argument: str) -> None:

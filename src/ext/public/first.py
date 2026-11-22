@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import contextlib
 import datetime as dt
-import logging
 import re
 from typing import TYPE_CHECKING, TypedDict, override
 
 import twitchio
 from discord import Embed
+from loguru import logger
 from twitchio.ext import commands
 
 from core import Component
@@ -37,10 +37,6 @@ if TYPE_CHECKING:
         streamer_id: str
         reward_id: str
         original_title: str
-
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 DEFAULT_FIRST_REWARD_TITLE = "First!"
@@ -283,7 +279,7 @@ class FirstChatterChannelRewardManagement(Component):
         """
         first_reward = await self.fetch_twitch_reward(broadcaster, reward_id)
         if first_reward is None:
-            log.warning("🥇 First: reward %s of streamer %s was not found on Twitch.", reward_id, broadcaster.id)
+            logger.warning("🥇 First: reward {} of streamer {} was not found on Twitch.", reward_id, broadcaster.id)
             return
 
         intended_title = original_title or DEFAULT_FIRST_REWARD_TITLE
@@ -309,7 +305,7 @@ class FirstChatterChannelRewardManagement(Component):
 
         Sometimes, the bot is offline during streamer stream ends so it doesn't catch some events.
         """
-        log.debug("🥇 First: Double check Task starts now.")
+        logger.debug("🥇 First: Double check Task starts now.")
         await self.bot.streamers_index_ready.wait()
 
         for row in await self.fetch_all_rewards():
@@ -321,9 +317,9 @@ class FirstChatterChannelRewardManagement(Component):
                     row["reward_id"],
                     row["original_title"],
                 )
-            except Exception:
+            except Exception:  # ruff: ignore[blind-except] the traceback is logged via `logger.exception`
                 # one broken channel (revoked token, deleted reward, etc.) must not stop the others
-                log.exception("🥇 First: Double check failed for streamer %s.", row["streamer_id"])
+                logger.exception("🥇 First: Double check failed for streamer {}.", row["streamer_id"])
 
     @loop(time=[dt.time(hour=3, minute=59)])
     async def check_first_reward(self) -> None:
@@ -335,14 +331,14 @@ class FirstChatterChannelRewardManagement(Component):
             # simple way to make a task run once/month
             return
 
-        log.debug("🥇 First: Checking if all rewards in the database exist.")
+        logger.debug("🥇 First: Checking if all rewards in the database exist.")
 
         for row in await self.fetch_all_rewards():
             partial_user = self.bot.create_partialuser(row["streamer_id"])
             try:
                 first_reward = await self.fetch_twitch_reward(partial_user, row["reward_id"])
             except twitchio.HTTPException:
-                log.exception("🥇 First: Failed to fetch the reward for streamer %s.", row["streamer_id"])
+                logger.exception("🥇 First: Failed to fetch the reward for streamer {}.", row["streamer_id"])
                 continue
 
             if first_reward is None:

@@ -59,3 +59,10 @@ CREATE TABLE
         broadcaster_id TEXT PRIMARY KEY REFERENCES ttv_stv_users (broadcaster_id) ON DELETE CASCADE,
         reward_id TEXT NOT NULL
     );
+CREATE TABLE
+    /* Bot's 7TV Bearer token (single row), replaceable at runtime via the `/stv-token` web page */
+    IF NOT EXISTS stv_bot_token (
+        id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (id),
+        token TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT (now () AT TIME ZONE 'utc')
+    );

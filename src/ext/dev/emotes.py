@@ -8,10 +8,10 @@
 from __future__ import annotations
 
 import datetime as dt
-import logging
 from typing import TYPE_CHECKING, Any, override
 
 from discord import Embed
+from loguru import logger
 from twitchio.ext import commands
 
 from core import PersonalComponent
@@ -23,8 +23,6 @@ if TYPE_CHECKING:
     from enum import StrEnum
 
     from core import Bot, Context
-
-log = logging.getLogger(__name__)
 
 
 class EmoteChecker(PersonalComponent):
@@ -66,9 +64,11 @@ class EmoteChecker(PersonalComponent):
         log_prefix = "Checked 7TV, FFZ & BTTV emotes from 'const.py'"
         if emotes_to_send:
             await self.send_error_embed(emotes_to_send, bot_emotes.__name__, color)
-            log.debug("%s - %s emotes are not in order: %s", log_prefix, len(emotes_to_send), ", ".join(emotes_to_send))
+            logger.debug(
+                "{} - {} emotes are not in order: {}", log_prefix, len(emotes_to_send), ", ".join(emotes_to_send)
+            )
         else:
-            log.debug("Checked 7TV, FFZ & BTTV emotes from 'const.py' - all seems good.")
+            logger.debug("Checked 7TV, FFZ & BTTV emotes from 'const.py' - all seems good.")
 
     @loop(time=[dt.time(hour=5, minute=59)])
     async def check_emotes(self) -> None:

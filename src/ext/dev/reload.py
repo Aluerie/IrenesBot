@@ -5,10 +5,10 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING, Annotated, override
 
 import discord
+from loguru import logger
 from twitchio.ext import commands
 
 from core import DevComponent
@@ -17,8 +17,6 @@ from utils import const, guards
 
 if TYPE_CHECKING:
     from core import Bot, Context
-
-log = logging.getLogger(__name__)
 
 
 class ExtConverter(commands.Converter[str]):
@@ -63,8 +61,8 @@ class Control(DevComponent):
         await asyncio.sleep(3.0)
         try:
             await asyncio.create_subprocess_shell("sudo systemctl stop irebot")
-        except Exception:
-            log.exception("Failed to Stop the bot's process", stack_info=True)
+        except Exception:  # ruff: ignore[blind-except] the traceback is logged via `logger.exception`
+            logger.exception("Failed to Stop the bot's process")
             # it might not go off
             await ctx.send("Something went wrong.")
 
@@ -79,8 +77,8 @@ class Control(DevComponent):
         await asyncio.sleep(3.0)
         try:
             await asyncio.create_subprocess_shell("sudo systemctl restart irebot")
-        except Exception:
-            log.exception("Failed to Restart the bot's process")
+        except Exception:  # ruff: ignore[blind-except] the traceback is logged via `logger.exception`
+            logger.exception("Failed to Restart the bot's process")
             # it might not go off
             await ctx.send("Something went wrong.")
 
@@ -88,21 +86,21 @@ class Control(DevComponent):
     async def unload(self, ctx: Context, *, modules: Annotated[str, ExtConverter]) -> None:
         """Unload the modules (I also call them 'extensions')."""
         await self.bot.unload_module(modules)
-        log.info("!unload - unloaded %s", modules)
+        logger.info("!unload - unloaded {}", modules)
         await ctx.send(f"{const.Stv.DankApprove} unloaded {modules}")
 
     @commands.command()
     async def reload(self, ctx: Context, *, modules: Annotated[str, ExtConverter]) -> None:
         """Reload the modules (I also call them 'extensions')."""
         await self.bot.reload_module(modules)
-        log.info("!reload - reloaded %s", modules)
+        logger.info("!reload - reloaded {}", modules)
         await ctx.send(f"{const.Stv.DankApprove} reloaded {modules}")
 
     @commands.command()
     async def load(self, ctx: Context, *, modules: Annotated[str, ExtConverter]) -> None:
         """Load the modules (I also call them 'extensions')."""
         await self.bot.load_module(modules)
-        log.info("!load - loaded %s", modules)
+        logger.info("!load - loaded {}", modules)
         await ctx.send(f"{const.Stv.DankApprove} loaded {modules}")
 
     @commands.command(name="modules", aliases=["extensions", "components"])  # module != component but whatever

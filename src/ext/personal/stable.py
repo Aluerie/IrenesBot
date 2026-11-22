@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import random
 from typing import TYPE_CHECKING
 
@@ -19,10 +18,6 @@ from utils import const, guards
 
 if TYPE_CHECKING:
     from core import Bot, Context
-
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 class StableCommands(PersonalComponent):

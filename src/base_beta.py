@@ -18,7 +18,6 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import itertools
-import logging
 import platform
 from typing import TYPE_CHECKING, Any, Literal, override
 
@@ -34,8 +33,6 @@ from utils import const
 
 if TYPE_CHECKING:
     from core import Bot, Context
-
-log = logging.getLogger(__name__)
 
 
 class BetaCog(DevComponent):
