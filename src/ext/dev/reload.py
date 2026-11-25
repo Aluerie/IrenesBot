@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import asyncio
+import platform
 from typing import TYPE_CHECKING, Annotated, override
 
 import aiohttp
@@ -41,7 +42,9 @@ class Control(DevComponent):
 
     @override
     async def component_load(self) -> None:
-        self.heartbeat_task.start()
+        # only the VPS (Linux) pings, so a bot running at home doesn't keep the check green
+        if platform.system() == "Linux":
+            self.heartbeat_task.start()
         await super().component_load()
 
     @override
