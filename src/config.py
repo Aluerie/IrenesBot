@@ -29,6 +29,7 @@ class Env(EnvConfig):
     POSTGRES_HOME: str
     SEVEN_TV_BEARER: str
     STV_TOKEN_PAGE_KEY: str
+    TWITCH_BOT_PERSISTENT_COOKIE: str = ""
     STEAM_API_KEY: str
     SPOTIFY_AIDENWALLIS: str
     EVENTSUB: str
@@ -43,7 +44,8 @@ class Env(EnvConfig):
 env = Env()
 
 
-secrets_list = list(map(str, env.model_dump().values()))
+# empty values are skipped: an empty alternative in the pattern would match everywhere
+secrets_list = [value for value in map(str, env.model_dump().values()) if value]
 DO_NOT_SPOIL_PATTERN = re.compile("|".join(map(re.escape, secrets_list)))
 
 

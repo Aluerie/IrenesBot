@@ -1,25 +1,31 @@
 # Copyright (C) 2020-present, Irene Adler ❤ (@Aluerie).
 # Licensed under MPL-2.0, see the LICENSE file for details.
-"""7TV Bearer token storage and the web page to replace it.
+"""7TV Bearer token storage, automatic renewal and the web page to replace it manually.
 
-7TV sessions hard-expire 30 days after login and there is no refresh endpoint,
-so once a month a new token has to be grabbed manually from 7tv.app (logged in as the bot account).
-The token is stored in the database so it can be replaced at runtime via a small password-protected web page
-served by the bot's Starlette adapter, without editing `.env` or restarting the bot.
+7TV sessions hard-expire 30 days after login and there is no refresh endpoint, so a new session has to be
+created by logging in again. The bot can do that itself through the 7TV v3 login flow, as long as it has
+the bot account's twitch.tv `persistent` session cookie: Twitch then approves 7TV's OAuth request without
+any interaction. If that fails, a new token can be submitted manually via a small password-protected web page
+served by the bot's Starlette adapter. Either way the token is stored in the database and used immediately,
+without editing `.env` or restarting the bot.
 """
 
 from __future__ import annotations
 
+import asyncio
 import hmac
 import html
+from http.cookies import Morsel
 from typing import TYPE_CHECKING
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 
+import aiohttp
 from loguru import logger
 from starlette.responses import HTMLResponse
+from yarl import URL
 
 from config import env
-from shared import clock
+from shared import clock, globs
 from shared.apis.stv import parse_token_claims
 
 if TYPE_CHECKING:
@@ -30,8 +36,11 @@ if TYPE_CHECKING:
 
 __all__ = (
     "STV_TOKEN_PAGE_PATH",
+    "StvLoginError",
     "load_stv_token",
+    "login_via_twitch_cookie",
     "register_stv_token_page",
+    "renew_stv_token",
     "save_stv_token",
 )
 
@@ -39,13 +48,16 @@ __all__ = (
 STV_TOKEN_PAGE_PATH = "/stv-token"  # ruff: ignore[hardcoded-password-string], it is a URL path
 MAX_FAILED_ATTEMPTS = 10
 
-CREATE_TABLE_QUERY = """
-    CREATE TABLE IF NOT EXISTS stv_bot_token (
-        id BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (id),
-        token TEXT NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
-    );
-"""
+STV_V3_LOGIN_URL = "https://api.7tv.app/v3/auth?platform=twitch"
+LOGIN_TIMEOUT = 30
+MAX_LOGIN_REDIRECTS = 8
+
+
+class StvLoginError(Exception):
+    """Automatic 7TV login through Twitch failed."""
+
+
+BOT_VARIABLES_KEY = "stv_token"
 
 
 async def load_stv_token(bot: Bot) -> None:
@@ -53,8 +65,8 @@ async def load_stv_token(bot: Bot) -> None:
 
     `.env` only serves as the initial value, so a fresh token in `.env` still wins over a stale one in the database.
     """
-    await bot.pool.execute(CREATE_TABLE_QUERY)
-    db_token: str | None = await bot.pool.fetchval("SELECT token FROM stv_bot_token;")
+    query = "SELECT value FROM bot_variables WHERE key = $1;"
+    db_token: str | None = await bot.pool.fetchval(query, BOT_VARIABLES_KEY)
     if db_token is None:
         return
 
@@ -93,17 +105,83 @@ async def save_stv_token(bot: Bot, token: str) -> str:
         raise ValueError(msg)
 
     query = """
-        INSERT INTO stv_bot_token (id, token, updated_at)
-        VALUES (TRUE, $1, now() AT TIME ZONE 'utc')
-        ON CONFLICT (id) DO UPDATE SET token = excluded.token, updated_at = excluded.updated_at;
+        INSERT INTO bot_variables (key, value, updated_at)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;
     """
-    await bot.pool.execute(CREATE_TABLE_QUERY)
-    await bot.pool.execute(query, token)
+    await bot.pool.execute(query, BOT_VARIABLES_KEY, token)
     bot.stv.set_bearer_token(token)
 
     result = f"New 7TV token saved, it expires at {claims.expires_at:%Y-%m-%d %H:%M} UTC."
     logger.info(result)
     return result
+
+
+async def login_via_twitch_cookie(persistent_cookie: str) -> str:
+    """Create a new 7TV session through the 7TV v3 login flow and return its token.
+
+    The flow is: 7TV v3 login -> Twitch OAuth authorize -> 7TV v3 callback -> redirect with the token in the URL
+    fragment. Twitch only approves the request without user interaction when it recognises a logged-in browser
+    session, which is what the bot account's twitch.tv `persistent` cookie provides.
+
+    Raises
+    ------
+    StvLoginError
+        Twitch didn't accept the cookie (it sends us to its login page instead), the flow changed or timed out.
+    """
+    jar = aiohttp.CookieJar()
+    morsel: Morsel[str] = Morsel()
+    morsel.set("persistent", persistent_cookie, persistent_cookie)
+    morsel["domain"] = ".twitch.tv"
+    morsel["path"] = "/"
+    jar.update_cookies({"persistent": morsel}, URL("https://www.twitch.tv/"))
+
+    url = URL(STV_V3_LOGIN_URL)
+    try:
+        async with (
+            asyncio.timeout(LOGIN_TIMEOUT),
+            # A browser User-Agent, so Twitch treats the request like the logged-in browser the cookie came from.
+            aiohttp.ClientSession(cookie_jar=jar, headers={"User-Agent": globs.BROWSER_USER_AGENT}) as session,
+        ):
+            for _ in range(MAX_LOGIN_REDIRECTS):
+                async with session.get(url, allow_redirects=False) as response:
+                    location = response.headers.get("Location")
+                    if location is None:
+                        msg = f"Login flow stopped at {url.host}{url.path} with status {response.status}."
+                        raise StvLoginError(msg)
+                url = url.join(URL(location))
+                if url.host == "www.twitch.tv" and url.path.startswith("/login"):
+                    msg = "Twitch didn't accept the `persistent` cookie (redirected to its login page)."
+                    raise StvLoginError(msg)
+                tokens = parse_qs(urlsplit(str(url)).fragment).get("token")
+                if tokens is not None:
+                    return tokens[0]
+    except (TimeoutError, aiohttp.ClientError) as exc:
+        msg = f"Network problem during the login flow: {exc!r}"
+        raise StvLoginError(msg) from exc
+
+    msg = "Too many redirects in the login flow."
+    raise StvLoginError(msg)
+
+
+async def renew_stv_token(bot: Bot) -> str:
+    """Log into 7TV as the bot automatically, then store and start using the new token.
+
+    Returns
+    -------
+    str
+        Human-readable confirmation.
+
+    Raises
+    ------
+    StvLoginError
+        Automatic login is not configured or failed.
+    """
+    if not env.TWITCH_BOT_PERSISTENT_COOKIE:
+        msg = "Automatic 7TV login is off: `TWITCH_BOT_PERSISTENT_COOKIE` is not set in `.env`."
+        raise StvLoginError(msg)
+    token = await login_via_twitch_cookie(env.TWITCH_BOT_PERSISTENT_COOKIE)
+    return await save_stv_token(bot, token)
 
 
 def _page(message: str = "", *, ok: bool = True) -> HTMLResponse:
