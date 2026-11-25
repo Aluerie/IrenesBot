@@ -156,10 +156,8 @@ pages:  # [Deprecated] Locally run the github pages website
 .PHONY: docs
 .SILENT: docs
 docs:  # Build the docs with Sphinx
-	cp .env.example docs/.env
 	-cd docs && rm -Recurse _build
 	cd docs && uv run sphinx-build . _build
-# I'm copying .env.example to doc/.env because Pydantic doesn't shut the fuck up and idk any other sane solutions to it.
 # It's recommended to clear `_build` folder before running the docs
 # to avoid random unobvious issues, like left sidebar not properly updating for "old" pages.
 

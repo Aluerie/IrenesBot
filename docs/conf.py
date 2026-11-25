@@ -4,12 +4,21 @@
 
 # -- Project information
 
+import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from dotenv import dotenv_values
+
 sys.path.insert(0, str(Path("..", "src").resolve()))
 sys.path.append(str(Path("_extensions").resolve()))
+
+# autodoc imports the bot's modules, and `config.py` requires every setting from `.env` on import.
+# The placeholder values from `.env.example` are enough for that, so load them unless real ones are already set.
+for key, value in dotenv_values(Path("..", ".env.example")).items():
+    if value is not None:
+        os.environ.setdefault(key, value)
 
 if TYPE_CHECKING:
     from sphinx import application
