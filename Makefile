@@ -14,6 +14,9 @@ MAKEFLAGS += --no-print-directory
 sources = src tests templates
 # Default commit message for `make commit` and `make com`
 m = 🔨 Various fixes and updates
+# SSH destination of the VPS: a `Host` alias from ~/.ssh/config or user@host.
+# Override it per command, e.g. make logs VPS=ubuntu@1.2.3.4, or with a VPS environment variable.
+VPS ?= vps
 
 default: help
 
@@ -179,23 +182,23 @@ com:  # Commit and push only IreBot
 .PHONY: scp
 .SILENT: scp
 scp:  # Copy .env to the VPS
-	scp .env vps:~/IrenesBot/.env
+	scp .env $(VPS):~/IrenesBot/.env
 
 
 .PHONY: logs
 .SILENT: logs
 logs:  # Follow the bot's log on the VPS live (Ctrl+C to stop)
-	ssh -t vps sudo journalctl -u irebot -f
+	ssh -t $(VPS) sudo journalctl -u irebot -f
 
 
 .PHONY: status
 .SILENT: status
 # `-`: systemctl exits non-zero when the bot isn't running, which isn't a make error here.
 status:  # Show whether the bot is running on the VPS
-	-ssh vps systemctl status irebot --no-pager
+	-ssh $(VPS) systemctl status irebot --no-pager
 
 
 .PHONY: restart
 .SILENT: restart
 restart:  # Restart the bot on the VPS
-	ssh vps sudo systemctl restart irebot
+	ssh $(VPS) sudo systemctl restart irebot
