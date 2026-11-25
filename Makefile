@@ -20,8 +20,19 @@ default: help
 .PHONY: help
 .SILENT: help
 # Prints every target that has a `# description` comment, under the `##@ Section` line above it.
+# Make joins these lines into one PowerShell command; `\#` is a literal `#` (a bare one would start a make comment).
+HELP_SCRIPT = \
+	Write-Host 'Usage: make <command>'; \
+	foreach ($$line in Get-Content '$(firstword $(MAKEFILE_LIST))') { \
+		if ($$line -match '^\#\#@ (.+)') { \
+			Write-Host ([Environment]::NewLine + $$Matches[1] + ':') -ForegroundColor Magenta \
+		} elseif ($$line -match '^([\w-]+):[^=\#]*\#\s*(.+)') { \
+			Write-Host ('    {0,-10}{1}' -f $$Matches[1], $$Matches[2]) \
+		} \
+	}
+
 help:  # Show this help
-	Write-Host 'Usage: make <command>'; foreach ($$line in Get-Content '$(firstword $(MAKEFILE_LIST))') { if ($$line -match '^##@ (.+)') { Write-Host ([Environment]::NewLine + $$Matches[1] + ':') -ForegroundColor Magenta } elseif ($$line -match '^([\w-]+):[^=#]*#\s*(.+)') { Write-Host ('    {0,-10}{1}' -f $$Matches[1], $$Matches[2]) } }
+	$(HELP_SCRIPT)
 
 
 ##@ Environment and Setup
