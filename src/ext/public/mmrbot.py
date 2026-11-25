@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict, override
 from urllib import parse as url_parse
 
-from steam.ext.dota2 import Hero, LobbyType, MatchOutcome
+from steam.ext.dota2 import Hero, Item, LobbyType, MatchOutcome
 from twitchio.ext import commands
 
 from config import env
@@ -52,6 +52,8 @@ __all__ = ("MMRBot",)
 
 # Dota 2 matches of a gaming session are at most this far from each other.
 GAMING_SESSION_GAP = dt.timedelta(hours=6)
+# Steam gives these ids to players with hidden profiles, they can't identify a player.
+ANONYMOUS_ACCOUNT_IDS = frozenset({0, 4294967295})
 
 # /* cSpell:disable */
 HERO_ALIASES: dict[str, list[str]] = {
@@ -568,7 +570,7 @@ class MMRBot(Component):
             content = "No players data yet."
         else:
             response_parts = [
-                f"{player.identifier} {player.lifetime_games}"
+                f"{player.identifier} {'hidden' if player.id in ANONYMOUS_ACCOUNT_IDS else player.lifetime_games}"
                 for player in sorted(match.players, key=operator.attrgetter("lifetime_games"))
             ]
             content = "Lifetime Games: " + " \N{BULLET} ".join(response_parts)
@@ -609,7 +611,10 @@ class MMRBot(Component):
             content = "No player data yet."
         else:
             _, player = pick_player(match, player_slot_color_or_hero_name)
-            content = f"{player.identifier} stratz.com/players/{player.id}"
+            if player.id in ANONYMOUS_ACCOUNT_IDS:
+                content = f"{player.identifier} has a hidden profile."
+            else:
+                content = f"{player.identifier} stratz.com/players/{player.id}"
         await self.send_with_tag(ctx, match, content)
 
     # --- LIVE GAME THAT REQUIRE REAL TIME STATS -----------------------------------------------------------------------
@@ -646,15 +651,11 @@ class MMRBot(Component):
             msg = f"Somehow couldn't find the player {player_slot=} with {player.hero.name} in the game."
             raise errors.SomethingWentWrongError(msg)
 
-        item_ids = [item for item in api_player.items if item != -1]
+        item_ids = [item for item in api_player.items if item > 0]
         if not item_ids:
             items = "No items yet"
         else:
-            query = "SELECT item_id, display_name FROM dota_constants_items WHERE item_id = ANY($1::int[]);"
-            item_names: dict[int, str] = {
-                row["item_id"]: row["display_name"] for row in await self.bot.pool.fetch(query, item_ids)
-            }
-            items = ", ".join(item_names.get(item, "Unknown Item") for item in item_ids)
+            items = ", ".join(Item.DISPLAY_NAMES.get(Item.try_value(item), "Unknown Item") for item in item_ids)
 
         content = " \N{BULLET} ".join((
             api_player.name,

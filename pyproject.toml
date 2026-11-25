@@ -37,7 +37,7 @@ dependencies = [
 
 [tool.uv.sources]
 twitchio = { git = "https://github.com/PythonistaGuild/TwitchIO.git", rev = "main" }
-steamio = { git = "https://github.com/Aluerie/steam.py", rev = "introduce-ext.dota2" }
+steamio = { git = "https://github.com/Aluerie/steam.py", rev = "main" }
 stv-event-api = { git = "https://github.com/Aluerie/stv_event_api", rev = "master" }
 
 [dependency-groups]
@@ -102,7 +102,7 @@ ignore = [
     "prohibited-trailing-comma",
     "multi-line-implicit-string-concatenation",
     # Docstring related
-    "docstring-missing-exception", 
+    "docstring-missing-exception",
     "docstring-missing-returns",
     "docstring-missing-yields",
     "undocumented-magic-method",
@@ -137,7 +137,7 @@ ignore = [
 ]
 extend-select = [
     # NumPy Doc convention turns these rules off
-    "multi-line-summary-first-line", 
+    "multi-line-summary-first-line",
     "undocumented-param",
 ]
 unfixable = [
@@ -150,7 +150,7 @@ flake8-quotes.inline-quotes = "double"
 "{src/ext/beta.py,templates/fresh_beta.py,src/xi.py,*.ipynb}" = [
     # These files are my playground to mess around and test stuff.
     "ANN",
-    "D", 
+    "D",
     "missing-copyright-notice",
     "print",
     "p-print",

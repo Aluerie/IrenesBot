@@ -851,7 +851,7 @@ requires-dist = [
     { name = "orjson" },
     { name = "pydantic-settings" },
     { name = "pygit2" },
-    { name = "steamio", git = "https://github.com/Aluerie/steam.py?rev=introduce-ext.dota2" },
+    { name = "steamio", git = "https://github.com/Aluerie/steam.py?rev=main" },
     { name = "twitchio", extras = ["starlette"], git = "https://github.com/PythonistaGuild/TwitchIO.git?rev=main" },
     { name = "uvloop", marker = "sys_platform == 'linux'" },
     { name = "websockets" },
@@ -1996,7 +1996,7 @@ wheels = [
 [[package]]
 name = "steamio"
 version = "1.2.0"
-source = { git = "https://github.com/Aluerie/steam.py?rev=introduce-ext.dota2#a6a2fd81c01e84aba50e53e0c192af54d3240543" }
+source = { git = "https://github.com/Aluerie/steam.py?rev=main#7da4f00c8c57d47ec63c2691de7ce78b8ff36547" }
 dependencies = [
     { name = "aiohttp" },
     { name = "beautifulsoup4" },
