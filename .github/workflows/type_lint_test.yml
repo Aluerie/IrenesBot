@@ -51,7 +51,6 @@ jobs:
           EVENTSUB: str
           WEBHOOK_LOGGER: str
           WEBHOOK_ERROR: str
-          WEBHOOK_HEARTBEAT: str
           WEBHOOK_STREAM_NOTIF: str
           WEBHOOK_SPAM: str
           LOCAL_API_KEY: str
