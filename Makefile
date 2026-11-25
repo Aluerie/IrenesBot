@@ -1,12 +1,10 @@
-include .env
-
-# Otherwise `make scp` doesn't work, idk.
+# Recipes are PowerShell (`Write-Host`, `rm -Recurse`, `&&` chains), on every OS.
 ifeq ($(OS),Windows_NT)
     SHELL := pwsh.exe
 else
     SHELL := pwsh
 endif
-.SHELLFLAGS := -NoProfile -Command 
+.SHELLFLAGS := -NoProfile -Command
 
 # Removes `make[1]: Entering directory 'D:/CODE/IreBot' messages` https://stackoverflow.com/a/71371359/19217368
 # Allowing for nested makes without annoyance of that message.
@@ -14,53 +12,47 @@ MAKEFLAGS += --no-print-directory
 
 # Sources to run type-checkers / linters against
 sources = src tests templates
-# Default commit message with `make commit`
-m = fix(lazy): Various fixes & updates
+# Default commit message for `make commit` and `make com`
+m = 🔨 Various fixes and updates
 
 default: help
 
 define HELP_BODY
 Usage:
-	make <command>
+    make <command>
 
-# Commands list
-	
 Environment and Setup:
-	setup               Setup the repository - recommended to use right after cloning
-	sync                Install dependencies
-	update              Update dependencies
+    setup       Set up the repository, recommended right after cloning
+    sync        Install dependencies
+    update      Update dependencies and pre-commit hooks
 
 Running the bot:
-	run                 Run the bot in the subset-mode
-	ride:  				Run (ride) the bot with all components
-	scopes				Run the bot in the scopes-only mode
+    run         Run the bot in the subset-mode
+    ride        Run (ride) the bot with all components
+    scopes      Run the bot in the scopes-only mode
 
-Linters, Type-checkers, formatters and tests:
-	ruff 			    Run the Ruff's linter
-	lint                Run the Ruff's linter (same as "make ruff", just an alias)
-	format              Format the code
-	ty                  Run typechecker (ty)
-	check               Run both typechecker and linter (simply calls "make ruff" and "make ty")
-	tests               Run the tests with pytest
+Linters, type-checkers, formatters and tests:
+    ruff        Run Ruff's linter and format check
+    lint        Same as "make ruff"
+    format      Format the code with Ruff
+    ty          Run the type-checker (ty)
+    check       Run both "make ruff" and "make ty"
+    tests       Run the tests with pytest
 
 Documentation:
-	pages              [Deprecated] Locally run the github pages website
-	docs				Build the docs with Sphinx
-	
-Github and VPS:
-	commit              Lazy git commit and push+
-	com                 This creates and pushes commits to IreBot repository
-	scp					Copy required files into the VPS
+    docs        Build the docs with Sphinx
 
-Other:
-	echo                Testing stuff
+GitHub and VPS:
+    commit      Commit and push both the "src/shared" submodule and IreBot, e.g. make commit m="💚 Fix CI"
+    com         Commit and push only IreBot
+    scp         Copy .env to the VPS
 
 endef
 
 .PHONY: help
 .SILENT: help
 # TODO: Look into ways to automatically gather output for this command.
-# The struggle is that Windows Terminal doesn't have any normal working `grep`; 
+# The struggle is that Windows Terminal doesn't have any normal working `grep`;
 # and vice-versa windows grep-like tools won't work for linux
 help:  # Help
 	$(info $(HELP_BODY))
@@ -68,10 +60,10 @@ help:  # Help
 
 .PHONY: setup
 .SILENT: setup
-setup:  # Setup the repository - recommended to use right after cloning
+setup:  # Set up the repository, recommended right after cloning
 	git submodule update --init --recursive
 	make sync
-	prek install
+	uv run prek install
 
 
 .PHONY: sync
@@ -82,10 +74,10 @@ sync:  # Install dependencies
 
 .PHONY: update
 .SILENT: update
-update:  # Update dependencies
+update:  # Update dependencies and pre-commit hooks
 	uv lock --upgrade
 	make sync
-	prek autoupdate
+	uv run prek autoupdate
 
 
 .PHONY: run
@@ -108,15 +100,13 @@ scopes:  # Run the bot in the scopes-only mode
 
 .PHONY: ruff
 .SILENT: ruff
-ruff:  # Run the Ruff's linter 
+ruff:  # Run Ruff's linter and format check
 	uv run ruff check $(sources)
 	uv run ruff format --check $(sources)
 
 
 .PHONY: lint
-.SILENT: lint
-lint:  # Run the Ruff's linter (same as "make ruff", just an alias)
-	make ruff
+lint: ruff  # Same as "make ruff"
 
 
 .PHONY: format
@@ -128,13 +118,13 @@ format:  # Format the code with Ruff
 
 .PHONY: ty
 .SILENT: ty
-ty:  # Run typechecker (ty)
+ty:  # Run the type-checker (ty)
 	uv run ty check .
 
 
 .PHONY: check
 .SILENT: check
-check:  # Run both typechecker and linter (simply calls "make ruff" and "make ty")
+check:  # Run both "make ruff" and "make ty"
 	Write-Host 'Running "make ruff"' -ForegroundColor Magenta
 	make ruff
 	Write-Host 'Running "make ty"' -ForegroundColor Magenta
@@ -147,60 +137,39 @@ tests:  # Run the tests with pytest
 	uv run pytest
 
 
-.PHONY: pages
-.SILENT: pages
-pages:  # [Deprecated] Locally run the github pages website
-	cd docs && bundle exec jekyll serve
-
-
 .PHONY: docs
 .SILENT: docs
+# Clearing `_build` first avoids random unobvious issues, like the left sidebar not updating for "old" pages.
 docs:  # Build the docs with Sphinx
 	-cd docs && rm -Recurse _build
 	cd docs && uv run sphinx-build . _build
-# It's recommended to clear `_build` folder before running the docs
-# to avoid random unobvious issues, like left sidebar not properly updating for "old" pages.
 
 
 .PHONY: commit
 .SILENT: commit
-# Lazy git commit commands, use make commit m="Fix this and that" for custom commit messages.
-# This creates and pushes commits to both IreBot and Shared-Bot-Utilities repositories.
-# Notice "-" Usage 
-# https://stackoverflow.com/a/2670143/19217368) 
-# This kinda makes this command unsafe against me being dumb.
-commit: 
+# Lazy commit and push of both the "src/shared" submodule and IreBot, all with the same message.
+# Only `git commit` may fail (it does when there's nothing to commit); any other failure stops here,
+# so IreBot is never pushed pointing at a "src/shared" commit that isn't on GitHub.
+commit:  # Commit and push both the "src/shared" submodule and IreBot
 	Write-Host 'Committing "src/shared" submodule' -ForegroundColor Magenta
-	-cd src/shared && git add .
-	-cd src/shared && git commit -a -m "$(m)"
-	-cd src/shared && git push
+	cd src/shared && git add .
+	-cd src/shared && git commit -m "$(m)"
+	cd src/shared && git push
 	Write-Host 'Committing IrenesBot' -ForegroundColor Magenta
-	-git add .
-	-git commit -a -m "$(m)"
-	-git push
+	git add .
+	-git commit -m "$(m)"
+	git push
 
 
 .PHONY: com
 .SILENT: com
-# This creates and pushes commits to IreBot repository
-com:  
+com:  # Commit and push only IreBot
 	git add .
-	git commit -a -m "$(m)"
+	-git commit -m "$(m)"
 	git push
 
 
 .PHONY: scp
 .SILENT: scp
-scp:  # Copy required files into the VPS
+scp:  # Copy .env to the VPS
 	scp .env vps:~/IrenesBot/.env
-
-
-.PHONY: echo
-.SILENT: echo
-echo:  # Testing stuff
-	[console]::OutputEncoding
-	echo $(SHELL)
-	echo "$(m)"
-	echo $(LANG)
-	@Write-Output $(m)
-	@echo -e "\e[1;34mBuilding $<\e[0m"
