@@ -129,10 +129,22 @@ class Control(DevComponent):
             if m:
                 await ctx.send(f"{const.Stv.DankDolmes} {c}: {', '.join(m)}")
 
-    @loop(minutes=5)
+    @loop(minutes=5, wait_for_ready=True)
     async def heartbeat_task(self) -> None:
-        """Ping the healthchecks.io check, which alerts me when these pings stop coming."""
+        """Ping the healthchecks.io check, which alerts me when these pings stop coming.
+
+        Skips the ping unless every conduit websocket shard is connected to Twitch and the database answers.
+        """
         if not env.HEALTHCHECK_URL:
+            return
+        sockets = self.bot.conduit_info.websockets
+        if not sockets or not all(socket.connected for socket in sockets.values()):
+            logger.warning("Healthcheck: skipping the ping, not every conduit websocket is connected: {}", sockets)
+            return
+        try:
+            await self.bot.pool.fetchval("SELECT 1")
+        except Exception as exc:  # ruff: ignore[blind-except] any database failure just means "not healthy"
+            logger.warning("Healthcheck: skipping the ping, the database doesn't answer: {!r}", exc)
             return
         async with self.bot.session.get(env.HEALTHCHECK_URL, timeout=aiohttp.ClientTimeout(total=10)) as response:
             response.raise_for_status()
