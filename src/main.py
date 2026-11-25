@@ -48,7 +48,7 @@ async def start_the_bot(
     try:
         # TODO: DELETE public
         pool = await db.create_pool(postgres_url, "irenesbot,shared")
-    except Exception:  # ruff: ignore[blind-except] the traceback is logged via `logger.exception`
+    except Exception:
         msg = "Could not set up PostgreSQL. Exiting."
         click.echo(msg, file=sys.stderr)
         logger.exception(msg)

@@ -65,7 +65,7 @@ class Control(DevComponent):
         await asyncio.sleep(3.0)
         try:
             await asyncio.create_subprocess_shell("sudo systemctl stop irebot")
-        except Exception:  # ruff: ignore[blind-except] the traceback is logged via `logger.exception`
+        except Exception:
             logger.exception("Failed to Stop the bot's process")
             # it might not go off
             await ctx.send("Something went wrong.")
@@ -81,7 +81,7 @@ class Control(DevComponent):
         await asyncio.sleep(3.0)
         try:
             await asyncio.create_subprocess_shell("sudo systemctl restart irebot")
-        except Exception:  # ruff: ignore[blind-except] the traceback is logged via `logger.exception`
+        except Exception:
             logger.exception("Failed to Restart the bot's process")
             # it might not go off
             await ctx.send("Something went wrong.")

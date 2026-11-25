@@ -317,7 +317,7 @@ class FirstChatterChannelRewardManagement(Component):
                     row["reward_id"],
                     row["original_title"],
                 )
-            except Exception:  # ruff: ignore[blind-except] the traceback is logged via `logger.exception`
+            except Exception:
                 # one broken channel (revoked token, deleted reward, etc.) must not stop the others
                 logger.exception("🥇 First: Double check failed for streamer {}.", row["streamer_id"])
 
