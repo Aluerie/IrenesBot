@@ -6,13 +6,15 @@ on:
       - 'main'
         
 jobs:
+  check:
+    # a broken commit must not reach the server
+    uses: ./.github/workflows/type_lint_test.yml
+    secrets: inherit
+
   deploy:
+    needs: check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
-      with:
-        submodules: "true"
-    
     - name: Restarting the bot
       uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
       with:

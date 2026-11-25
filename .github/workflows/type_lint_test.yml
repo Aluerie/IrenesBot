@@ -1,14 +1,19 @@
 name: Type, Lint, Test
 
 on:
+  # `main` runs these checks as part of `deploy_service.yml` (which only deploys when they pass), not on its own.
   push:
+    branches-ignore:
+      - main
   pull_request:
     branches:
-      - master
+      - main
     types:
       - opened
       - reopened
       - synchronize
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   type-test-lint:
@@ -32,6 +37,9 @@ jobs:
 
       - name: Ruff Lint Checking
         run: uv run ruff check src tests templates --output-format github
+
+      - name: Ruff Format Checking
+        run: uv run ruff format --check src tests templates
 
       - name: Pytest Tests
         run: uv run pytest
