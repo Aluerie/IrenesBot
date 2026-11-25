@@ -19,10 +19,10 @@ from twitchio.web import StarletteAdapter
 
 import ext
 from config import env
-from shared import clock, errors, fmt, globs
+from shared import clock, errors, fmt, globs, systemd
 from shared.apis import stv
 from shared.concepts import BotBase
-from utils import const, systemd
+from utils import const
 
 from .context import Context
 from .stv_token import load_stv_token, register_stv_token_page

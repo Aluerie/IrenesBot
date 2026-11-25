@@ -21,9 +21,8 @@ from loguru import logger
 
 from config import env
 from core import AdapterEnum, Bot, get_eventsub_subscriptions
-from shared import ut
+from shared import systemd, ut
 from shared.concepts import db, logs
-from utils import systemd
 
 # generated at https://patorjk.com/software/taag/ using "Standard" font
 ASCII_STARTING_UP_ART = r"""
