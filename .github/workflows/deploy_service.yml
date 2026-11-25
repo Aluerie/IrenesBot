@@ -26,5 +26,6 @@ jobs:
           git pull --ff-only
           git submodule update --recursive
           ~/.local/bin/uv sync --no-dev
+          # the unit file is a symlink to the repo's irebot.service, so this picks up any changes to it
+          sudo systemctl daemon-reload
           sudo systemctl restart irebot.service
-          sudo systemctl start irebot.service

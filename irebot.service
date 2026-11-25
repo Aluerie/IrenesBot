@@ -1,7 +1,11 @@
-; sudo cp irebot.service /etc/systemd/system/irebot.service
+; One-time setup: symlink this file into /etc/systemd/system/, so `git pull` updates the unit
+; and the deploy's `daemon-reload` applies the changes.
+; sudo systemctl link /home/ubuntu/IrenesBot/irebot.service
 ; sudo systemctl daemon-reload
 ; sudo systemctl enable irebot
 ; sudo systemctl start irebot
+;
+; Other commands:
 ; sudo systemctl restart irebot
 ; sudo systemctl stop irebot
 ; sudo journalctl -u irebot -e
