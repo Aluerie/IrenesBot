@@ -27,7 +27,7 @@ HELP_SCRIPT = \
 		if ($$line -match '^\#\#@ (.+)') { \
 			Write-Host ([Environment]::NewLine + $$Matches[1] + ':') -ForegroundColor Magenta \
 		} elseif ($$line -match '^([\w-]+):[^=\#]*\#\s*(.+)') { \
-			Write-Host ('    {0,-10}{1}' -f $$Matches[1], $$Matches[2]) \
+			Write-Host ('    {0,-12}{1}' -f $$Matches[1], $$Matches[2]) \
 		} \
 	}
 
@@ -120,6 +120,17 @@ tests:  # Run the tests with pytest
 	uv run pytest
 
 
+.PHONY: ci
+.SILENT: ci
+ci:  # Run what CI runs: "make ruff", "make ty" and "make tests"
+	Write-Host 'Running "make ruff"' -ForegroundColor Magenta
+	make ruff
+	Write-Host 'Running "make ty"' -ForegroundColor Magenta
+	make ty
+	Write-Host 'Running "make tests"' -ForegroundColor Magenta
+	make tests
+
+
 ##@ Documentation
 
 .PHONY: docs
@@ -130,7 +141,14 @@ docs:  # Build the docs with Sphinx
 	cd docs && uv run sphinx-build . _build
 
 
-##@ GitHub and VPS
+.PHONY: docs-serve
+.SILENT: docs-serve
+# `--watch ../src` rebuilds on code changes too, since the docs pull command docstrings from it.
+docs-serve:  # Serve the docs in the browser, rebuilding them on every change
+	cd docs && uv run sphinx-autobuild . _build --watch ../src --port 0 --open-browser
+
+
+##@ GitHub
 
 .PHONY: commit
 .SILENT: commit
@@ -156,7 +174,28 @@ com:  # Commit and push only IreBot
 	git push
 
 
+##@ VPS
+
 .PHONY: scp
 .SILENT: scp
 scp:  # Copy .env to the VPS
 	scp .env vps:~/IrenesBot/.env
+
+
+.PHONY: logs
+.SILENT: logs
+logs:  # Follow the bot's log on the VPS live (Ctrl+C to stop)
+	ssh -t vps sudo journalctl -u irebot -f
+
+
+.PHONY: status
+.SILENT: status
+# `-`: systemctl exits non-zero when the bot isn't running, which isn't a make error here.
+status:  # Show whether the bot is running on the VPS
+	-ssh vps systemctl status irebot --no-pager
+
+
+.PHONY: restart
+.SILENT: restart
+restart:  # Restart the bot on the VPS
+	ssh vps sudo systemctl restart irebot

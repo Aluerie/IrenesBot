@@ -48,6 +48,7 @@ docs = [
     "numpydoc",
     "shibuya",
     "sphinx",
+    "sphinx-autobuild",
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx-iconify",
