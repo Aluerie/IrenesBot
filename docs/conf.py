@@ -101,6 +101,9 @@ intersphinx_mapping = {
     "sphinx": ("https://www.sphinx-doc.org/en/master/", None),
 }
 intersphinx_disabled_domains = ["std"]
+# Without a timeout, an inventory download that stalls (it does on my home network) hangs the whole build.
+# With it, the build just warns and leaves those links unresolved.
+intersphinx_timeout = 15
 
 
 templates_path = ["_templates"]
