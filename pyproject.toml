@@ -160,9 +160,14 @@ flake8-quotes.inline-quotes = "double"
 "src/ext/*.py" = [
     "undocumented-param", # I don't want to document all the `ctx: IreContext`
 ]
-"tests/*.py" = [
+"{tests,src/shared/tests}/*.py" = [
     "D",
-    "DOC"
+    "DOC",
+    "ARG",                    # fixtures and fakes often take arguments they don't use
+    "private-member-access",       # tests poke at private members
+    "hardcoded-password-func-arg", # fake credentials
+    "unused-async",           # fake coroutines stand in for real async APIs
+    "pytest-fixture-autouse",
 ]
 
 [tool.ruff.format]

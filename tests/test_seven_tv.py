@@ -10,7 +10,7 @@ pytest_plugins = ("pytest_asyncio",)
 
 
 @pytest.fixture
-async def stv_client() -> stv.StvClient:  # ruff: ignore[unused-async]
+async def stv_client() -> stv.StvClient:
     """7TV client fixture."""
     return stv.StvClient(bot_7tv_user_id=const.StvID.BOT)
 
