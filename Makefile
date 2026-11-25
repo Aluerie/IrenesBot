@@ -194,7 +194,7 @@ com:
 .PHONY: scp
 .SILENT: scp
 scp:  # Copy required files into the VPS
-	scp -i "${SSH_PRIVATE_KEY}" .env ${SSH_USERNAME}@${SSH_HOST}:~/IrenesBot/.env
+	scp .env vps:~/IrenesBot/.env
 
 
 .PHONY: echo
