@@ -23,6 +23,7 @@ from config import env
 from core import AdapterEnum, Bot, get_eventsub_subscriptions
 from shared import ut
 from shared.concepts import db, logs
+from utils import systemd
 
 # generated at https://patorjk.com/software/taag/ using "Standard" font
 ASCII_STARTING_UP_ART = r"""
@@ -52,23 +53,28 @@ async def start_the_bot(
         msg = "Could not set up PostgreSQL. Exiting."
         click.echo(msg, file=sys.stderr)
         logger.exception(msg)
-        return
+        # non-zero exit code, so systemd counts it as a failure and reports it
+        raise SystemExit(1) from None
 
-    async with (
-        aiohttp.ClientSession() as session,
-        pool as pool,
-        Bot(
-            session=session,
-            pool=pool,
-            subscriptions=await get_eventsub_subscriptions(pool, test_account=is_test_account),
-            scopes_only=scopes_only,
-            force_subscribe=force_subscribe,
-            adapter_enum=adapter_enum,
-            is_subset_mode=is_subset_mode,
-            is_test_account=is_test_account,
-        ) as irebot,
-    ):
-        await irebot.start()
+    watchdog_task = asyncio.create_task(systemd.watchdog_loop())
+    try:
+        async with (
+            aiohttp.ClientSession() as session,
+            pool as pool,
+            Bot(
+                session=session,
+                pool=pool,
+                subscriptions=await get_eventsub_subscriptions(pool, test_account=is_test_account),
+                scopes_only=scopes_only,
+                force_subscribe=force_subscribe,
+                adapter_enum=adapter_enum,
+                is_subset_mode=is_subset_mode,
+                is_test_account=is_test_account,
+            ) as irebot,
+        ):
+            await irebot.start()
+    finally:
+        watchdog_task.cancel()
 
 
 @click.group(invoke_without_command=True, options_metavar="[options]")

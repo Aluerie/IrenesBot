@@ -37,7 +37,7 @@ class Env(EnvConfig):
     WEBHOOK_ERROR: str
     WEBHOOK_SPAM: str
     WEBHOOK_STREAM_NOTIF: str
-    WEBHOOK_HEARTBEAT: str
+    HEALTHCHECK_URL: str = ""
     LOCAL_API_KEY: str
 
 

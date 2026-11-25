@@ -22,7 +22,7 @@ from config import env
 from shared import clock, errors, fmt, globs
 from shared.apis import stv
 from shared.concepts import BotBase
-from utils import const
+from utils import const, systemd
 
 from .context import Context
 from .stv_token import load_stv_token, register_stv_token_page
@@ -452,6 +452,7 @@ class Bot(BotBase, commands.AutoBot):
     async def event_ready(self) -> None:
         """Event that is dispatched when the `Client` is ready and has completed login."""
         logger.info("{} is ready as @{} (id={})", self.__class__.__name__, self.user.display_name, self.bot_id)
+        systemd.sd_notify("READY=1")
 
         if not hasattr(self, "launch_time"):
             # who knows maybe it triggers many times like `discord.py`
@@ -478,11 +479,6 @@ class Bot(BotBase, commands.AutoBot):
     #     """
     #     content = f"{self.error_ping}\n{send_kwargs.get('content') or ''}"
     #     await self.error_webhook.send(content, **send_kwargs)
-
-    @discord.utils.cached_property
-    def heartbeat_webhook(self) -> discord.Webhook:
-        """Webhook in my discord hideout server to send heartbeat reports."""
-        return self.webhook_from_url(env.WEBHOOK_HEARTBEAT)
 
     def is_online(self, user_id: str) -> bool:
         """Whether the user is online.

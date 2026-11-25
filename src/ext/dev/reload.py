@@ -7,10 +7,11 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Annotated, override
 
-import discord
+import aiohttp
 from loguru import logger
 from twitchio.ext import commands
 
+from config import env
 from core import DevComponent
 from shared.concepts import loop
 from utils import const, guards
@@ -36,7 +37,7 @@ class Control(DevComponent):
 
     def __init__(self, bot: Bot) -> None:
         super().__init__(bot)
-        self.heartbeat_task.add_exception_type(discord.HTTPException)
+        self.heartbeat_task.add_exception_type(aiohttp.ClientError, TimeoutError)
 
     @override
     async def component_load(self) -> None:
@@ -125,10 +126,13 @@ class Control(DevComponent):
             if m:
                 await ctx.send(f"{const.Stv.DankDolmes} {c}: {', '.join(m)}")
 
-    @loop(minutes=10)
+    @loop(minutes=5)
     async def heartbeat_task(self) -> None:
-        """Send heartbeat reports to a discord channel with a small information."""
-        await self.bot.heartbeat_webhook.send("Alive")
+        """Ping the healthchecks.io check, which alerts me when these pings stop coming."""
+        if not env.HEALTHCHECK_URL:
+            return
+        async with self.bot.session.get(env.HEALTHCHECK_URL, timeout=aiohttp.ClientTimeout(total=10)) as response:
+            response.raise_for_status()
 
 
 async def setup(bot: Bot) -> None:
