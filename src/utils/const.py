@@ -7,8 +7,10 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Final
 
 __all__ = (
+    "MAX_MESSAGE_LENGTH",
     "BotsLowerName",
     "Bttv",
     "Ffz",
@@ -19,6 +21,9 @@ __all__ = (
     "StvID",
     "UserID",
 )
+
+MAX_MESSAGE_LENGTH: Final = 500
+"""Twitch rejects chat messages longer than this many characters."""
 
 
 class UserID(StrEnum):

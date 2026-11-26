@@ -11,6 +11,7 @@ import twitchio
 from twitchio.ext import commands
 
 from shared import errors
+from utils import const
 
 if TYPE_CHECKING:
     from .bot import Bot  # ruff: ignore[unused-import]
@@ -62,7 +63,7 @@ class Context(commands.Context["Bot"]):
             # Bypass this error with a 7TV trick of adding an unknown character (32 is space though)
             return await super().send(content + chr(32) + chr(917504), me=me)
 
-    async def chunk_send(self, content: str, *, me: bool = False, width: int = 498) -> None:
+    async def chunk_send(self, content: str, *, me: bool = False, width: int = const.MAX_MESSAGE_LENGTH - 2) -> None:
         """Send content in chunks if it's expected to be a long one.
 
         Parameters
@@ -72,7 +73,7 @@ class Context(commands.Context["Bot"]):
         me
             Whether to send the chunks as ``/me`` messages.
         width
-            Maximum length of a single chunk. Twitch's limit is 500 characters; the default leaves room for the
+            Maximum length of a single chunk. The default is Twitch's limit minus the
             2 characters that :meth:`send` may append when retrying a rejected message.
         """
         if me:

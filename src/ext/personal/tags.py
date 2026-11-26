@@ -28,8 +28,6 @@ __all__ = ("Tags",)
 
 EMOTE = const.Stv.uuhAcktshucally
 
-# Twitch chat messages can't be longer than 500 characters.
-MAX_MESSAGE_LENGTH = 500
 # Do not flood the chat with too many messages when listing tags.
 MAX_LIST_MESSAGES = 3
 
@@ -124,7 +122,7 @@ class Tags(PersonalComponent):
             Text to put between the parts in a single message.
         """
         prefix = f"{EMOTE} "
-        chunks = chunk_parts(parts, separator=separator, limit=MAX_MESSAGE_LENGTH - len(prefix))
+        chunks = chunk_parts(parts, separator=separator, limit=const.MAX_MESSAGE_LENGTH - len(prefix))
         for chunk in islice(chunks, MAX_LIST_MESSAGES):
             await ctx.send(f"{prefix}{chunk}")
 

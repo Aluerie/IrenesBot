@@ -36,7 +36,6 @@ MAX_REMINDERS_PER_USER: Final = 10
 """Limit per chatter (the bot owner has none), so the chat doesn't turn into a reminder spam."""
 LATE_AFTER: Final = dt.timedelta(minutes=5)
 """Reminders later than this apologize for it (e.g. the bot was offline at the time)."""
-MAX_MESSAGE_LENGTH: Final = 500
 USAGE: Final = (
     'Usage: "!remind 10m stretch", "!remind tomorrow 3pm water the plants", "!remind 18:00 MSK lunch". '
     'Also: "!remind list", "!remind delete <id>", "!remind clear".'
@@ -144,7 +143,7 @@ class Reminders(Component):
             message += f" (sorry, {late} late, I was offline {const.Stv.uuh})"
         else:
             message += f" (set {clock.human_datetime_diff(job.created_at, max_units=1)} ago)"
-        message = message[:MAX_MESSAGE_LENGTH]
+        message = message[: const.MAX_MESSAGE_LENGTH]
 
         broadcaster = self.bot.create_partialuser(str(job.guild_id))
         try:

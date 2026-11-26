@@ -10,7 +10,7 @@ from twitchio.ext import commands
 
 from config import env
 from core import DevComponent
-from shared import gh
+from shared import fmt, gh
 from shared.concepts.discord_logs import DiscordWebhookLogs
 from utils import const
 
@@ -46,9 +46,12 @@ class LogsViaWebhook(DiscordWebhookLogs, DevComponent):
     async def announce_reloaded(self) -> None:
         """Announce that bot is successfully reloaded/restarted."""
         commit = gh.get_last_commit()
-        fmt_commit = f"{commit.emojified_title} <{commit.short_sha2}> ({commit.utc_dt.strftime('%H:%M%p %d/%b/%y')})"
+        message = (
+            f"{const.Stv.hi} I reloaded myself: <{commit.short_sha2}> "
+            f"({commit.utc_dt:%H:%M %d/%b/%y} UTC) {commit.emojified_full_title}"
+        )
         await self.bot.irene().send_message(
-            sender=self.bot.bot_id, message=f"{const.Stv.hi} I reloaded myself - commit: {fmt_commit}"
+            sender=self.bot.bot_id, message=fmt.shorten(message, const.MAX_MESSAGE_LENGTH)
         )
 
 
