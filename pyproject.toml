@@ -3,7 +3,7 @@ name = "IrenesBot"
 version = "1.0.7"
 description = "Personal Twitch.tv Bot"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.15"
 authors = [{ name = "Aluerie", email = "aluerie@gmail.com" }]
 maintainers = [{ name = "Aluerie", email = "aluerie@gmail.com" }]
 urls.Homepage = "https://github.com/Aluerie/IrenesBot"
@@ -22,14 +22,17 @@ dependencies = [
     "asyncpg",
     "backoff",
     "click",
+    "dateparser>=1.5.1",
     "discord-py[speed]",
     "loguru>=0.8.0",
     "lru-dict>=1.4.1",
     "orjson",
     "pydantic-settings",
     "pygit2",
+    "python-dateutil>=2.9.0.post0",
     "steamio",
     "twitchio[starlette]",
+    "tzdata>=2026.6",
     "uvloop ; sys_platform == 'linux'",
     "websockets",
     "zstandard",
@@ -79,7 +82,7 @@ unsound-yield = "ignore" # `Any` is fine
 [tool.ruff]
 preview = true
 line-length = 120
-target-version = "py314"
+target-version = "py315"
 exclude = [".venv"]
 src = ["src"]
 

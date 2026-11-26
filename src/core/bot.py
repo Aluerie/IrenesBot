@@ -22,6 +22,7 @@ from config import env
 from shared import clock, errors, fmt, globs, systemd
 from shared.apis import stv
 from shared.concepts import BotBase
+from shared.scheduler import Scheduler
 from utils import const
 
 from .context import Context
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     from twitchio.user import PartialUser
 
     from shared.concepts.db import PoolTypedWithAny
+    from shared.scheduler import Job
 
     class LoadTokensQueryRow(TypedDict):
         user_id: str
@@ -169,6 +171,9 @@ class Bot(BotBase, commands.AutoBot):
         self.session: ClientSession = session
         self.pool: PoolTypedWithAny = pool
         self.scopes_only: bool = scopes_only
+        # Components register their job handlers when they are added (see `add_component`);
+        # the scheduler starts running jobs in `setup_hook`.
+        self.scheduler: Scheduler = Scheduler(pool, on_error=self.on_scheduler_error)
 
         self.extensions_to_load: tuple[str, ...] = self.get_extensions(is_subset_mode=is_subset_mode, package=ext)
         logger.info("List of modules ({} total) to load: {}", len(self.extensions_to_load), self.extensions_to_load)
@@ -356,6 +361,8 @@ class Bot(BotBase, commands.AutoBot):
             return
 
         await load_stv_token(self)
+        # jobs of kinds without a handler just wait, and nothing runs before the bot is ready
+        await self.scheduler.start(wait_until=self.wait_until_ready)
 
         for module in self.extensions_to_load:
             logger.debug("Loading module: {}", module)
@@ -364,6 +371,47 @@ class Bot(BotBase, commands.AutoBot):
             except commands.exceptions.ModuleError as error:
                 embed = discord.Embed(title="Module Load Error", colour=0x12A28A)
                 await self.error_notification_manager.register(error, embed=embed)
+
+    # SCHEDULER
+
+    @override
+    async def add_component(self, component: commands.Component, /) -> None:
+        """Add a component and register its scheduler job handlers (methods marked with `@scheduler.handler`)."""
+        await super().add_component(component)
+        self.scheduler.register_handlers(component)
+
+    @override
+    async def remove_component(self, name: str, /) -> commands.Component | None:
+        """Remove a component and unregister its scheduler job handlers."""
+        component = await super().remove_component(name)
+        if component is not None:
+            self.scheduler.unregister_handlers(component)
+        return component
+
+    async def on_scheduler_error(self, error: BaseException, job: Job | None) -> None:
+        """Notify developers about an error of a scheduled job's handler (or of the scheduler itself)."""
+        if not isinstance(error, Exception):
+            return
+        if job is None:
+            embed = discord.Embed(colour=0xFF8243, title="Scheduler Error")
+        else:
+            embed = discord.Embed(
+                colour=0xFF8243,
+                title=f"Scheduled Job Error: `{job.kind}` #{job.id}",
+                description=f"Attempt {job.attempts + 1}, due {clock.discord(job.due_at, 'f', 'R')}.",
+            )
+            fmt.add_mapping_field(
+                embed,
+                name="Job",
+                mapping={"key": job.key, "user_id": job.user_id, "when": job.when, "rule": job.rule, **job.data},
+            )
+        await self.error_notification_manager.register(error, embed=embed)
+
+    @override
+    async def close(self, **options: Any) -> None:
+        """Stop running scheduled jobs (their handlers still need Twitch and the database), then close the bot."""
+        await self.scheduler.close()
+        await super().close(**options)
 
     @override
     async def event_oauth_authorized(self, payload: twitchio.authentication.UserTokenPayload) -> None:

@@ -33,6 +33,7 @@ personal multipurpose :iconify:`logos:twitch` `twitch.tv <https://www.twitch.tv>
    :hidden:
 
    public/simple
+   public/reminders
    public/seven_tv
    public/dota2
 
