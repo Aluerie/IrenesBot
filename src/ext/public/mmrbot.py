@@ -842,7 +842,7 @@ class MMRBot(Component):
         query = """
             SELECT friend_id, nickname
             FROM dota_notable_players
-            ORDER BY similarity(nickname, $1) DESC
+            ORDER BY public.similarity(nickname, $1) DESC
             LIMIT 3;
         """
         rows = await self.bot.pool.fetch(query, name)
