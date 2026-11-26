@@ -137,7 +137,6 @@ def launch(
     if click_ctx.invoked_subcommand is None:
         with logs.setup_logging(
             starting_up_art=ASCII_STARTING_UP_ART,
-            filename="irebot.log",
         ):
             try:
                 ut.run(
