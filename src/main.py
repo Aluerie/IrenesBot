@@ -13,13 +13,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import platform
-import sys
 from pathlib import Path
 
 import aiohttp
 import click
-from loguru import logger
 
 from config import env
 from core import AdapterEnum, Bot, get_eventsub_subscriptions
@@ -60,17 +57,9 @@ async def start_the_bot(
     is_test_account: bool,
 ) -> None:
     """Start the bot."""
-    postgres_url = env.POSTGRES_VPS if platform.system() == "Linux" else env.POSTGRES_HOME
-    try:
-        pool = await db.create_pool(
-            postgres_url, "irenesbot,dota2bot", application_name="irebot", migrations_dir=MIGRATIONS_DIR
-        )
-    except Exception:
-        msg = "Could not set up PostgreSQL or apply the migrations. Exiting."
-        click.echo(msg, file=sys.stderr)
-        logger.exception(msg)
-        # non-zero exit code, so systemd counts it as a failure and reports it
-        raise SystemExit(1) from None
+    pool = await db.try_create_pool(
+        env.DATABASE_URL, search_path="irenesbot,dota2bot", application_name="irebot", migrations_dir=MIGRATIONS_DIR
+    )
 
     watchdog_task = asyncio.create_task(systemd.watchdog_loop())
     try:

@@ -25,8 +25,7 @@ class Env(EnvConfig):
     TWITCH_CLIENT_SECRET: str
     TEST_TWITCH_CLIENT_ID: str
     TEST_TWITCH_CLIENT_SECRET: str
-    POSTGRES_VPS: str
-    POSTGRES_HOME: str
+    DATABASE_URL: str  # on the VPS, the systemd unit sets it, overriding .env
     SEVEN_TV_BEARER: str
     STV_TOKEN_PAGE_KEY: str
     TWITCH_BOT_PERSISTENT_COOKIE: str = ""

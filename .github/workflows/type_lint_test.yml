@@ -50,8 +50,7 @@ jobs:
           TWITCH_CLIENT_SECRET: str
           TEST_TWITCH_CLIENT_ID: str
           TEST_TWITCH_CLIENT_SECRET: str
-          POSTGRES_VPS: str
-          POSTGRES_HOME: str
+          DATABASE_URL: str
           SEVEN_TV_BEARER: ${{ secrets.SEVEN_TV_BEARER }}
           STV_TOKEN_PAGE_KEY: str
           STEAM_API_KEY: str
