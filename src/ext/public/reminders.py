@@ -29,7 +29,8 @@ __all__ = ("Reminders",)
 
 KIND: Final = "reminder"
 TIMEZONE: Final = "UTC"
-"""Clock times like "3pm" are read on these clocks: Twitch chatters can't set their own timezone."""
+"""Clock times like "3pm" are read on these clocks, unless the chatter names a zone ("3pm EST", "18:00 MSK"):
+Twitch doesn't tell the bot anybody's timezone."""
 MAX_TEXT_LENGTH: Final = 300
 MAX_REMINDERS_PER_USER: Final = 10
 """Limit per chatter (the bot owner has none), so the chat doesn't turn into a reminder spam."""
@@ -37,7 +38,7 @@ LATE_AFTER: Final = dt.timedelta(minutes=5)
 """Reminders later than this apologize for it (e.g. the bot was offline at the time)."""
 MAX_MESSAGE_LENGTH: Final = 500
 USAGE: Final = (
-    'Usage: "!remind 10m stretch", "!remind tomorrow 3pm water the plants", "!remind eow to send the report". '
+    'Usage: "!remind 10m stretch", "!remind tomorrow 3pm water the plants", "!remind 18:00 MSK lunch". '
     'Also: "!remind list", "!remind delete <id>", "!remind clear".'
 )
 
@@ -73,7 +74,8 @@ class Reminders(Component):
 
         Start with the time, then say what to remind of: ``!remind 10m stretch``,
         ``!remind tomorrow 3pm water the plants``, ``!remind eow to send the report``.
-        Clock times like "3pm" are in UTC. The reminder arrives as a reply to your message.
+        Clock times like "3pm" are in UTC, unless you name your timezone: ``!remind 18:00 MSK stretch``,
+        ``!remind tomorrow 3pm EST water the plants``. The reminder arrives as a reply to your message.
         """
         if not text.strip():
             raise errors.BadUserInputError(USAGE)

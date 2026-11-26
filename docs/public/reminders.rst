@@ -11,6 +11,8 @@ The reminder arrives as a reply to your message, even if the bot restarted in be
 
 Durations like ``10m`` or ``1h30m`` work the same for everybody.
 Clock times like ``3pm`` or ``friday 18:00`` are in UTC, since Twitch doesn't tell the bot your timezone.
+Name your timezone after the time to use your clocks instead: ``!remind 18:00 MSK stretch``, ``!remind 3pm EST lunch``,
+``!remind friday 10:00 Europe/Berlin call``, ``!remind 9am UTC+3 standup``.
 
 ☝️ Commands
 ###########
