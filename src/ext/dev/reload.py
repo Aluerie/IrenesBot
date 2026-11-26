@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import asyncio
-import platform
 from typing import TYPE_CHECKING, Annotated, override
 
 import aiohttp
@@ -14,6 +13,7 @@ from twitchio.ext import commands
 
 from config import env
 from core import DevComponent
+from shared import systemd
 from shared.concepts import loop
 from utils import const, guards
 
@@ -42,8 +42,8 @@ class Control(DevComponent):
 
     @override
     async def component_load(self) -> None:
-        # only the VPS (Linux) pings, so a bot running at home doesn't keep the check green
-        if platform.system() == "Linux":
+        # only the systemd service in prod pings, so a bot running elsewhere doesn't keep the check green
+        if systemd.is_systemd_service():
             self.heartbeat_task.start()
         await super().component_load()
 
