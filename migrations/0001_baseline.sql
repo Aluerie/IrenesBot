@@ -5,10 +5,9 @@ Baseline: the `irenesbot` schema as it was on prod on 2026-11-26.
 Dota2Bot's `dota2bot.dota_accounts` references `irenesbot.tokens`, so on an empty database this file runs before Dota2Bot's baseline.
 --------------------------------------------------------------------------------------------------------------------- */
 
-CREATE SCHEMA irenesbot;
-
--- `similarity()` for fuzzy nickname search in `mmrbot`
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- `public.similarity()` for fuzzy nickname search in `mmrbot`. Extensions belong to the whole database,
+-- so it goes into `public`, like on prod; the bots' search paths don't include it.
+CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public;
 
 /* --- Bot internals ------------------------------------------------------------------------------------------------ */
 

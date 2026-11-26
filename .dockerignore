@@ -7,6 +7,7 @@
 !/uv.lock
 !/pyproject.toml
 !/src
+!/migrations
 
 
 # Ignore unnecessary files inside allowed directories

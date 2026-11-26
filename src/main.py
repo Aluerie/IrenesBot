@@ -15,6 +15,7 @@ import asyncio
 import logging
 import platform
 import sys
+from pathlib import Path
 
 import aiohttp
 import click
@@ -24,6 +25,9 @@ from config import env
 from core import AdapterEnum, Bot, get_eventsub_subscriptions
 from shared import systemd, ut
 from shared.concepts import db, logs
+
+# The bot's database migrations, applied when it starts (`shared.concepts.migrations`).
+MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
 
 def drop_missing_conduit_id_warning(record: logging.LogRecord) -> bool:
@@ -58,10 +62,11 @@ async def start_the_bot(
     """Start the bot."""
     postgres_url = env.POSTGRES_VPS if platform.system() == "Linux" else env.POSTGRES_HOME
     try:
-        # TODO: DELETE public
-        pool = await db.create_pool(postgres_url, "irenesbot,dota2bot", application_name="irebot")
+        pool = await db.create_pool(
+            postgres_url, "irenesbot,dota2bot", application_name="irebot", migrations_dir=MIGRATIONS_DIR
+        )
     except Exception:
-        msg = "Could not set up PostgreSQL. Exiting."
+        msg = "Could not set up PostgreSQL or apply the migrations. Exiting."
         click.echo(msg, file=sys.stderr)
         logger.exception(msg)
         # non-zero exit code, so systemd counts it as a failure and reports it
