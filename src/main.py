@@ -12,6 +12,7 @@ CLI supported flags can be viewed with `--help` flag (or looked up in this file)
 from __future__ import annotations
 
 import asyncio
+import logging
 import platform
 import sys
 
@@ -23,6 +24,17 @@ from config import env
 from core import AdapterEnum, Bot, get_eventsub_subscriptions
 from shared import systemd, ut
 from shared.concepts import db, logs
+
+
+def drop_missing_conduit_id_warning(record: logging.LogRecord) -> bool:
+    """Drop twitchio's "No conduit_id was passed" warning, logged on every start.
+
+    Without a `conduit_id`, twitchio takes over the app's only conduit, which is exactly what the bot wants.
+    """
+    return not record.getMessage().startswith('No "conduit_id" was passed.')
+
+
+logging.getLogger("twitchio.client").addFilter(drop_missing_conduit_id_warning)
 
 # generated at https://patorjk.com/software/taag/ using "Standard" font
 ASCII_STARTING_UP_ART = r"""
