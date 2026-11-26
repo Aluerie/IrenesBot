@@ -355,15 +355,15 @@ SEPARATOR = " \N{BULLET} "
 PLAYED_WITH_QUERY = """
 WITH me AS (
     SELECT p.friend_id
-    FROM shared.dota_match_players AS p
-    JOIN shared.dota_accounts AS a USING (friend_id)
+    FROM dota_match_players AS p
+    JOIN dota_accounts AS a USING (friend_id)
     WHERE p.match_id = $1
       AND a.twitch_id = $2
     LIMIT 1
 ),
 live AS (
     SELECT start_time
-    FROM shared.dota_matches
+    FROM dota_matches
     WHERE match_id = $1
 ),
 history AS (
@@ -371,8 +371,8 @@ history AS (
         m.match_id,
         m.start_time,
         LEAD(m.start_time) OVER (ORDER BY m.start_time) - m.start_time AS gap_to_next
-    FROM shared.dota_matches AS m
-    JOIN shared.dota_match_players AS p USING (match_id)
+    FROM dota_matches AS m
+    JOIN dota_match_players AS p USING (match_id)
     WHERE p.friend_id = (SELECT friend_id FROM me)
       AND (m.failed = 0 OR m.match_id = $1)
       AND m.start_time <= (SELECT start_time FROM live)
@@ -391,8 +391,8 @@ SELECT DISTINCT ON (sp.friend_id)
     sp.friend_id,
     sp.hero_id,
     sm.matches_ago
-FROM shared.dota_match_players AS lp
-JOIN shared.dota_match_players AS sp ON sp.friend_id = lp.friend_id
+FROM dota_match_players AS lp
+JOIN dota_match_players AS sp ON sp.friend_id = lp.friend_id
 JOIN session_matches AS sm ON sm.match_id = sp.match_id
 WHERE lp.match_id = $1
   AND lp.friend_id <> (SELECT friend_id FROM me)
