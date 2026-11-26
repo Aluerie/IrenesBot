@@ -1,7 +1,5 @@
 # 📝 TODO
 
-- [ ] Apply the `migrations/` files to the database automatically when the bot starts. Right now new tables have to be created by hand, and a missing `irenesbot.bot_variables` table once put the bot into a crash loop while the deploy still reported success.
-  - Once it works, add a `make migrate` command to run it by hand too.
 - [ ] Drop the leftover tables that `migrations/0001_baseline.sql` leaves out (the daily backups keep them):
   - `irenesbot.first_redeems`: the old version of `first_chatter_redeems`.
   - `irenesbot.tokens_test`: no code reads it; the test bot keeps its tokens in `tokens` of the home database.
