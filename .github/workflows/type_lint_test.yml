@@ -18,11 +18,28 @@ on:
 jobs:
   type-test-lint:
     runs-on: ubuntu-latest
+    services:
+      # a throwaway PostgreSQL for tests/test_sql.py
+      postgres:
+        image: postgres:19
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           submodules: "true"
+
+      - name: Checkout Dota2Bot's migrations
+        uses: actions/checkout@v6
+        with:
+          repository: AluBot/Dota2Bot
+          path: .deps/Dota2Bot
+          sparse-checkout: migrations
 
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -44,6 +61,8 @@ jobs:
       - name: Pytest Tests
         run: uv run pytest
         env:
+          SQL_CHECK_POSTGRES: postgresql://postgres:postgres@localhost:5432/postgres
+          DOTA2BOT_MIGRATIONS: .deps/Dota2Bot/migrations
           # it doesn't need any real .env values for the most of it, just so pydantic doesn't crash out
           PROJECT_NAME: irenesbot
           TWITCH_CLIENT_ID: str
