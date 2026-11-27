@@ -20,7 +20,7 @@ import click
 
 from config import env
 from core import AdapterEnum, Bot, get_eventsub_subscriptions
-from shared import systemd, ut
+from shared import runtime, ut
 from shared.concepts import db, logs
 
 # The bot's database migrations, applied when it starts (`shared.concepts.migrations`).
@@ -61,7 +61,7 @@ async def start_the_bot(
         env.DATABASE_URL, search_path="irenesbot,dota2bot", application_name="irebot", migrations_dir=MIGRATIONS_DIR
     )
 
-    watchdog_task = asyncio.create_task(systemd.watchdog_loop())
+    watchdog_task = asyncio.create_task(runtime.watchdog_loop())
     try:
         async with (
             aiohttp.ClientSession() as session,
@@ -146,12 +146,14 @@ def launch(
         ):
             try:
                 ut.run(
-                    start_the_bot(
-                        scopes_only=scopes_only,
-                        force_subscribe=force_subscribe,
-                        adapter_enum=adapter,
-                        is_subset_mode=subset_mode,
-                        is_test_account=test_account,
+                    runtime.run_until_sigterm(
+                        start_the_bot(
+                            scopes_only=scopes_only,
+                            force_subscribe=force_subscribe,
+                            adapter_enum=adapter,
+                            is_subset_mode=subset_mode,
+                            is_test_account=test_account,
+                        ),
                     ),
                 )
             except KeyboardInterrupt:

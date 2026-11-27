@@ -13,7 +13,7 @@ from twitchio.ext import commands
 
 from config import env
 from core import DevComponent
-from shared import systemd
+from shared import runtime
 from shared.concepts import loop
 from utils import const, guards
 
@@ -42,8 +42,8 @@ class Control(DevComponent):
 
     @override
     async def component_load(self) -> None:
-        # only the systemd service in prod pings, so a bot running elsewhere doesn't keep the check green
-        if systemd.is_systemd_service():
+        # only prod (`BOT_ENV=prod`) pings, so a bot running at home doesn't keep the check green
+        if runtime.is_prod():
             self.heartbeat_task.start()
         await super().component_load()
 

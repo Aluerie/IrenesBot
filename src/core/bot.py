@@ -19,7 +19,7 @@ from twitchio.web import StarletteAdapter
 
 import ext
 from config import env
-from shared import clock, errors, fmt, globs, systemd
+from shared import clock, errors, fmt, globs, runtime
 from shared.apis import stv
 from shared.concepts import BotBase
 from shared.scheduler import Scheduler
@@ -500,7 +500,7 @@ class Bot(BotBase, commands.AutoBot):
     async def event_ready(self) -> None:
         """Event that is dispatched when the `Client` is ready and has completed login."""
         logger.info("{} is ready as @{} (id={})", self.__class__.__name__, self.user.display_name, self.bot_id)
-        systemd.sd_notify("READY=1")
+        runtime.notify_ready()
 
         if not hasattr(self, "launch_time"):
             # who knows maybe it triggers many times like `discord.py`
