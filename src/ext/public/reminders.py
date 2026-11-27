@@ -103,7 +103,7 @@ class Reminders(Component):
     @commands.cooldown(rate=3, per=30, key=commands.BucketType.chatter)
     @commands.group(name="remind", aliases=["remindme", "reminder"], invoke_fallback=True)
     async def remind_group(self, ctx: Context, *, text: str = "") -> None:
-        """Remind you in chat after some time, at some time, or again and again.
+        """⏰ Remind you in chat after some time, at some time, or again and again.
 
         Start with the time, then say what to remind of: ``!remind 10m stretch``,
         ``!remind tomorrow 3pm water the plants``, ``!remind every friday 18:00 lunch``.
@@ -138,7 +138,7 @@ class Reminders(Component):
 
     @remind_group.command(name="live", aliases=["stream", "online"])
     async def remind_live(self, ctx: Context, *, text: str = "") -> None:
-        """Remind you when this channel goes live, e.g. ``!remind live watch the start``."""
+        """🔴 Remind you when this channel goes live, e.g. ``!remind live watch the start``."""
         if len(text) > MAX_TEXT_LENGTH:
             msg = f"Reminders must be at most {MAX_TEXT_LENGTH} characters long."
             raise errors.BadUserInputError(msg)
@@ -159,7 +159,7 @@ class Reminders(Component):
 
     @remind_group.command(name="list", aliases=["all"])
     async def remind_list(self, ctx: Context) -> None:
-        """Show your reminders in this channel."""
+        """📋 Show your reminders in this channel."""
         user_id, channel_id = int(ctx.chatter.id), int(ctx.broadcaster.id)
         jobs: list[Job[ReminderData]] = [
             *await self.jobs.fetch(KIND, user_id=user_id, guild_id=channel_id),
@@ -182,7 +182,10 @@ class Reminders(Component):
 
     @remind_group.command(name="delete", aliases=["cancel", "remove", "del", "stop"])
     async def remind_delete(self, ctx: Context, reminder_id: int) -> None:
-        """Delete one of your reminders by its ID (a repeating one stops), e.g. ``!remind delete 12``."""
+        """🗑️ Delete one of your reminders by its ID (a repeating one stops).
+
+        For example ``!remind delete 12``; the IDs are in ``!remind list``.
+        """
         user_id = int(ctx.chatter.id)
         deleted = await self.jobs.delete(reminder_id, kind=KIND, user_id=user_id) or await self.jobs.delete(
             reminder_id, kind=LIVE_KIND, user_id=user_id
@@ -194,7 +197,7 @@ class Reminders(Component):
 
     @remind_group.command(name="clear")
     async def remind_clear(self, ctx: Context) -> None:
-        """Delete all your reminders in this channel."""
+        """🧹 Delete all your reminders in this channel."""
         user_id, channel_id = int(ctx.chatter.id), int(ctx.broadcaster.id)
         deleted = [
             *await self.jobs.delete_where(KIND, user_id=user_id, guild_id=channel_id),
@@ -204,7 +207,10 @@ class Reminders(Component):
 
     @remind_group.command(name="tz", aliases=["timezone"])
     async def remind_timezone(self, ctx: Context, *, timezone: str = "") -> None:
-        """Save your timezone for reminders (``!remind tz MSK``), show it (``!remind tz``) or forget it (``clear``)."""
+        """🌍 Save your timezone for reminders, show it, or forget it.
+
+        ``!remind tz MSK`` saves it, ``!remind tz`` shows it, ``!remind tz clear`` forgets it.
+        """
         user_id = int(ctx.chatter.id)
         if not timezone.strip():
             saved = await self.chatter_timezone(user_id)
