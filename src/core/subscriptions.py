@@ -75,12 +75,6 @@ def get_user_subscriptions(
             eventsub.ChannelRaidSubscription(to_broadcaster_user_id=user),
             # ✅ Channel Update (title/game)            No authorization required
             eventsub.ChannelUpdateSubscription(broadcaster_user_id=user),
-            # ✅ Chat clear (/clear)                    user:read:chat from the chatbot, channel:bot from broadcaster
-            eventsub.ChatClearSubscription(broadcaster_user_id=user, user_id=bot),
-            # ✅ Chat clear user messages (ban/timeout) user:read:chat from the chatbot, channel:bot from broadcaster
-            eventsub.ChatClearUserMessagesSubscription(broadcaster_user_id=user, user_id=bot),
-            # ✅ Chat message delete                    user:read:chat from the chatbot, channel:bot from broadcaster
-            eventsub.ChatMessageDeleteSubscription(broadcaster_user_id=user, user_id=bot),
             # ❓ Channel Subscribe (paid)              channel:read:subscriptions
             eventsub.ChannelSubscribeSubscription(broadcaster_user_id=user),
             # ❓ Channel Subscribe Message (paid)       channel:read:subscriptions
