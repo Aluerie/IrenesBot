@@ -28,6 +28,7 @@ class Env(EnvConfig):
     DATABASE_URL: str  # on the VPS, the systemd unit sets it, overriding .env
     SEVEN_TV_BEARER: str
     STV_TOKEN_PAGE_KEY: str
+    OVERLAY_KEY: str = ""  # the chat overlay's `?key=`; while it's empty, the overlay refuses everyone
     TWITCH_BOT_PERSISTENT_COOKIE: str = ""
     STEAM_API_KEY: str
     SPOTIFY_AIDENWALLIS: str

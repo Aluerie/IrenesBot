@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chat Overlay</title>
+<style>
+  /* Tweak the look here. The page is an OBS browser source over the stream, so the background stays transparent. */
+  :root {
+    --font: "Futura No2 D", "Futura", "Century Gothic", "Segoe UI", sans-serif;
+    --font-size: 20px;
+    --emote-height: 28px;
+    --big-emote-height: 56px;
+    --badge-height: 18px;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
+  #chat {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px;
+    font: 600 var(--font-size)/1.45 var(--font);
+    color: #fff;
+    text-shadow: 0 0 2px #000, 0 0 2px #000, 1px 1px 2px #000;
+  }
+  .msg { overflow-wrap: anywhere; }
+  .msg.new { animation: slide-in .25s ease-out; }
+  .msg.gone { animation: fade-out .5s forwards; }
+  .badge { height: var(--badge-height); vertical-align: middle; margin: 0 3px 2px 0; }
+  .name { font-weight: 800; }
+  .action .text { font-style: italic; }
+  .mention { font-weight: 800; }
+  .emote { display: inline-grid; place-items: center; vertical-align: middle; margin: -4px 0; }
+  .emote > * { grid-area: 1 / 1; }
+  .emote img { height: var(--emote-height); }
+  .big .emote img { height: var(--big-emote-height); }
+  @keyframes slide-in { from { opacity: 0; transform: translateY(12px); } }
+  @keyframes fade-out { to { opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="chat"></div>
+<script>
+"use strict";
+// Options, from the page's URL: ?key=...&fade=15 (seconds a message stays; 0 keeps them).
+const params = new URLSearchParams(location.search);
+const KEY = params.get("key") || "";
+const FADE_MS = Number(params.get("fade") ?? 15) * 1000;
+const MAX_MESSAGES = 50;
+const VERSION = "__OVERLAY_VERSION__";  // replaced by the bot; a mismatch on reconnect means a new deploy
+
+const chat = document.getElementById("chat");
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function image(url, name, className) {
+  const img = el("img", className);
+  img.src = url;
+  img.alt = name;
+  img.onerror = () => img.replaceWith(document.createTextNode(name));  // e.g. an image the proxy couldn't get
+  return img;
+}
+
+function render(m) {
+  const line = el("div", "msg" + (m.action ? " action" : "") + (m.big ? " big" : ""));
+  line.dataset.id = m.id;
+  line.dataset.user = m.user_id;
+  for (const badge of m.badges) line.append(image(badge.url, badge.name, "badge"));
+  const name = el("span", "name", m.name);
+  name.style.color = m.colour;
+  line.append(name, m.action ? " " : ": ");
+  const text = el("span", "text");
+  if (m.action) text.style.color = m.colour;
+  for (const part of m.parts) {
+    if (part.type === "emote") {
+      const emote = el("span", "emote");
+      emote.title = part.name;
+      emote.append(image(part.url, part.name));
+      for (const overlay of part.overlays) emote.append(image(overlay.url, overlay.name));
+      text.append(emote);
+    } else {
+      text.append(part.type === "mention" ? el("span", "mention", part.text) : part.text);
+    }
+  }
+  line.append(text);
+  return line;
+}
+
+function remove(line) {
+  if (!line.isConnected || line.classList.contains("gone")) return;
+  line.classList.add("gone");
+  line.addEventListener("animationend", () => line.remove(), { once: true });
+}
+
+function add(m, animate) {
+  const age = Date.now() - m.ts;
+  if (FADE_MS > 0 && age >= FADE_MS) return;
+  const line = render(m);
+  if (animate) line.classList.add("new");
+  chat.append(line);
+  while (chat.children.length > MAX_MESSAGES) chat.firstElementChild.remove();
+  if (FADE_MS > 0) setTimeout(() => remove(line), FADE_MS - age);
+}
+
+function forEachLine(selector, fn) {
+  chat.querySelectorAll(selector).forEach(fn);
+}
+
+let retryDelay = 1000;
+
+function connect() {
+  const scheme = location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(`${scheme}://${location.host}${location.pathname}/ws?key=${encodeURIComponent(KEY)}`);
+  ws.onopen = () => { retryDelay = 1000; };
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    switch (data.type) {
+      case "hello":
+        if (data.version !== VERSION) { location.reload(); return; }
+        chat.replaceChildren();
+        for (const m of data.history) add(m, false);
+        break;
+      case "message":
+        add(data.message, true);
+        break;
+      case "delete":
+        forEachLine(`[data-id="${CSS.escape(data.id)}"]`, (line) => line.remove());
+        break;
+      case "clear_user":
+        forEachLine(`[data-user="${CSS.escape(data.user_id)}"]`, (line) => line.remove());
+        break;
+      case "clear":
+        chat.replaceChildren();
+        break;
+    }
+  };
+  ws.onclose = () => {
+    setTimeout(connect, retryDelay);
+    retryDelay = Math.min(retryDelay * 2, 15000);
+  };
+}
+
+connect();
+</script>
+</body>
+</html>

@@ -30,6 +30,7 @@ dependencies = [
     "pydantic-settings",
     "pygit2",
     "python-dateutil>=2.9.0.post0",
+    "seven-tv-events",
     "steamio",
     "twitchio[starlette]",
     "tzdata>=2026.6",
@@ -41,7 +42,7 @@ dependencies = [
 [tool.uv.sources]
 twitchio = { git = "https://github.com/PythonistaGuild/TwitchIO.git", rev = "main" }
 steamio = { git = "https://github.com/Aluerie/steam.py", rev = "main" }
-stv-event-api = { git = "https://github.com/Aluerie/stv_event_api", rev = "master" }
+seven-tv-events = { git = "https://github.com/Aluerie/seven-tv-events", rev = "main" }
 
 [dependency-groups]
 dev = [{ include-group = "type_lint" }, { include-group = "test" }, "prek"]
